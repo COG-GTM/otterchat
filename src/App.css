@@ -612,6 +612,48 @@
   white-space: nowrap;
 }
 
+/* ---------- Prototype toolbar (non-diegetic) ---------- */
+
+.prototype-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 9999px;
+  background-color: rgba(20, 22, 26, 0.92);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.prototype-toolbar__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prototype-toolbar__button:hover {
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+.prototype-toolbar__label {
+  padding: 0 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* ---------- Floating actions ---------- */
 
 .floating-actions {
