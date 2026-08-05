@@ -695,6 +695,7 @@
   flex: none;
   border-radius: 9999px;
   overflow: hidden;
+  object-fit: cover;
 }
 
 .avatar--square {
