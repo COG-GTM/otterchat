@@ -609,6 +609,7 @@
 }
 
 .rail-footer__copy {
+  margin-left: 8px;
   white-space: nowrap;
 }
 
