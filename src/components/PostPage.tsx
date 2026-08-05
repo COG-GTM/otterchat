@@ -109,7 +109,7 @@ export function PostPage() {
         <p className="post__text">{post.text}</p>
 
         <div className="post__media">
-          <Media {...post.media} maxWidth={345} />
+          <Media {...post.media} />
         </div>
 
         <div className="post__meta">
