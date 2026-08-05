@@ -112,10 +112,10 @@ export const relevantPerson = {
 }
 
 export const trends = [
-  { category: 'Category · Trending', title: 'Placeholder Topic' },
-  { category: 'Category · Trending', title: 'Sample Trend' },
-  { category: 'Category · Trending', title: 'Example Topic' },
-  { category: 'Category · Trending', title: 'Another Trend' },
+  { category: 'Technology · Trending', title: '#MythosGPT42' },
+  { category: 'Trending in Otter Twitter', title: 'holding hands so we don\u2019t drift apart' },
+  { category: 'Only Developers · Trending', title: 'it works on my raft' },
+  { category: 'Aquatics · Trending', title: 'Ship it, otterwise' },
 ]
 
 export const footerLinks = [
