@@ -60,7 +60,7 @@ export function LeftNav() {
           <div className="account-switcher__text">
             <div className="account-switcher__name">
               <span>{currentUser.name}</span>
-              <VerifiedBadge size={17} />
+              <VerifiedBadge size={17} tone={currentUser.verified} />
               <span className="account-switcher__affiliate" aria-hidden="true" />
             </div>
             <div className="account-switcher__handle">{currentUser.handle}</div>

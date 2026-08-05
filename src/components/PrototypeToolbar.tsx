@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BackArrowIcon, ChevronRightIcon } from './Icons'
 
 type Props = {
@@ -7,41 +7,39 @@ type Props = {
 
 type FlowState = { protoStep?: number }
 
-function readStep(): number {
-  const state = window.history.state as FlowState | null
-  return typeof state?.protoStep === 'number' ? state.protoStep : 0
-}
-
 export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
   const [step, setStep] = useState(0)
-  const [maxStep, setMaxStep] = useState(0)
+  const stepRef = useRef(0)
 
-  useEffect(() => {
-    const state = window.history.state as FlowState | null
-    if (typeof state?.protoStep !== 'number') {
-      window.history.replaceState({ ...state, protoStep: 0 }, '')
-    }
-
-    function syncFromHistory() {
-      const current = readStep()
-      setStep(current)
-      setMaxStep((max) => Math.max(max, current))
-    }
-    syncFromHistory()
-
-    window.addEventListener('popstate', syncFromHistory)
-    return () => window.removeEventListener('popstate', syncFromHistory)
+  const apply = useCallback((value: number) => {
+    stepRef.current = value
+    setStep(value)
   }, [])
 
-  function goNext() {
-    if (step < maxStep) {
-      window.history.forward()
-      return
+  useEffect(() => {
+    function sync() {
+      const state = window.history.state as FlowState | null
+      if (typeof state?.protoStep === 'number') {
+        apply(state.protoStep)
+      } else {
+        window.history.replaceState({ ...state, protoStep: stepRef.current }, '')
+      }
     }
-    const target = step + 1
-    window.history.pushState({ protoStep: target }, '')
-    setStep(target)
-    setMaxStep(target)
+    sync()
+
+    window.addEventListener('popstate', sync)
+    window.addEventListener('hashchange', sync)
+    return () => {
+      window.removeEventListener('popstate', sync)
+      window.removeEventListener('hashchange', sync)
+    }
+  }, [apply])
+
+  function goNext() {
+    const target = stepRef.current + 1
+    const state = window.history.state as FlowState | null
+    window.history.pushState({ ...state, protoStep: target }, '')
+    apply(target)
   }
 
   return (
