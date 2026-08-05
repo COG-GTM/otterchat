@@ -61,7 +61,7 @@ export const post = {
     caption: 'Otterchat',
     src: otterchatApp,
     width: 1600,
-    height: 911,
+    height: 992,
   },
   time: '9:00 AM',
   date: 'Aug 5, 2026',
