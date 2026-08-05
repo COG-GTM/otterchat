@@ -2,7 +2,7 @@
 
 Static recreation of an X (Twitter) post detail page: left navigation, post thread with replies, and the right rail (search, relevant people, trends, footer).
 
-All content is generic placeholder data — names, handles, post copy, trends, and images are stand-ins, and images are inline SVG gradients rather than real media.
+All content is placeholder data — post copy, trends, and images are stand-ins, and images are inline SVG gradients rather than real media. The signed-in account (`currentUser` in `src/data.ts`) is a named sample user for demo purposes.
 
 ## Stack
 

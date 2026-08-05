@@ -642,8 +642,13 @@
   font-weight: 600;
 }
 
-.prototype-toolbar__button:hover {
+.prototype-toolbar__button:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.24);
+}
+
+.prototype-toolbar__button:disabled {
+  color: rgba(255, 255, 255, 0.4);
+  cursor: default;
 }
 
 .prototype-toolbar__label {

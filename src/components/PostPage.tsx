@@ -122,19 +122,19 @@ export function PostPage() {
         </div>
 
         <div className="post__actions">
-          <button className="action action--reply" type="button">
+          <button className="action action--reply" type="button" aria-label="Reply">
             <ReplyIcon size={21} />
             <span>{post.replies}</span>
           </button>
-          <button className="action action--repost" type="button">
+          <button className="action action--repost" type="button" aria-label="Repost">
             <RepostIcon size={21} />
             <span>{post.reposts}</span>
           </button>
-          <button className="action action--like" type="button">
+          <button className="action action--like" type="button" aria-label="Like">
             <LikeIcon size={21} />
             <span>{post.likes}</span>
           </button>
-          <button className="action action--bookmark" type="button">
+          <button className="action action--bookmark" type="button" aria-label="Bookmark">
             <BookmarkIcon size={21} />
             <span>{post.bookmarks}</span>
           </button>
