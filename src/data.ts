@@ -21,9 +21,9 @@ export type Reply = {
 }
 
 export const currentUser: Account = {
-  name: 'Sample User',
-  handle: '@sampleuser',
-  initials: 'SU',
+  name: 'Scott Wu',
+  handle: '@scottwu',
+  initials: 'SW',
   avatarFrom: '#8ecae6',
   avatarTo: '#219ebc',
   verified: 'blue',
