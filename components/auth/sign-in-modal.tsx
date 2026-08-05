@@ -1,9 +1,8 @@
 "use client";
 
-import { LockKeyholeIcon } from "lucide-react";
+import { LockKeyholeIcon, MailIcon } from "lucide-react";
+import { NeonAuthForm } from "@/components/auth/neon-auth-form";
 import { PasswordSignInForm } from "@/components/auth/password-sign-in-form";
-import { SignInButton } from "@/components/auth/sign-in-button";
-import { VercelIcon } from "@/components/icons";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +37,7 @@ export function SignInModal({
             {usesPassword ? (
               <LockKeyholeIcon className="size-4 text-foreground" />
             ) : (
-              <VercelIcon className="size-4 text-foreground" />
+              <MailIcon className="size-4 text-foreground" />
             )}
           </div>
           <DialogTitle>
@@ -47,7 +46,7 @@ export function SignInModal({
           <DialogDescription>
             {usesPassword
               ? "Use the password configured by the person who deployed this agent."
-              : "Connect your Vercel account to send messages and save sessions."}
+              : "Sign in with your email to send messages and save sessions."}
           </DialogDescription>
         </DialogHeader>
         {usesPassword ? (
@@ -56,15 +55,11 @@ export function SignInModal({
             onBeforeSignIn={onBeforeSignIn}
           />
         ) : (
-          <SignInButton
+          <NeonAuthForm
             callbackPath={callbackPath}
-            className="h-11 w-full"
             disabled={disabled}
             onBeforeSignIn={onBeforeSignIn}
-            variant="outline"
-          >
-            Continue with Vercel
-          </SignInButton>
+          />
         )}
       </DialogContent>
     </Dialog>

@@ -14,7 +14,6 @@ import {
   AuthDisplayLoggedOut,
 } from "@/components/auth/auth-display";
 import { UserMenu } from "@/components/auth/user-menu";
-import { VercelIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,7 +24,7 @@ import {
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
 
-const activeRowClass = "bg-muted/50 text-foreground hover:bg-muted/60";
+const activeRowClass = "bg-primary/20 font-medium text-foreground hover:bg-primary/25";
 const inactiveRowClass = "text-muted-foreground hover:bg-muted/50 hover:text-foreground";
 
 export function ChatSidebar({
@@ -95,14 +94,20 @@ export function ChatSidebar({
         <div className="flex items-center justify-between">
           <button
             aria-label="New session"
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            className="flex h-8 items-center gap-2 rounded-[8px] px-1.5 transition-colors hover:bg-muted/60"
             onClick={() => {
               onNewChat();
               onNavigate?.(null);
             }}
             type="button"
           >
-            <VercelIcon className="size-3.5 text-foreground" />
+            <img
+              alt=""
+              className="size-5 select-none"
+              draggable={false}
+              src="/logo.svg"
+            />
+            <span className="text-sm font-semibold text-foreground">otterchat</span>
           </button>
           {onToggleSidebar ? (
             <Button
@@ -119,8 +124,8 @@ export function ChatSidebar({
         </div>
         <button
           className={cn(
-            "flex h-8 items-center gap-2 rounded-md px-2 text-left text-sm transition-colors",
-            newSessionActive ? activeRowClass : inactiveRowClass,
+            "flex h-8 items-center gap-2 rounded-[8px] px-2 text-left text-sm font-medium text-primary transition-colors",
+            newSessionActive ? "bg-primary/20 hover:bg-primary/25" : "bg-primary/10 hover:bg-primary/20",
           )}
           onClick={() => {
             onNewChat();
@@ -136,13 +141,16 @@ export function ChatSidebar({
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {chats.length ? (
           <div>
+            <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground/80">
+              Recents
+            </p>
             {chats.map((chat) => {
               const active = activeChatId === chat.id;
 
               return (
                 <div
                   className={cn(
-                    "group/session relative mb-0.5 rounded-md transition-colors hover:bg-muted/50 hover:text-foreground",
+                    "group/session relative mb-0.5 rounded-[8px] transition-colors",
                     active ? activeRowClass : inactiveRowClass,
                   )}
                   key={chat.id}
@@ -159,7 +167,7 @@ export function ChatSidebar({
                     <DropdownMenuTrigger asChild>
                       <Button
                         aria-label="Chat actions"
-                        className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 transition-opacity hover:bg-muted group-hover/session:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 rounded-full border border-border/60 bg-background opacity-0 shadow-xs transition-opacity hover:bg-muted group-hover/session:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
                         size="icon-xs"
                         type="button"
                         variant="ghost"
@@ -167,7 +175,7 @@ export function ChatSidebar({
                         <EllipsisIcon className="size-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" sideOffset={6}>
+                    <DropdownMenuContent align="end" sideOffset={2}>
                       <DropdownMenuItem
                         onSelect={(event) => {
                           event.preventDefault();

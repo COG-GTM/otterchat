@@ -1,5 +1,6 @@
 import { defineAgent } from "eve";
 
 export default defineAgent({
-  model: "anthropic/claude-sonnet-5",
+  model: "deepseek/deepseek-v4-flash",
+  reasoning: "none",
 });

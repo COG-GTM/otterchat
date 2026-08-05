@@ -28,14 +28,12 @@ export async function getServerViewer(setupStatus?: SetupStatus): Promise<Viewer
     return getPasswordSessionFromHeaders(requestHeaders) ? PASSWORD_VIEWER : null;
   }
 
-  if (status.authMode !== "vercel") {
+  if (status.authMode !== "neon") {
     return null;
   }
 
   try {
-    const session = await auth.api.getSession({
-      headers: requestHeaders,
-    });
+    const { data: session } = await auth.getSession();
 
     if (!session?.user) {
       return null;

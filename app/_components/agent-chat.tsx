@@ -21,16 +21,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  useChatShell,
-  type EnabledConnections,
-} from "@/app/_components/chat-shell-context";
+import { useChatShell } from "@/app/_components/chat-shell-context";
 import {
   ChatConversation,
   ChatConversationContent,
   ChatScrollButton,
 } from "@/components/chat/conversation";
-import { IntegrationsMenu } from "@/components/chat/integrations-menu";
 import { AgentMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -679,7 +675,6 @@ export function AgentChatSession({
 }) {
   const {
     activeChatId: shellActiveChatId,
-    enabledConnections,
     requestSignIn,
     setActiveChatId: setShellActiveChatId,
     setupStatus,
@@ -1096,13 +1091,7 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
-        await agent.send({
-          clientContext: createConnectionClientContext(
-            enabledConnections,
-            setupStatus.connectionsAvailable,
-          ),
-          message,
-        });
+        await agent.send({ message });
       } catch (error) {
         if (isAbortError(error)) {
           return;
@@ -1117,14 +1106,12 @@ export function AgentChatSession({
       agent,
       clearLocalPendingUserMessage,
       disabledReason,
-      enabledConnections,
       isSetupReady,
       isTurnBlocked,
       isWaitingForAuthorization,
       prepareSend,
       requestSignIn,
       setLocalPendingUserMessage,
-      setupStatus.connectionsAvailable,
       startFinalizingTurn,
       storageMode,
       stopFinalizingTurn,
@@ -1948,43 +1935,6 @@ function usePendingUserMessage() {
   return { clearMessage, message, messageRef, setMessage };
 }
 
-const CONNECTION_LABELS = {
-  linear: "Linear",
-  notion: "Notion",
-  sentry: "Sentry",
-} satisfies Record<keyof EnabledConnections, string>;
-
-function createConnectionClientContext(
-  enabledConnections: EnabledConnections,
-  connectionsAvailable: boolean,
-) {
-  if (!connectionsAvailable) {
-    return "No external connections are configured. Do not search or call connection tools.";
-  }
-
-  const entries = Object.entries(CONNECTION_LABELS) as [
-    keyof EnabledConnections,
-    string,
-  ][];
-  const enabled = entries
-    .filter(([connection]) => enabledConnections[connection])
-    .map(([, label]) => label);
-  const disabled = entries
-    .filter(([connection]) => !enabledConnections[connection])
-    .map(([, label]) => label);
-
-  if (enabled.length > 0) {
-    const disabledContext =
-      disabled.length > 0
-        ? ` Do not use disabled connections unless the user enables them first: ${disabled.join(", ")}.`
-        : "";
-
-    return `The user has enabled these external connections for this turn: ${enabled.join(", ")}. Use an enabled connection when it is relevant to the user's request.${disabledContext}`;
-  }
-
-  return "The user has disabled all external connections for this turn. Do not search or call connection tools unless the user enables a connection first.";
-}
-
 function useThinkingPresence(active: boolean) {
   const [shouldRender, setShouldRender] = useState(active);
   const [isVisible, setIsVisible] = useState(active);
@@ -2048,10 +1998,10 @@ export function EmptyChatBody({ composer }: { readonly composer?: ReactNode }) {
         <div className="w-full max-w-2xl space-y-8 sm:space-y-10 md:space-y-12">
           <h1 className="flex justify-center">
             <img
-              alt="eve"
-              className="size-16 select-none invert sm:size-20 md:size-24 dark:invert-0"
+              alt="otterchat"
+              className="size-16 select-none sm:size-20 md:size-24"
               draggable={false}
-              src="/eve.svg"
+              src="/logo.svg"
             />
           </h1>
           {composer}
@@ -2098,18 +2048,9 @@ export function ComposerFooterControls({
 }: {
   readonly setupStatus: SetupStatus;
 }) {
-  const { enabledConnections, setConnectionEnabled } = useChatShell();
-
   return (
     <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden">
       <ComposerHint setupStatus={setupStatus} />
-      {setupStatus.connectionsAvailable ? (
-        <IntegrationsMenu
-          enabledConnections={enabledConnections}
-          onConnectionEnabledChange={setConnectionEnabled}
-          setupStatus={setupStatus}
-        />
-      ) : null}
     </div>
   );
 }

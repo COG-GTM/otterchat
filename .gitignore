@@ -12,3 +12,6 @@ dist
 .DS_Store
 *.tsbuildinfo
 .env*.local
+
+# Sentry Config File
+.env.sentry-build-plugin

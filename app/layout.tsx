@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -8,14 +8,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const title = "eve Chat Template";
-const description = "Build your own chat agent with eve.";
-const ogImage = {
-  alt: title,
-  height: 630,
-  url: "/eve-chat-template-og.png",
-  width: 1200,
-};
+const title = "otterchat";
+const description = "otterchat, a chat agent built with eve.";
 
 function resolveMetadataBase() {
   const configuredUrl =
@@ -30,14 +24,14 @@ function resolveMetadataBase() {
   return new URL(configuredUrl.startsWith("http") ? configuredUrl : `https://${configuredUrl}`);
 }
 
-const geistSans = Geist({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
+  variable: "--font-plus-jakarta",
 });
 
-const geistMono = Geist_Mono({
+const robotoMono = Roboto_Mono({
   subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-roboto-mono",
 });
 
 export const metadata: Metadata = {
@@ -53,7 +47,6 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
-    images: [ogImage],
     siteName: title,
     type: "website",
   },
@@ -61,7 +54,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: [ogImage],
   },
 };
 
@@ -86,7 +78,7 @@ const themeScript = `
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${plusJakartaSans.variable} ${robotoMono.variable}`}
       lang="en"
       suppressHydrationWarning
     >
@@ -94,7 +86,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} id="theme-init" />
         <AuthDisplayPreHydrationHead />
       </head>
-      <body className={`${geistSans.className} antialiased`}>
+      <body className={`${plusJakartaSans.className} antialiased`}>
         <ThemeProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>

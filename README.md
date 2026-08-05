@@ -1,6 +1,6 @@
 # eve Chat Template
 
-A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Sign in with Vercel, Neon, and Upstash when you need a production multi-user application.
+A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Neon Auth, Neon, and Upstash when you need a production multi-user application.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?project-name=eve-chat-template&repository-name=eve-chat-template&repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Ftree%2Fmain&env=EVE_CHAT_PASSWORD&envDescription=Choose+a+strong+password+to+protect+your+agent+%2816%2B+characters+recommended%29.&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Fblob%2Fmain%2Fdocs%2Fsetup-and-deploy.md)
 
@@ -21,7 +21,7 @@ shares the same agent identity and connection grants.
 | Mode | Selected when | Authentication | Chat persistence |
 | --- | --- | --- | --- |
 | Starter | `EVE_CHAT_PASSWORD` is configured | Shared password and secure session cookie | Browser localStorage |
-| Production | Neon, Upstash, and all Sign in with Vercel variables are configured | Sign in with Vercel | Neon |
+| Production | Neon, Upstash, and Neon Auth variables are configured | Neon Auth (email/password and social) | Neon |
 | Local development | Neither mode is configured and `next dev` is running locally | Local development identity | Browser localStorage |
 
 Production mode takes precedence when its complete environment is present. The app fails closed in a production deployment when neither mode is configured. See [Setup and Deployment](docs/setup-and-deploy.md) for the upgrade path.
@@ -48,7 +48,7 @@ To require the same password locally, put this in `.env.local`:
 EVE_CHAT_PASSWORD=<at-least-16-characters>
 ```
 
-To upgrade the linked project to production mode, run the setup script. It provisions Neon and Upstash, registers Sign in with Vercel, pulls environment variables, and runs migrations:
+To upgrade the linked project to production mode, run the setup script. It provisions Neon (Postgres + Auth) and Upstash, pulls environment variables, and runs migrations:
 
 ```bash
 ./scripts/setup.sh
@@ -59,9 +59,8 @@ Production mode requires:
 
 ```bash
 DATABASE_URL=
-BETTER_AUTH_SECRET=
-NEXT_PUBLIC_VERCEL_APP_CLIENT_ID=
-VERCEL_APP_CLIENT_SECRET=
+NEON_AUTH_BASE_URL=
+NEON_AUTH_COOKIE_SECRET=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 KV_REST_API_URL=
@@ -71,9 +70,6 @@ KV_REST_API_TOKEN=
 Other optional environment variables:
 
 ```bash
-# Override the app origin for custom production domains.
-BETTER_AUTH_URL=
-
 # Enable hosted Vercel Connect integrations.
 SLACK_CONNECTOR=
 LINEAR_CONNECTOR=
@@ -127,7 +123,7 @@ pnpm dev
 
 - Text chat with an eve agent through same-origin `/eve/v1/*` routes
 - Password access with browser-backed chat history by default
-- Optional Better Auth sign-in with Vercel
+- Optional Neon Auth (managed Better Auth) sign-in
 - Optional Neon-backed cross-device chat history
 - Optional Upstash Redis rate limiting in production mode
 - Drizzle schema and migrations for production mode under `lib/db`

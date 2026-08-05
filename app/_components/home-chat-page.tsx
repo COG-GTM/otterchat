@@ -9,7 +9,7 @@ import {
 } from "@/app/_components/agent-chat";
 import { useChatShell } from "@/app/_components/chat-shell-context";
 import { ChatComposer } from "@/components/chat/composer";
-import { TemplateFooterLinks } from "@/components/chat/template-footer-links";
+import MarqueePromptsDemo from "@/components/shadcn-space/marquee/marquee-02";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
 import {
   createProvisionalChatId,
@@ -127,6 +127,18 @@ export function HomeChatPage() {
     ],
   );
 
+  const handlePromptSelect = useCallback((prompt: string) => {
+    setDraft(prompt);
+
+    window.requestAnimationFrame(() => {
+      const input = document.querySelector<HTMLTextAreaElement>(
+        "[data-chat-composer-input]",
+      );
+      input?.focus({ preventScroll: true });
+      input?.setSelectionRange(prompt.length, prompt.length);
+    });
+  }, []);
+
   const composerDisabled = !setupReady;
   const composerDisabledReason = getHomeComposerDisabledReason({
     setupStatus,
@@ -151,10 +163,10 @@ export function HomeChatPage() {
           <div className="w-full max-w-2xl space-y-5 sm:space-y-7 md:space-y-8">
             <h1 className="flex justify-center">
               <img
-                alt="eve"
-                className="size-16 select-none invert sm:size-20 md:size-24 dark:invert-0"
+                alt="otterchat"
+                className="size-16 select-none sm:size-20 md:size-24"
                 draggable={false}
-                src="/eve.svg"
+                src="/logo.svg"
               />
             </h1>
             <ChatComposer
@@ -170,9 +182,9 @@ export function HomeChatPage() {
               placeholder="Ask anything..."
               value={draft}
             />
+            <MarqueePromptsDemo onSelect={handlePromptSelect} />
           </div>
         </div>
-        <TemplateFooterLinks />
       </div>
     </div>
   );

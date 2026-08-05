@@ -3,15 +3,8 @@ import { isDatabaseConfigured, isDatabaseSchemaReady } from "@/lib/db/client";
 
 const PASSWORD_ENV_KEY = "EVE_CHAT_PASSWORD";
 const AUTH_ENV_KEYS = [
-  "BETTER_AUTH_SECRET",
-  "NEXT_PUBLIC_VERCEL_APP_CLIENT_ID",
-  "VERCEL_APP_CLIENT_SECRET",
-] as const;
-
-const CONNECTION_ENV_KEYS = [
-  "LINEAR_CONNECTOR",
-  "NOTION_CONNECTOR",
-  "SENTRY_CONNECTOR",
+  "NEON_AUTH_BASE_URL",
+  "NEON_AUTH_COOKIE_SECRET",
 ] as const;
 
 const RATE_LIMIT_ENV_GROUPS = [
@@ -64,21 +57,18 @@ function createSetupStatus({
   readonly databaseSchemaReady: boolean;
 }): SetupStatus {
   const databaseConfigured = isDatabaseConfigured();
-  const vercelAuthReady = isAuthConfigured();
+  const neonAuthReady = isAuthConfigured();
   const rateLimitReady = isRateLimitConfigured();
   const databaseReady = databaseConfigured && databaseSchemaReady;
-  const fullEnvironmentReady = databaseConfigured && vercelAuthReady && rateLimitReady;
+  const fullEnvironmentReady = databaseConfigured && neonAuthReady && rateLimitReady;
   const passwordReady = isPasswordConfigured();
   const localDevReady = isLocalDevelopment();
-  const connectionsAvailable =
-    localDevReady || CONNECTION_ENV_KEYS.some(hasEnv);
 
   if (fullEnvironmentReady) {
     return {
       appReady: databaseReady,
-      authMode: "vercel",
-      authReady: vercelAuthReady,
-      connectionsAvailable,
+      authMode: "neon",
+      authReady: neonAuthReady,
       databaseConfigured,
       databaseReady,
       databaseSchemaReady,
@@ -93,7 +83,6 @@ function createSetupStatus({
       appReady: true,
       authMode: passwordReady ? "password" : "local-dev",
       authReady: true,
-      connectionsAvailable,
       databaseConfigured,
       databaseReady,
       databaseSchemaReady,
@@ -107,13 +96,12 @@ function createSetupStatus({
     appReady: false,
     authMode: "unconfigured",
     authReady: false,
-    connectionsAvailable,
     databaseConfigured,
     databaseReady,
     databaseSchemaReady,
     missing: [
       PASSWORD_ENV_KEY,
-      "or DATABASE_URL, Better Auth/Vercel OAuth, and Upstash configuration",
+      "or DATABASE_URL, Neon Auth, and Upstash configuration",
     ],
     rateLimitReady,
     storageMode: "browser",

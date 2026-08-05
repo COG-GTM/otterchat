@@ -21,7 +21,7 @@ Use this skill to preserve the Eve protocol and durable-session invariants while
 - Treat an app chat row and an Eve session as different things. The app row owns URL, title, user ownership, `pendingUserMessage`, stored `eveSession`, and event rows. Eve owns the remote durable session and stream cursor.
 - Do not confuse `chat_event.eventIndex` with `SessionState.streamIndex`. The first orders local Postgres rows; the second resumes `/eve/v1/session/:sessionId/stream`.
 - Preserve same-origin Eve routes mounted by `withEve(nextConfig)`: `POST /eve/v1/session`, `POST /eve/v1/session/:sessionId`, and `GET /eve/v1/session/:sessionId/stream?startIndex=n`.
-- Keep `betterAuthEveAuth`, `localDev()`, and `vercelOidc()` in the Eve channel unless deliberately changing local, browser, or Vercel auth behavior.
+- Keep `neonAuthEveAuth`, `localDev()`, and `vercelOidc()` in the Eve channel unless deliberately changing local, browser, or Vercel auth behavior.
 
 ## Persistence And Resume
 

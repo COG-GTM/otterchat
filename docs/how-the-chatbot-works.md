@@ -25,10 +25,6 @@ Important files:
 | --- | --- |
 | `agent/agent.ts` | Defines the eve agent and model. |
 | `agent/channels/eve.ts` | Configures the eve web channel and auth adapters. |
-| `agent/channels/slack.ts` | Configures the Slack channel route and Vercel Connect credentials. |
-| `agent/connections/notion.ts` | Defines the Notion MCP connection through Vercel Connect. |
-| `agent/connections/linear.ts` | Defines the Linear MCP connection through Vercel Connect. |
-| `agent/connections/sentry.ts` | Defines the Sentry MCP connection through Vercel Connect. |
 | `next.config.ts` | Wraps the app with `withEve(nextConfig)`, which mounts the `/eve/v1/*` routes. |
 | `app/(chat)/layout.tsx` | Renders the static chat shell immediately, then streams viewer/setup/sidebar data through Suspense. |
 | `app/(chat)/page.tsx` | Root chat screen. Creates a new chat row and navigates into `/chat/[id]`. |
@@ -40,17 +36,16 @@ Important files:
 | `components/chat/composer.tsx` | The controlled chat input. |
 | `components/chat/message.tsx` | Renders eve messages, markdown, reasoning, tools, and input requests. |
 | `components/chat/sidebar.tsx` | Paginated chat history sidebar. |
-| `components/chat/integrations-menu.tsx` | Per-turn connection toggle UI. |
 | `app/actions/chat.ts` | Server actions for chat creation, persistence, pending state, skip auth, and rate checks. |
 | `app/api/chats/route.ts` | Paginated chat history endpoint. |
 | `lib/chat/local-store.ts` | Versioned browser storage for starter-mode chats and eve session cursors. |
 | `lib/chat/persistence-client.ts` | Routes client persistence calls to browser or database storage. |
-| `lib/db/schema.ts` | Drizzle tables for Better Auth, chats, and chat events. |
+| `lib/db/schema.ts` | Drizzle tables for chats and chat events. |
 | `lib/db/queries.ts` | Chat list, chat load, event save, snapshot save, and delete queries. |
 | `lib/setup.ts` | Selects starter, local development, or production mode and validates readiness. |
-| `lib/auth.ts` | Better Auth configuration with Sign in with Vercel. |
+| `lib/auth.ts` | Neon Auth (managed Better Auth) server instance. |
 | `lib/password-auth.ts` | Shared-password verification and stateless signed session cookies. |
-| `lib/eve-auth.ts` | Converts password or Better Auth sessions into eve channel principals. |
+| `lib/eve-auth.ts` | Converts password or Neon Auth sessions into eve channel principals. |
 | `lib/rate-limit.ts` | Upstash Redis based fixed-window rate limiting. |
 
 ## Runtime Model
@@ -114,7 +109,7 @@ without waiting for the database or auth session. Then `ResolvedChatBootstrap`
 fetches:
 
 - setup readiness from `getSetupStatus()`
-- the password, local-development, or Better Auth viewer from `getServerViewer(setupStatus)`
+- the password, local-development, or Neon Auth viewer from `getServerViewer(setupStatus)`
 - the first page of database chat history in production mode
 
 In starter mode, the client reads sidebar history from browser storage after
@@ -160,7 +155,6 @@ State it owns:
 - viewer
 - setup status
 - auth modal state
-- enabled connection toggles
 
 The desktop open/closed state is persisted in a cookie:
 
@@ -366,7 +360,7 @@ The intended order is:
 4. Render an optimistic user bubble immediately when possible.
 5. Run `prepareSend(message)`.
 6. Mark the chat row with `pendingUserMessage`.
-7. Call `agent.send({ message, clientContext })`.
+7. Call `agent.send({ message })`.
 8. Let `useEveAgent`, `onEvent`, and `onFinish` handle streaming and
    persistence.
 
@@ -505,8 +499,10 @@ snapshot catches up.
 
 ## Authorization Flow For Connections
 
-Connections are not string-parsed from assistant text. eve emits structured
-authorization events.
+eve supports MCP connections that require OAuth authorization. The template no
+longer ships any connections by default, but the app code still handles eve's
+structured authorization protocol. Authorization is not string-parsed from
+assistant text; eve emits structured authorization events.
 
 When a connection requires auth, eve emits:
 
@@ -555,50 +551,6 @@ Skip is a local way to end the authorization wait without connecting the service
 That means "skip" ends the current turn. The next normal user message should
 start a fresh turn with the updated context.
 
-## Connections Menu
-
-The composer footer contains `ComposerFooterControls`, which renders
-`IntegrationsMenu`.
-
-Right now the only user-visible connection toggle is Notion. The toggle state is
-kept in `AgentChatShell` as:
-
-```ts
-enabledConnections = { notion: true }
-```
-
-When a message is sent, the app passes a natural-language `clientContext` to
-eve:
-
-```ts
-createConnectionClientContext(enabledConnections)
-```
-
-If a connection is enabled, the context tells eve which of Notion, Linear, and
-Sentry the user enabled for this turn. Disabled connections are called out so
-the model does not use them unless the user enables them first.
-
-This toggle does not provision, create, or revoke a Vercel Connect connector. It
-only controls per-turn agent behavior.
-
-The actual MCP connectors are configured in `agent/connections/*.ts`. For
-example, Notion is configured in `agent/connections/notion.ts`:
-
-```ts
-const notionConnector = process.env.NOTION_CONNECTOR ?? "notion";
-
-export default defineMcpClientConnection({
-  url: "https://mcp.notion.com/mcp",
-  description: "Notion workspace: search and edit pages and databases.",
-  auth: connect(notionConnector),
-});
-```
-
-For production, set `NOTION_CONNECTOR`, `LINEAR_CONNECTOR`, and
-`SENTRY_CONNECTOR` to the returned Vercel Connect connector UIDs. For local
-development, connectors created with `--name notion`, `--name linear`, and
-`--name sentry` match the fallback names.
-
 ## Auth
 
 Starter mode uses a shared deployment password. The login route verifies
@@ -606,25 +558,17 @@ Starter mode uses a shared deployment password. The login route verifies
 database. `lib/session.ts` and `lib/eve-auth.ts` verify the same cookie for the
 Next.js UI and eve route boundary.
 
-Production mode uses Better Auth with Sign in with Vercel.
+Production mode uses Neon Auth (managed Better Auth). Users, sessions, and auth
+configuration live in the Neon database under the `neon_auth` schema, and the
+app proxies auth requests through `/api/auth` to the Neon Auth service.
 
-`lib/auth-url.ts` resolves the base app URL in this order:
+`lib/auth.ts` creates the Neon Auth server instance with:
 
-1. `BETTER_AUTH_URL`
-2. `VERCEL_PROJECT_PRODUCTION_URL`
-3. `VERCEL_URL`
-4. `http://localhost:3000`
-
-`lib/auth.ts` configures Better Auth with:
-
-- Drizzle adapter
-- encrypted OAuth tokens
-- Vercel social provider
-- required scopes: `openid`, `email`, `profile`
-- `/auth/error` as the error page
+- `NEON_AUTH_BASE_URL` as the upstream auth service URL
+- `NEON_AUTH_COOKIE_SECRET` for signing session cookies
 
 `lib/session.ts` returns a safe `Viewer` object for server components. It returns
-the shared starter viewer, local development viewer, or Vercel user depending
+the shared starter viewer, local development viewer, or Neon Auth user depending
 on the selected mode.
 
 `lib/eve-auth.ts` adapts the selected app session into an eve channel principal.
@@ -644,7 +588,7 @@ Production mode uses:
 
 `agent/channels/eve.ts` allows:
 
-- `betterAuthEveAuth`
+- `neonAuthEveAuth`
 - `passwordEveAuth`
 - `vercelOidc()`
 - `localDev()`
@@ -659,7 +603,7 @@ with Vercel OIDC contexts.
 ```ts
 type SetupStatus = {
   appReady: boolean;
-  authMode: "local-dev" | "password" | "unconfigured" | "vercel";
+  authMode: "local-dev" | "neon" | "password" | "unconfigured";
   authReady: boolean;
   databaseConfigured: boolean;
   databaseReady: boolean;
@@ -677,17 +621,13 @@ selected when all of these are configured:
 
 - `DATABASE_URL` exists
 - database migrations have created the expected tables
-- Better Auth env vars are present
+- Neon Auth env vars are present
 - Upstash Redis env vars are present
 
 Production mode then checks whether these Postgres tables exist:
 
-- `account`
 - `chat`
 - `chat_event`
-- `session`
-- `user`
-- `verification`
 
 The UI uses setup status in three places:
 
@@ -796,9 +736,8 @@ That keeps errors from pushing the composer or chat body around.
 Common setup errors:
 
 - missing or short `EVE_CHAT_PASSWORD` in starter mode
-- incomplete Neon, Better Auth/Vercel OAuth, or Upstash configuration
+- incomplete Neon, Neon Auth, or Upstash configuration
 - production migrations not run
-- Vercel OAuth app missing the `email` scope
 
 Common stream errors:
 
@@ -854,32 +793,23 @@ decisions when tool parts contain predictable JSON instead of prose-only output.
 
 ## Adding A New Connection
 
-To add another Vercel Connect-backed MCP connection:
-
-1. Add `agent/connections/<name>.ts`.
-2. Use `defineMcpClientConnection`.
-3. Use `connect(process.env.<ENV_NAME> ?? "<local-name>")`.
-4. Add deploy/docs instructions for provisioning that connector.
-5. Extend `EnabledConnections` in `chat-shell-context.tsx`.
-6. Add a toggle in `IntegrationsMenu`.
-7. Update `createConnectionClientContext` so eve receives per-turn intent.
-8. Verify auth-required events render correctly.
+The template does not ship any MCP connections by default. If you add one,
+define it with eve's `defineMcpClientConnection` following the eve framework
+docs, and verify that auth-required events render correctly in the chat UI.
 
 Do not parse assistant text to detect auth requirements. Rely on
 `authorization.required` and `authorization.completed` events.
 
 ## Adding A New Channel
 
-This template exposes a web chat channel through `agent/channels/eve.ts`, a
-Slack channel through `agent/channels/slack.ts`, and the `withEve` Next.js
-integration.
+This template exposes a web chat channel through `agent/channels/eve.ts` and
+the `withEve` Next.js integration.
 
 If you add another channel, keep this separation:
 
 - channel-specific webhook or transport code belongs in `agent/channels/`
 - web chat UI state belongs in `app/_components/` and `components/chat/`
-- cross-channel agent behavior belongs in `agent/instructions.md`, tools, and
-  connections
+- cross-channel agent behavior belongs in `agent/instructions.md` and tools
 
 The web chat persistence code is intentionally tied to the browser experience.
 Do not reuse it as a generic state adapter for every channel without checking

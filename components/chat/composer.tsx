@@ -132,7 +132,7 @@ export function ChatComposer({
           ) : isPreparing ? (
             <Button
               aria-label="Preparing chat"
-              className="size-6 rounded-md bg-foreground/75 text-background"
+              className="size-6 rounded-md bg-primary/75 text-primary-foreground"
               disabled
               size="icon-xs"
               type="button"
@@ -142,7 +142,7 @@ export function ChatComposer({
           ) : (
             <Button
               aria-label="Send message"
-              className="size-6 cursor-pointer rounded-md bg-foreground text-background hover:bg-foreground/90 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:opacity-30"
+              className="size-6 cursor-pointer rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:pointer-events-auto disabled:opacity-30"
               disabled={disabled || trimmedValue.length === 0 || isOverMaxLength}
               size="icon-xs"
               type="submit"

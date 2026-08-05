@@ -1,16 +1,11 @@
 import {
   ArrowUpIcon,
-  HammerIcon,
   MenuIcon,
   PanelLeftIcon,
   PlusIcon,
 } from "lucide-react";
-import { TemplateFooterLinks } from "@/components/chat/template-footer-links";
-import { VercelIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-const activeRowClass = "bg-muted/50 text-foreground";
-const inactiveRowClass = "text-muted-foreground";
 
 export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
   const isNew = mode === "new";
@@ -25,8 +20,14 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
       <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-border bg-background md:flex">
         <div className="flex flex-col gap-1 px-2 pt-2 pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex size-8 items-center justify-center rounded-md">
-              <VercelIcon className="size-3.5 text-foreground" />
+            <div className="flex h-8 items-center gap-2 rounded-md px-1.5">
+              <img
+                alt=""
+                className="size-5 select-none"
+                draggable={false}
+                src="/logo.svg"
+              />
+              <span className="text-sm font-semibold text-foreground">otterchat</span>
             </div>
             <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground/55">
               <PanelLeftIcon className="size-4" />
@@ -34,8 +35,8 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
           </div>
           <div
             className={cn(
-              "flex h-8 items-center gap-2 rounded-md px-2 text-sm",
-              isNew ? activeRowClass : inactiveRowClass,
+              "flex h-8 items-center gap-2 rounded-[8px] px-2 text-sm font-medium text-primary",
+              isNew ? "bg-primary/20" : "bg-primary/10",
             )}
           >
             <PlusIcon className="size-4" />
@@ -43,13 +44,18 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
           </div>
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-hidden px-2 py-2">
+        <div className="flex-1 overflow-y-hidden px-2 py-2">
           {isNew ? null : (
-            <>
-              <div className="h-8 rounded-md bg-muted/50" />
-              <div className="h-8 rounded-md bg-muted/25" />
-              <div className="h-8 rounded-md bg-muted/20" />
-            </>
+            <div>
+              <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground/80">
+                Recents
+              </p>
+              <div className="space-y-0.5">
+                <div className="h-8 rounded-[8px] bg-muted/50" />
+                <div className="h-8 rounded-[8px] bg-muted/25" />
+                <div className="h-8 rounded-[8px] bg-muted/20" />
+              </div>
+            </div>
           )}
         </div>
 
@@ -72,11 +78,6 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
         </div>
 
         <AgentChatContentSkeleton mode={mode} />
-        {isNew ? (
-          <div className="shrink-0 pb-4 sm:pb-6">
-            <TemplateFooterLinks />
-          </div>
-        ) : null}
       </main>
     </div>
   );
@@ -94,9 +95,9 @@ function EmptyChatSkeleton() {
           <h1 className="flex justify-center">
             <img
               alt=""
-              className="size-16 select-none invert sm:size-20 md:size-24 dark:invert-0"
+              className="size-16 select-none sm:size-20 md:size-24"
               draggable={false}
-              src="/eve.svg"
+              src="/logo.svg"
             />
           </h1>
           <div className="mx-auto w-full max-w-2xl px-4 sm:px-6">
@@ -145,13 +146,9 @@ function StaticComposerFallback() {
         Ask anything...
       </div>
       <div className="flex min-h-9 items-center justify-between gap-2 px-3 pt-1 pb-2 sm:gap-3 sm:px-4">
-        <div className="-ml-2 flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground/80 dark:text-muted-foreground/50">
-            <HammerIcon className="size-4 shrink-0" />
-          </span>
-        </div>
+        <div className="-ml-2 flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden" />
         <div className="flex shrink-0 items-center">
-          <span className="inline-flex size-6 items-center justify-center rounded-md bg-foreground/55 text-background">
+          <span className="inline-flex size-6 items-center justify-center rounded-md bg-primary/55 text-primary-foreground">
             <ArrowUpIcon className="size-3.5" />
           </span>
         </div>

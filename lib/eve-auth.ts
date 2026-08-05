@@ -1,35 +1,104 @@
 import type { AuthFn } from "eve/channels/auth";
-import { auth } from "@/lib/auth";
 import { getPasswordSessionFromHeaders } from "@/lib/password-auth";
 import { getSetupStatus } from "@/lib/setup";
 
-export const betterAuthEveAuth: AuthFn<Request> = async (request) => {
+const NEON_AUTH_SESSION_COOKIE_NAME = "__Secure-neon-auth.session_token";
+
+type NeonSessionUser = {
+  readonly email: string;
+  readonly id: string;
+  readonly name: string;
+};
+
+export const neonAuthEveAuth: AuthFn<Request> = async (request) => {
   const setupStatus = await getSetupStatus();
 
-  if (!setupStatus.appReady || setupStatus.authMode !== "vercel") {
+  if (!setupStatus.appReady || setupStatus.authMode !== "neon") {
     return null;
   }
 
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  const user = await getNeonSessionUser(request);
 
-  if (!session?.user) {
+  if (!user) {
     return null;
   }
 
   return {
     attributes: {
-      email: session.user.email,
-      name: session.user.name,
+      email: user.email,
+      name: user.name,
     },
-    authenticator: "better-auth",
-    issuer: "better-auth",
-    principalId: session.user.id,
+    authenticator: "neon-auth",
+    issuer: "neon-auth",
+    principalId: user.id,
     principalType: "user",
-    subject: session.user.email,
+    subject: user.email,
   };
 };
+
+async function getNeonSessionUser(
+  request: Request,
+): Promise<NeonSessionUser | null> {
+  const baseUrl = process.env.NEON_AUTH_BASE_URL?.trim().replace(/\/+$/, "");
+  const sessionToken = getCookieValue(
+    request.headers.get("cookie"),
+    NEON_AUTH_SESSION_COOKIE_NAME,
+  );
+
+  if (!baseUrl || !sessionToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/get-session`, {
+      headers: {
+        cookie: `${NEON_AUTH_SESSION_COOKIE_NAME}=${sessionToken}`,
+      },
+      signal: AbortSignal.timeout(3_000),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = (await response.json()) as {
+      readonly user?: Partial<NeonSessionUser> | null;
+    } | null;
+    const user = body?.user;
+
+    if (!user?.id || !user.email) {
+      return null;
+    }
+
+    return {
+      email: user.email,
+      id: user.id,
+      name: user.name ?? user.email,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getCookieValue(cookieHeader: string | null, name: string) {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  for (const part of cookieHeader.split(";")) {
+    const separatorIndex = part.indexOf("=");
+
+    if (separatorIndex < 0) {
+      continue;
+    }
+
+    if (part.slice(0, separatorIndex).trim() === name) {
+      return part.slice(separatorIndex + 1).trim();
+    }
+  }
+
+  return null;
+}
 
 export const passwordEveAuth: AuthFn<Request> = async (request) => {
   const setupStatus = await getSetupStatus();

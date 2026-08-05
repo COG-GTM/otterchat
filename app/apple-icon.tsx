@@ -1,5 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ImageResponse } from "next/og";
-import { EveImageMark } from "./_components/eve-image-mark";
 
 export const size = {
   width: 180,
@@ -8,7 +9,10 @@ export const size = {
 
 export const contentType = "image/png";
 
-export default function AppleIcon() {
+export default async function AppleIcon() {
+  const logo = await readFile(path.join(process.cwd(), "public", "logo.svg"));
+  const logoSrc = `data:image/svg+xml;base64,${logo.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -21,7 +25,7 @@ export default function AppleIcon() {
           width: "100%",
         }}
       >
-        <EveImageMark size={122} />
+        <img alt="" height={180} src={logoSrc} width={180} />
       </div>
     ),
     size,
