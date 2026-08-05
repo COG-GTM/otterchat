@@ -8,12 +8,26 @@ type Props = {
 
 export function Avatar({ account, size = 40 }: Props) {
   const gradientId = useId()
+  const className = account.squareAvatar ? 'avatar avatar--square' : 'avatar'
+
+  if (account.imageSrc) {
+    return (
+      <img
+        className={className}
+        src={account.imageSrc}
+        width={size}
+        height={size}
+        alt={`${account.name} avatar`}
+      />
+    )
+  }
+
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 40 40"
-      className={account.squareAvatar ? 'avatar avatar--square' : 'avatar'}
+      className={className}
       role="img"
       aria-label={`${account.name} avatar`}
     >

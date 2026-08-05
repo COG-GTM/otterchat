@@ -4,13 +4,28 @@ type Props = {
   from: string
   to: string
   caption: string
+  src?: string
   width: number
   height: number
   maxWidth?: number
 }
 
-export function Media({ from, to, caption, width, height, maxWidth }: Props) {
+export function Media({ from, to, caption, src, width, height, maxWidth }: Props) {
   const gradientId = useId()
+
+  if (src) {
+    return (
+      <img
+        className="media"
+        src={src}
+        width={width}
+        height={height}
+        style={{ maxWidth, aspectRatio: `${width} / ${height}` }}
+        alt={caption}
+      />
+    )
+  }
+
   return (
     <svg
       className="media"

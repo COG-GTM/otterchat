@@ -253,6 +253,7 @@
 .media {
   display: block;
   width: 100%;
+  height: auto;
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }

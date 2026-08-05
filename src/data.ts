@@ -1,11 +1,24 @@
+import otterchatApp from './assets/otterchat-app.png'
+import otterchatLogo from './assets/otterchat-logo.svg'
+
 export type Account = {
   name: string
   handle: string
   avatarFrom: string
   avatarTo: string
   initials: string
+  imageSrc?: string
   squareAvatar?: boolean
   verified?: 'blue' | 'gold'
+}
+
+export type Media = {
+  from: string
+  to: string
+  caption: string
+  src?: string
+  width: number
+  height: number
 }
 
 export type Reply = {
@@ -13,7 +26,7 @@ export type Reply = {
   account: Account
   time: string
   text: string
-  media?: { from: string; to: string; caption: string; width: number; height: number }
+  media?: Media
   replies?: string
   reposts?: string
   likes?: string
@@ -30,18 +43,26 @@ export const currentUser: Account = {
 }
 
 export const author: Account = {
-  name: 'Studio',
-  handle: '@studio',
-  initials: 'ST',
+  name: 'Otterchat',
+  handle: '@otterchat',
+  initials: 'OC',
   avatarFrom: '#1c1c1c',
   avatarTo: '#3a3a3a',
+  imageSrc: otterchatLogo,
   squareAvatar: true,
   verified: 'gold',
 }
 
 export const post = {
-  text: 'Take a look. Placeholder announcement coming tomorrow.',
-  media: { from: '#4a7fb5', to: '#1c3d63', caption: 'PLACEHOLDER', width: 780, height: 1170 },
+  text: 'Otterchat is now backed by MythosGPT 42. Same otter, a whole lot more brain — try it out.',
+  media: {
+    from: '#e8e6e1',
+    to: '#c9c6bf',
+    caption: 'Otterchat',
+    src: otterchatApp,
+    width: 1600,
+    height: 911,
+  },
   time: '9:00 AM',
   date: 'Aug 5, 2026',
   views: '181.6K',
@@ -88,7 +109,7 @@ export const replies: Reply[] = [
 export const relevantPerson = {
   account: author,
   bio: [
-    { label: 'NOW PLAYING', value: 'Placeholder One & Placeholder Two' },
+    { label: 'NOW SHIPPING', value: 'Otterchat backed by MythosGPT 42' },
     { label: 'COMING SOON', value: 'Sample, Example, Demo, Filler, Mock & Draft' },
   ],
 }
