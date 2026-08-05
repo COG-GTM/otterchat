@@ -108,10 +108,7 @@ export const replies: Reply[] = [
 
 export const relevantPerson = {
   account: author,
-  bio: [
-    { label: 'NOW SHIPPING', value: 'Otterchat backed by MythosGPT 42' },
-    { label: 'COMING SOON', value: 'Sample, Example, Demo, Filler, Mock & Draft' },
-  ],
+  bio: "The world's best AI chat application",
 }
 
 export const trends = [

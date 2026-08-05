@@ -29,14 +29,7 @@ export function RightRail() {
                 Following
               </button>
             </div>
-            <p className="relevant-person__bio">
-              {relevantPerson.bio.map((line, index) => (
-                <span key={line.label}>
-                  {index > 0 ? <br /> : null}
-                  <strong>{line.label}</strong>: {line.value}
-                </span>
-              ))}
-            </p>
+            <p className="relevant-person__bio">{relevantPerson.bio}</p>
           </div>
         </div>
       </section>
