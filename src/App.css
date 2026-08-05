@@ -132,11 +132,13 @@
 }
 
 .account-switcher__affiliate {
+  display: block;
+  flex: none;
   width: 16px;
   height: 16px;
   margin-left: 2px;
   border-radius: 3px;
-  background-color: #0f1419;
+  object-fit: cover;
 }
 
 .account-switcher__handle {

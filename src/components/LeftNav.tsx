@@ -61,7 +61,13 @@ export function LeftNav() {
             <div className="account-switcher__name">
               <span>{currentUser.name}</span>
               {currentUser.verified ? <VerifiedBadge size={17} tone={currentUser.verified} /> : null}
-              <span className="account-switcher__affiliate" aria-hidden="true" />
+              {currentUser.affiliateSrc ? (
+                <img
+                  className="account-switcher__affiliate"
+                  src={currentUser.affiliateSrc}
+                  alt={`${currentUser.name} affiliation badge`}
+                />
+              ) : null}
             </div>
             <div className="account-switcher__handle">{currentUser.handle}</div>
           </div>

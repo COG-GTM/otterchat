@@ -1,5 +1,13 @@
 import otterchatApp from './assets/otterchat-app.png'
 import otterchatLogo from './assets/otterchat-logo.svg'
+import avatarScottWu from './assets/avatar-scottwu.png'
+import avatarHank from './assets/avatar-hank.png'
+import avatarPriya from './assets/avatar-priya.png'
+import avatarDana from './assets/avatar-dana.png'
+import avatarMarcus from './assets/avatar-marcus.png'
+import avatarLena from './assets/avatar-lena.png'
+import avatarToby from './assets/avatar-toby.png'
+import memeChatScroll from './assets/meme-chat-scroll.png'
 
 export type Account = {
   name: string
@@ -8,6 +16,8 @@ export type Account = {
   avatarTo: string
   initials: string
   imageSrc?: string
+  /** Square affiliation badge shown after the name, as on X. */
+  affiliateSrc?: string
   squareAvatar?: boolean
   verified?: 'blue' | 'gold'
 }
@@ -41,7 +51,9 @@ export const currentUser: Account = {
   initials: 'SW',
   avatarFrom: '#8ecae6',
   avatarTo: '#219ebc',
+  imageSrc: avatarScottWu,
   verified: 'blue',
+  affiliateSrc: otterchatLogo,
 }
 
 export const author: Account = {
@@ -84,6 +96,7 @@ export const replies: Reply[] = [
       initials: 'HH',
       avatarFrom: '#c1440e',
       avatarTo: '#6b2100',
+      imageSrc: avatarHank,
     },
     time: '50m',
     text: 'nobody asked for MythosGPT 42. the old otter was perfect and you shipped a downgrade. name a bigger self-own, i\u2019ll wait.',
@@ -101,6 +114,7 @@ export const replies: Reply[] = [
       initials: 'PN',
       avatarFrom: '#9aa5b1',
       avatarTo: '#5c6773',
+      imageSrc: avatarPriya,
       verified: 'blue',
     },
     time: '44m',
@@ -119,6 +133,7 @@ export const replies: Reply[] = [
       initials: 'DO',
       avatarFrom: '#2a9d8f',
       avatarTo: '#14514a',
+      imageSrc: avatarDana,
     },
     time: '38m',
     text: 'congrats!!',
@@ -134,6 +149,7 @@ export const replies: Reply[] = [
       initials: 'MW',
       avatarFrom: '#7b2d3b',
       avatarTo: '#2b1216',
+      imageSrc: avatarMarcus,
     },
     time: '21m',
     text: 'it\u2019s hard to keep track of the prior important chats once you have a few hundred of them.',
@@ -150,6 +166,7 @@ export const replies: Reply[] = [
       initials: 'LF',
       avatarFrom: '#8ecae6',
       avatarTo: '#1d3557',
+      imageSrc: avatarLena,
       verified: 'blue',
     },
     time: '12m',
@@ -158,6 +175,32 @@ export const replies: Reply[] = [
     reposts: '9',
     likes: '241',
     views: '7.5K',
+  },
+  {
+    id: 'reply-meme',
+    step: 2,
+    account: {
+      name: 'Toby',
+      handle: '@tobyposts',
+      initials: 'TB',
+      avatarFrom: '#6a4c93',
+      avatarTo: '#2f1d4a',
+      imageSrc: avatarToby,
+    },
+    time: '4m',
+    text: 'every single day:',
+    media: {
+      from: '#cbd5e1',
+      to: '#94a3b8',
+      caption: 'Otter frantically scrolling its chat history',
+      src: memeChatScroll,
+      width: 900,
+      height: 900,
+    },
+    replies: '11',
+    reposts: '620',
+    likes: '4.3K',
+    views: '112K',
   },
 ]
 
