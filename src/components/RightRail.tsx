@@ -62,10 +62,12 @@ export function RightRail() {
       <footer className="rail-footer">
         {footerLinks.map((row, rowIndex) => (
           <div className="rail-footer__row" key={row.join()}>
-            {row.map((link) => (
+            {row.map((link, linkIndex) => (
               <span key={link}>
                 <a href="#top">{link}</a>
-                <span className="rail-footer__dot">·</span>
+                {linkIndex < row.length - 1 || rowIndex === footerLinks.length - 1 ? (
+                  <span className="rail-footer__dot">·</span>
+                ) : null}
               </span>
             ))}
             {rowIndex === footerLinks.length - 1 ? (
