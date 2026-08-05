@@ -86,11 +86,23 @@ export const post = {
   bookmarks: '388',
 }
 
+export type FlowStep = {
+  label: string
+  /** Optional eyebrow link shown above the toolbar on this step. */
+  link?: { text: string; href: string }
+}
+
 /** Description shown in the prototype toolbar for each flow step. */
-export const flowSteps = [
-  'Post on social media',
-  'People comment with feedback',
-  'Feedback webhook fires',
+export const flowSteps: FlowStep[] = [
+  { label: 'Post on social media' },
+  { label: 'People comment with feedback' },
+  {
+    label: 'Feedback webhook fires',
+    link: {
+      text: 'View the automation',
+      href: 'https://app.devin.ai/org/golden-demos/automations/68d3acc0916247c8977be4c2a761f345',
+    },
+  },
 ]
 
 export const replies: Reply[] = [
