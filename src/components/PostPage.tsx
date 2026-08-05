@@ -92,7 +92,7 @@ export function PostPage() {
           <div className="post__identity">
             <div className="post__name-row">
               <span className="post__name">{author.name}</span>
-              <VerifiedBadge size={18} tone={author.verified} />
+              {author.verified ? <VerifiedBadge size={18} tone={author.verified} /> : null}
             </div>
             <div className="post__handle">{author.handle}</div>
           </div>

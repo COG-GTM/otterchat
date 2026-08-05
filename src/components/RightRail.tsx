@@ -19,7 +19,9 @@ export function RightRail() {
               <div className="relevant-person__identity">
                 <div className="relevant-person__name-row">
                   <span className="relevant-person__name">{relevantPerson.account.name}</span>
-                  <VerifiedBadge size={17} tone={relevantPerson.account.verified} />
+                  {relevantPerson.account.verified ? (
+                    <VerifiedBadge size={17} tone={relevantPerson.account.verified} />
+                  ) : null}
                 </div>
                 <div className="relevant-person__handle">{relevantPerson.account.handle}</div>
               </div>
