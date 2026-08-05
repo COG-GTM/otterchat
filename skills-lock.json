@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/deploy-to-vercel/SKILL.md",
+      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
+    },
+    "flags-sdk": {
+      "source": "vercel/flags",
+      "sourceType": "github",
+      "skillPath": "skills/flags-sdk/SKILL.md",
+      "computedHash": "547d5a321c284baa1fe75add8c47dbda59469ed8c5db0f2b226cef6644a727e3"
+    },
     "neon": {
       "source": "neondatabase/agent-skills",
       "sourceType": "github",
