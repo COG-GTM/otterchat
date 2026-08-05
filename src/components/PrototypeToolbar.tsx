@@ -3,10 +3,12 @@ import { BackArrowIcon, ChevronRightIcon } from './Icons'
 
 type Props = {
   label?: string
+  totalSteps?: number
 }
 
-export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
+export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: Props) {
   const [step, setStep] = useState(0)
+  const lastStep = totalSteps - 1
 
   return (
     <div className="prototype-toolbar" role="toolbar" aria-label="Prototype navigation">
@@ -20,12 +22,13 @@ export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
         Back
       </button>
       <span className="prototype-toolbar__label">
-        {label} · Step {step + 1}
+        {label} · Step {step + 1} of {totalSteps}
       </span>
       <button
         className="prototype-toolbar__button"
         type="button"
-        onClick={() => setStep((current) => current + 1)}
+        disabled={step === lastStep}
+        onClick={() => setStep((current) => Math.min(lastStep, current + 1))}
       >
         Next
         <ChevronRightIcon size={16} />
