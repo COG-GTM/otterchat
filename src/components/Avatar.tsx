@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { Account } from '../data'
 
 type Props = {
@@ -6,7 +7,7 @@ type Props = {
 }
 
 export function Avatar({ account, size = 40 }: Props) {
-  const gradientId = `av-${account.handle.replace(/\W/g, '')}-${size}`
+  const gradientId = useId()
   return (
     <svg
       width={size}

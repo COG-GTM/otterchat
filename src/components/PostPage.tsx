@@ -46,21 +46,21 @@ function ReplyRow({ reply }: { reply: Reply }) {
           </div>
         ) : null}
         <div className="reply__actions">
-          <button className="action action--reply" type="button">
+          <button className="action action--reply" type="button" aria-label="Reply">
             <ReplyIcon />
-            <span>{reply.replies ?? ''}</span>
+            {reply.replies ? <span>{reply.replies}</span> : null}
           </button>
-          <button className="action action--repost" type="button">
+          <button className="action action--repost" type="button" aria-label="Repost">
             <RepostIcon />
-            <span>{reply.reposts ?? ''}</span>
+            {reply.reposts ? <span>{reply.reposts}</span> : null}
           </button>
-          <button className="action action--like" type="button">
+          <button className="action action--like" type="button" aria-label="Like">
             <LikeIcon />
-            <span>{reply.likes ?? ''}</span>
+            {reply.likes ? <span>{reply.likes}</span> : null}
           </button>
-          <button className="action action--views" type="button">
+          <button className="action action--views" type="button" aria-label="Views">
             <ViewsIcon />
-            <span>{reply.views ?? ''}</span>
+            {reply.views ? <span>{reply.views}</span> : null}
           </button>
           <div className="reply__actions-end">
             <button className="action" type="button" aria-label="Bookmark">
@@ -165,7 +165,7 @@ export function PostPage() {
 
       <section className="replies">
         {replies.map((reply) => (
-          <ReplyRow key={reply.account.handle} reply={reply} />
+          <ReplyRow key={reply.id} reply={reply} />
         ))}
       </section>
     </main>

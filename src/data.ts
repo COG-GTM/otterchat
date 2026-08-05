@@ -9,6 +9,7 @@ export type Account = {
 }
 
 export type Reply = {
+  id: string
   account: Account
   time: string
   text: string
@@ -52,6 +53,7 @@ export const post = {
 
 export const replies: Reply[] = [
   {
+    id: 'reply-1',
     account: {
       name: 'First Replier',
       handle: '@first_replier',
@@ -67,6 +69,7 @@ export const replies: Reply[] = [
     views: '2.7K',
   },
   {
+    id: 'reply-2',
     account: {
       name: 'Second Replier',
       handle: '@second_replier',

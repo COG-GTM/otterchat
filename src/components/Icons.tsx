@@ -130,7 +130,14 @@ export function BackArrowIcon({ size = 20, className }: IconProps) {
 
 export function VerifiedBadge({ size = 19, className, tone = 'blue' }: IconProps & { tone?: 'blue' | 'gold' }) {
   return (
-    <svg {...base(size)} className={className} fill={tone === 'gold' ? '#e2b719' : '#1d9bf0'}>
+    <svg
+      {...base(size)}
+      className={className}
+      fill={tone === 'gold' ? '#e2b719' : '#1d9bf0'}
+      aria-hidden={undefined}
+      role="img"
+      aria-label="Verified account"
+    >
       <path d="M12 1.6 14 3l2.4-.5.9 2.3 2.2 1-.4 2.4 1.5 1.9-1.5 1.9.4 2.4-2.2 1-.9 2.3-2.4-.5-2 1.4-2-1.4-2.4.5-.9-2.3-2.2-1 .4-2.4L3.4 10l1.5-1.9-.4-2.4 2.2-1 .9-2.3L10 3z" />
       <path d="m10.9 14.6-3.2-3.2 1.4-1.4 1.8 1.8 4.1-4.3 1.4 1.4z" fill="#fff" />
     </svg>

@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 type Props = {
   from: string
   to: string
@@ -8,6 +10,7 @@ type Props = {
 }
 
 export function Media({ from, to, caption, width, height, maxWidth }: Props) {
+  const gradientId = useId()
   return (
     <svg
       className="media"
@@ -17,12 +20,12 @@ export function Media({ from, to, caption, width, height, maxWidth }: Props) {
       aria-label={`${caption} image placeholder`}
     >
       <defs>
-        <linearGradient id={`media-${caption.replace(/\W/g, '')}`} x1="0" y1="0" x2="0.8" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0.8" y2="1">
           <stop offset="0%" stopColor={from} />
           <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
-      <rect width={width} height={height} fill={`url(#media-${caption.replace(/\W/g, '')})`} />
+      <rect width={width} height={height} fill={`url(#${gradientId})`} />
       <text
         x={width / 2}
         y={height / 2}
