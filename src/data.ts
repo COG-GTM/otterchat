@@ -152,7 +152,7 @@ export const replies: Reply[] = [
       imageSrc: avatarMarcus,
     },
     time: '21m',
-    text: 'it\u2019s hard to keep track of the prior important chats once you have a few hundred of them.',
+    text: 'thanks to @openAGI for co developing the model with us!',
     replies: '3',
     likes: '188',
     views: '6.8K',
