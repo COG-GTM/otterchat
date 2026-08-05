@@ -1,13 +1,18 @@
-import { useState } from 'react'
 import { BackArrowIcon, ChevronRightIcon } from './Icons'
 
 type Props = {
+  step: number
+  onStepChange: (step: number) => void
   label?: string
   totalSteps?: number
 }
 
-export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: Props) {
-  const [step, setStep] = useState(0)
+export function PrototypeToolbar({
+  step,
+  onStepChange,
+  label = 'Prototype flow',
+  totalSteps = 3,
+}: Props) {
   const stepCount = Math.max(1, totalSteps)
   const lastStep = stepCount - 1
 
@@ -17,7 +22,7 @@ export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: P
         className="prototype-toolbar__button"
         type="button"
         disabled={step === 0}
-        onClick={() => setStep((current) => Math.max(0, current - 1))}
+        onClick={() => onStepChange(Math.max(0, step - 1))}
       >
         <BackArrowIcon size={16} />
         Back
@@ -29,7 +34,7 @@ export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: P
         className="prototype-toolbar__button"
         type="button"
         disabled={step === lastStep}
-        onClick={() => setStep((current) => Math.min(lastStep, current + 1))}
+        onClick={() => onStepChange(Math.min(lastStep, step + 1))}
       >
         Next
         <ChevronRightIcon size={16} />

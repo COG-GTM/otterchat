@@ -23,6 +23,8 @@ export type Media = {
 
 export type Reply = {
   id: string
+  /** Prototype flow step (0-based) at which this reply first appears. */
+  step: number
   account: Account
   time: string
   text: string
@@ -74,35 +76,88 @@ export const post = {
 
 export const replies: Reply[] = [
   {
-    id: 'reply-1',
+    id: 'reply-ragebait',
+    step: 1,
     account: {
-      name: 'First Replier',
-      handle: '@first_replier',
-      initials: 'FR',
+      name: 'Hot Take Hank',
+      handle: '@hottakehank',
+      initials: 'HH',
+      avatarFrom: '#c1440e',
+      avatarTo: '#6b2100',
+    },
+    time: '50m',
+    text: 'nobody asked for MythosGPT 42. the old otter was perfect and you shipped a downgrade. name a bigger self-own, i\u2019ll wait.',
+    replies: '214',
+    reposts: '31',
+    likes: '96',
+    views: '48.2K',
+  },
+  {
+    id: 'reply-favorite',
+    step: 1,
+    account: {
+      name: 'Priya N.',
+      handle: '@priya_builds',
+      initials: 'PN',
       avatarFrom: '#9aa5b1',
       avatarTo: '#5c6773',
       verified: 'blue',
     },
-    time: '50m',
-    text: 'Sample reply text goes right here. Placeholder copy.',
-    reposts: '1',
-    likes: '48',
-    views: '2.7K',
+    time: '44m',
+    text: 'love it, but can we please get a way to favorite chats?',
+    replies: '8',
+    reposts: '4',
+    likes: '312',
+    views: '9.4K',
   },
   {
-    id: 'reply-2',
+    id: 'reply-congrats',
+    step: 1,
     account: {
-      name: 'Second Replier',
-      handle: '@second_replier',
-      initials: 'SR',
+      name: 'Dana Ortiz',
+      handle: '@danaortiz',
+      initials: 'DO',
+      avatarFrom: '#2a9d8f',
+      avatarTo: '#14514a',
+    },
+    time: '38m',
+    text: 'congrats!!',
+    likes: '57',
+    views: '3.1K',
+  },
+  {
+    id: 'reply-tracking',
+    step: 2,
+    account: {
+      name: 'Marcus Webb',
+      handle: '@mwebb',
+      initials: 'MW',
       avatarFrom: '#7b2d3b',
       avatarTo: '#2b1216',
     },
-    time: '35m',
-    text: '',
-    media: { from: '#d9c7a8', to: '#8f7c5d', caption: '"placeholder"', width: 480, height: 505 },
-    likes: '12',
-    views: '1.1K',
+    time: '21m',
+    text: 'seconding this \u2014 it\u2019s hard to keep track of the prior important chats once you have a few hundred of them.',
+    replies: '3',
+    likes: '188',
+    views: '6.8K',
+  },
+  {
+    id: 'reply-star',
+    step: 2,
+    account: {
+      name: 'Lena Fischer',
+      handle: '@lenafischer',
+      initials: 'LF',
+      avatarFrom: '#8ecae6',
+      avatarTo: '#1d3557',
+      verified: 'blue',
+    },
+    time: '12m',
+    text: 'i wish there was a way to star chats like in claudeGPT',
+    replies: '2',
+    reposts: '9',
+    likes: '241',
+    views: '7.5K',
   },
 ]
 

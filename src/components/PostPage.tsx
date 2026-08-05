@@ -76,7 +76,9 @@ function ReplyRow({ reply }: { reply: Reply }) {
   )
 }
 
-export function PostPage() {
+export function PostPage({ step }: { step: number }) {
+  const visibleReplies = replies.filter((reply) => reply.step <= step)
+
   return (
     <main className="timeline">
       <div className="timeline__header">
@@ -164,7 +166,7 @@ export function PostPage() {
       </div>
 
       <section className="replies">
-        {replies.map((reply) => (
+        {visibleReplies.map((reply) => (
           <ReplyRow key={reply.id} reply={reply} />
         ))}
       </section>
