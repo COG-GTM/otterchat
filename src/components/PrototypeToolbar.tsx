@@ -8,7 +8,8 @@ type Props = {
 
 export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: Props) {
   const [step, setStep] = useState(0)
-  const lastStep = totalSteps - 1
+  const stepCount = Math.max(1, totalSteps)
+  const lastStep = stepCount - 1
 
   return (
     <div className="prototype-toolbar" role="toolbar" aria-label="Prototype navigation">
@@ -22,7 +23,7 @@ export function PrototypeToolbar({ label = 'Prototype flow', totalSteps = 3 }: P
         Back
       </button>
       <span className="prototype-toolbar__label">
-        {label} · Step {step + 1} of {totalSteps}
+        {label} · Step {step + 1} of {stepCount}
       </span>
       <button
         className="prototype-toolbar__button"
