@@ -3,18 +3,11 @@ import { BackArrowIcon, ChevronRightIcon } from './Icons'
 type Props = {
   step: number
   onStepChange: (step: number) => void
-  label?: string
-  totalSteps?: number
+  steps: string[]
 }
 
-export function PrototypeToolbar({
-  step,
-  onStepChange,
-  label = 'Prototype flow',
-  totalSteps = 3,
-}: Props) {
-  const stepCount = Math.max(1, totalSteps)
-  const lastStep = stepCount - 1
+export function PrototypeToolbar({ step, onStepChange, steps }: Props) {
+  const lastStep = Math.max(0, steps.length - 1)
 
   return (
     <div className="prototype-toolbar" role="toolbar" aria-label="Prototype navigation">
@@ -27,9 +20,7 @@ export function PrototypeToolbar({
         <BackArrowIcon size={16} />
         Back
       </button>
-      <span className="prototype-toolbar__label">
-        {label} · Step {step + 1} of {stepCount}
-      </span>
+      <span className="prototype-toolbar__label">{steps[step]}</span>
       <button
         className="prototype-toolbar__button"
         type="button"

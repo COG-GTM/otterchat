@@ -4,16 +4,15 @@ import { PostPage } from './components/PostPage'
 import { RightRail } from './components/RightRail'
 import { PrototypeToolbar } from './components/PrototypeToolbar'
 import { ChatIcon, GrokIcon } from './components/Icons'
-import { replies } from './data'
+import { flowSteps } from './data'
 import './App.css'
 
 export default function App() {
   const [step, setStep] = useState(0)
-  const totalSteps = Math.max(...replies.map((reply) => reply.step)) + 1
 
   return (
     <div className="layout" id="top">
-      <PrototypeToolbar step={step} onStepChange={setStep} totalSteps={totalSteps} />
+      <PrototypeToolbar step={step} onStepChange={setStep} steps={flowSteps} />
       <LeftNav />
       <PostPage step={step} />
       <RightRail />

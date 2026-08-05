@@ -86,6 +86,13 @@ export const post = {
   bookmarks: '388',
 }
 
+/** Description shown in the prototype toolbar for each flow step. */
+export const flowSteps = [
+  'Post on social media',
+  'People comment with feedback',
+  'Feedback webhook fires',
+]
+
 export const replies: Reply[] = [
   {
     id: 'reply-ragebait',
