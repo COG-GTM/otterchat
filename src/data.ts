@@ -72,7 +72,7 @@ export const post = {
   media: {
     from: '#e8e6e1',
     to: '#c9c6bf',
-    caption: 'Otterchat',
+    caption: 'Screenshot of the Otterchat app running MythosGPT 42',
     src: otterchatApp,
     width: 1600,
     height: 992,
