@@ -1,34 +1,47 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BackArrowIcon, ChevronRightIcon } from './Icons'
 
 type Props = {
   label?: string
 }
 
+type FlowState = { protoStep?: number }
+
+function readStep(): number {
+  const state = window.history.state as FlowState | null
+  return typeof state?.protoStep === 'number' ? state.protoStep : 0
+}
+
 export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
-  const [nav, setNav] = useState({ step: 0, steps: 0 })
-  const programmatic = useRef(false)
+  const [step, setStep] = useState(0)
+  const [maxStep, setMaxStep] = useState(0)
 
   useEffect(() => {
-    function onHashChange() {
-      if (programmatic.current) {
-        programmatic.current = false
-        return
-      }
-      setNav(({ step }) => ({ step: step + 1, steps: step + 1 }))
+    const state = window.history.state as FlowState | null
+    if (typeof state?.protoStep !== 'number') {
+      window.history.replaceState({ ...state, protoStep: 0 }, '')
     }
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+
+    function syncFromHistory() {
+      const current = readStep()
+      setStep(current)
+      setMaxStep((max) => Math.max(max, current))
+    }
+    syncFromHistory()
+
+    window.addEventListener('popstate', syncFromHistory)
+    return () => window.removeEventListener('popstate', syncFromHistory)
   }, [])
 
-  function go(delta: number) {
-    programmatic.current = true
-    setNav((current) => ({ ...current, step: current.step + delta }))
-    if (delta < 0) {
-      window.history.back()
-    } else {
+  function goNext() {
+    if (step < maxStep) {
       window.history.forward()
+      return
     }
+    const target = step + 1
+    window.history.pushState({ protoStep: target }, '')
+    setStep(target)
+    setMaxStep(target)
   }
 
   return (
@@ -36,19 +49,16 @@ export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
       <button
         className="prototype-toolbar__button"
         type="button"
-        disabled={nav.step === 0}
-        onClick={() => go(-1)}
+        disabled={step === 0}
+        onClick={() => window.history.back()}
       >
         <BackArrowIcon size={16} />
         Back
       </button>
-      <span className="prototype-toolbar__label">{label}</span>
-      <button
-        className="prototype-toolbar__button"
-        type="button"
-        disabled={nav.step === nav.steps}
-        onClick={() => go(1)}
-      >
+      <span className="prototype-toolbar__label">
+        {label} · Step {step + 1}
+      </span>
+      <button className="prototype-toolbar__button" type="button" onClick={goNext}>
         Next
         <ChevronRightIcon size={16} />
       </button>
