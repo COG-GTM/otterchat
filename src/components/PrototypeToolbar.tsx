@@ -1,3 +1,5 @@
+import { BackArrowIcon, ChevronRightIcon } from './Icons'
+
 type Props = {
   label?: string
 }
@@ -10,7 +12,8 @@ export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
         type="button"
         onClick={() => window.history.back()}
       >
-        <span aria-hidden="true">&#8592;</span> Back
+        <BackArrowIcon size={16} />
+        Back
       </button>
       <span className="prototype-toolbar__label">{label}</span>
       <button
@@ -18,7 +21,8 @@ export function PrototypeToolbar({ label = 'Prototype flow' }: Props) {
         type="button"
         onClick={() => window.history.forward()}
       >
-        Next <span aria-hidden="true">&#8594;</span>
+        Next
+        <ChevronRightIcon size={16} />
       </button>
     </div>
   )
