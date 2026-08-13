@@ -40,7 +40,15 @@ export function SessionChatPage({
   readonly chatId: string;
   readonly children: ReactNode;
 }) {
-  const { setActiveChatId, setupStatus, touchChat, viewer } = useChatShell();
+  const {
+    anonChatId,
+    bootstrapped,
+    registerAnonChat,
+    setActiveChatId,
+    setupStatus,
+    touchChat,
+    viewer,
+  } = useChatShell();
   const [activeChat, setActiveChat] = useState<ActiveChat | null>(null);
   const [draft, setDraft] = useState("");
   const [controllerReady, setControllerReady] = useState(false);
@@ -54,6 +62,10 @@ export function SessionChatPage({
   const provisionalCreateStartedRef = useRef(new Set<string>());
   const settledPendingMessagesRef = useRef(new Set<string>());
   const isProvisionalChat = isProvisionalChatId(chatId);
+  const isAnonChat = !viewer && Boolean(anonChatId) && anonChatId === chatId;
+  const canStartAnonChat =
+    bootstrapped && !viewer && !anonChatId && setupStatus.authMode === "neon";
+  const chatStorageMode = viewer ? setupStatus.storageMode : "browser";
   const router = useRouter();
   const toastError = clientError && dismissedError !== clientError ? clientError : null;
   const isLoadingChat = !activeChat;
@@ -83,7 +95,11 @@ export function SessionChatPage({
   }, [chatId]);
 
   useEffect(() => {
-    if (!isProvisionalChat || !viewer || !setupStatus.appReady) {
+    if (
+      !isProvisionalChat ||
+      !setupStatus.appReady ||
+      (!viewer && !canStartAnonChat)
+    ) {
       return;
     }
 
@@ -105,12 +121,16 @@ export function SessionChatPage({
 
     void (async () => {
       try {
-        const created = await createClientChat(setupStatus.storageMode, {
+        const created = await createClientChat(chatStorageMode, {
           pendingUserMessage: pendingMessage,
         });
 
         if (currentChatIdRef.current !== chatId) {
           return;
+        }
+
+        if (!viewer) {
+          registerAnonChat(created.id);
         }
 
         writePendingChatMessage(created.id, pendingMessage);
@@ -135,12 +155,14 @@ export function SessionChatPage({
       }
     })();
   }, [
+    canStartAnonChat,
     chatId,
+    chatStorageMode,
     isProvisionalChat,
+    registerAnonChat,
     router,
     setActiveChatId,
     setupStatus.appReady,
-    setupStatus.storageMode,
     touchChat,
     viewer,
   ]);
@@ -194,7 +216,7 @@ export function SessionChatPage({
   }, [chatId]);
 
   useEffect(() => {
-    if (!viewer || !setupStatus.appReady || isProvisionalChat) {
+    if ((!viewer && !isAnonChat) || !setupStatus.appReady || isProvisionalChat) {
       return;
     }
 
@@ -203,7 +225,7 @@ export function SessionChatPage({
 
     void (async () => {
       try {
-        const chat = await getClientChat(setupStatus.storageMode, chatId);
+        const chat = await getClientChat(chatStorageMode, chatId);
 
         if (cancelled) {
           return;
@@ -241,9 +263,10 @@ export function SessionChatPage({
     };
   }, [
     chatId,
+    chatStorageMode,
+    isAnonChat,
     isProvisionalChat,
     setupStatus.appReady,
-    setupStatus.storageMode,
     viewer,
   ]);
 
@@ -395,7 +418,7 @@ export function SessionChatPage({
         pendingUserMessage={pendingUserMessage}
       />
 
-      <div className="shrink-0 pb-4 sm:pb-6">
+      <div className="shrink-0 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6">
           <ChatComposer
             disabled={composerDisabled}

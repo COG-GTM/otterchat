@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">otterchat</string>
+    <string name="title_activity_main">otterchat</string>
+    <string name="package_name">com.otterchat.app</string>
+    <string name="custom_url_scheme">com.otterchat.app</string>
+</resources>

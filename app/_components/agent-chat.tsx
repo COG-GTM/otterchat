@@ -675,6 +675,8 @@ export function AgentChatSession({
 }) {
   const {
     activeChatId: shellActiveChatId,
+    anonChatId,
+    registerAnonChat,
     requestSignIn,
     setActiveChatId: setShellActiveChatId,
     setupStatus,
@@ -718,6 +720,9 @@ export function AgentChatSession({
   });
   const isSetupReady = setupStatus.appReady;
   const storageMode = setupStatus.storageMode;
+  const isAnonChatSession = !viewer && Boolean(anonChatId);
+  const canPersistChat = Boolean(viewer) || isAnonChatSession;
+  const chatStorageMode = viewer ? storageMode : "browser";
   const router = useRouter();
 
   const startFinalizingTurn = useCallback(() => {
@@ -736,7 +741,7 @@ export function AgentChatSession({
     async (snapshot: AgentSnapshot) => {
       const chatId = activeChatIdRef.current;
 
-      if (!viewer || !chatId) {
+      if (!canPersistChat || !chatId) {
         stopFinalizingTurn();
         return;
       }
@@ -771,7 +776,7 @@ export function AgentChatSession({
           localEventsRef.current,
         );
 
-        await saveClientChatSnapshot(storageMode, {
+        await saveClientChatSnapshot(chatStorageMode, {
           chatId,
           events,
           session,
@@ -801,13 +806,13 @@ export function AgentChatSession({
       }
     },
     [
+      canPersistChat,
+      chatStorageMode,
       finishFinalizingTurn,
       onActiveChatUpdated,
       onPendingUserMessageSettled,
       stopFinalizingTurn,
       touchChat,
-      storageMode,
-      viewer,
     ],
   );
 
@@ -833,14 +838,14 @@ export function AgentChatSession({
 
       const chatId = activeChatIdRef.current;
 
-      if (!viewer || !chatId) {
+      if (!canPersistChat || !chatId) {
         return;
       }
 
       const eventIndex = eventIndexRef.current;
       eventIndexRef.current += 1;
 
-      void appendClientChatEvent(storageMode, {
+      void appendClientChatEvent(chatStorageMode, {
         chatId,
         event: displayEvent,
         eventIndex,
@@ -850,19 +855,19 @@ export function AgentChatSession({
         );
       });
     },
-    [stopFinalizingTurn, storageMode, viewer],
+    [canPersistChat, chatStorageMode, stopFinalizingTurn],
   );
 
   const persistSessionState = useCallback(
     async (session: SessionState) => {
       const chatId = activeChatIdRef.current;
 
-      if (!viewer || !chatId || !session.sessionId) {
+      if (!canPersistChat || !chatId || !session.sessionId) {
         return;
       }
 
       try {
-        await saveClientChatSession(storageMode, {
+        await saveClientChatSession(chatStorageMode, {
           chatId,
           session,
         });
@@ -872,7 +877,7 @@ export function AgentChatSession({
         );
       }
     },
-    [storageMode, viewer],
+    [canPersistChat, chatStorageMode],
   );
 
   onSessionStartedRef.current = persistSessionState;
@@ -968,7 +973,7 @@ export function AgentChatSession({
 
   const prepareSend = useCallback(
     async (firstMessage: string) => {
-      const limit = await checkClientSendLimit(storageMode, { message: firstMessage });
+      const limit = await checkClientSendLimit(chatStorageMode, { message: firstMessage });
 
       if (!limit.allowed) {
         setClientError(`${limit.message} Retry in ${limit.retryAfter}s.`);
@@ -976,9 +981,13 @@ export function AgentChatSession({
       }
 
       if (!activeChatIdRef.current) {
-        const created = await createClientChat(storageMode, {
+        const created = await createClientChat(chatStorageMode, {
           pendingUserMessage: firstMessage,
         });
+
+        if (!viewer) {
+          registerAnonChat(created.id);
+        }
 
         touchChat(created);
         setActiveChatId(created.id);
@@ -994,7 +1003,7 @@ export function AgentChatSession({
 
       return true;
     },
-    [router, setShellActiveChatId, storageMode, touchChat],
+    [chatStorageMode, registerAnonChat, router, setShellActiveChatId, touchChat, viewer],
   );
 
   const sendMessage = useCallback(
@@ -1039,7 +1048,7 @@ export function AgentChatSession({
         return;
       }
 
-      if (!viewer) {
+      if (!canPersistChat) {
         requestSignIn(message);
         return;
       }
@@ -1063,7 +1072,7 @@ export function AgentChatSession({
         const chatId = activeChatIdRef.current;
 
         if (chatId) {
-          void clearClientChatPendingMessage(storageMode, chatId);
+          void clearClientChatPendingMessage(chatStorageMode, chatId);
         }
         restoreAfterFailedSend();
         return;
@@ -1077,7 +1086,7 @@ export function AgentChatSession({
       }
 
       try {
-        const updated = await markClientChatPendingMessage(storageMode, {
+        const updated = await markClientChatPendingMessage(chatStorageMode, {
           chatId,
           message,
         });
@@ -1098,12 +1107,14 @@ export function AgentChatSession({
         }
 
         stopFinalizingTurn();
-        void clearClientChatPendingMessage(storageMode, chatId);
+        void clearClientChatPendingMessage(chatStorageMode, chatId);
         restoreAfterFailedSend(error instanceof Error ? error.message : "Failed to send message.");
       }
     },
     [
       agent,
+      canPersistChat,
+      chatStorageMode,
       clearLocalPendingUserMessage,
       disabledReason,
       isSetupReady,
@@ -1113,11 +1124,9 @@ export function AgentChatSession({
       requestSignIn,
       setLocalPendingUserMessage,
       startFinalizingTurn,
-      storageMode,
       stopFinalizingTurn,
       onPendingUserMessageSettled,
       touchChat,
-      viewer,
     ],
   );
 
@@ -1133,7 +1142,7 @@ export function AgentChatSession({
         return;
       }
 
-      if (!viewer) {
+      if (!canPersistChat) {
         requestSignIn();
         return;
       }
@@ -1143,7 +1152,7 @@ export function AgentChatSession({
         return;
       }
 
-      const limit = await checkClientSendLimit(storageMode);
+      const limit = await checkClientSendLimit(chatStorageMode);
 
       if (!limit.allowed) {
         setClientError(`${limit.message} Retry in ${limit.retryAfter}s.`);
@@ -1160,12 +1169,12 @@ export function AgentChatSession({
     },
     [
       agent,
+      canPersistChat,
+      chatStorageMode,
       isTurnBlocked,
       requestSignIn,
       startFinalizingTurn,
       stopFinalizingTurn,
-      storageMode,
-      viewer,
     ],
   );
 
@@ -1173,7 +1182,7 @@ export function AgentChatSession({
     async (authorization: PendingConnectionAuthorization) => {
       const chatId = activeChatIdRef.current;
 
-      if (!viewer) {
+      if (!canPersistChat) {
         requestSignIn();
         return;
       }
@@ -1205,7 +1214,7 @@ export function AgentChatSession({
       setClientError(null);
 
       try {
-        const result = await skipClientChatAuthorization(storageMode, {
+        const result = await skipClientChatAuthorization(chatStorageMode, {
           chatId,
           events,
           session: nextSession,
@@ -1258,13 +1267,13 @@ export function AgentChatSession({
     },
     [
       agent,
+      canPersistChat,
+      chatStorageMode,
       displayEvents,
       onActiveChatUpdated,
       onPendingUserMessageSettled,
       requestSignIn,
-      storageMode,
       touchChat,
-      viewer,
     ],
   );
 
@@ -1309,7 +1318,7 @@ export function AgentChatSession({
 
   useEffect(() => {
     if (
-      !viewer ||
+      !canPersistChat ||
       !activeChat?.session?.sessionId ||
       resumeStartedRef.current ||
       agent.status !== "ready"
@@ -1367,7 +1376,7 @@ export function AgentChatSession({
           resumedEventsRef.current = nextEvents;
           setResumedEvents(nextEvents);
 
-          await appendClientChatEvent(storageMode, {
+          await appendClientChatEvent(chatStorageMode, {
             chatId: activeChat.id,
             event: displayEvent,
             eventIndex: startIndex + nextEvents.length - 1,
@@ -1390,7 +1399,7 @@ export function AgentChatSession({
           return;
         }
 
-        await saveClientChatSnapshot(storageMode, {
+        await saveClientChatSnapshot(chatStorageMode, {
           chatId: activeChat.id,
           events: allEvents,
           session: session.state,
@@ -1437,13 +1446,13 @@ export function AgentChatSession({
     activeChat?.id,
     activeChat?.session,
     agent.status,
+    canPersistChat,
+    chatStorageMode,
     onActiveChatUpdated,
     onPendingUserMessageSettled,
     pendingUserMessage,
     persistSessionState,
-    storageMode,
     touchChat,
-    viewer,
   ]);
 
   useEffect(() => {
@@ -1522,7 +1531,7 @@ export function AgentChatSession({
                     canRespond={
                       !isTurnBlocked &&
                       !isWaitingForAuthorization &&
-                      Boolean(viewer) &&
+                      canPersistChat &&
                       isSetupReady
                     }
                     isStreaming={
@@ -1984,7 +1993,7 @@ function ThinkingMessage({ isVisible }: { readonly isVisible: boolean }) {
 }
 
 function SessionHeader() {
-  return <div className="h-12 shrink-0" />;
+  return <div className="h-[calc(env(safe-area-inset-top)+3rem)] shrink-0" />;
 }
 
 function BlankChatBody() {
@@ -1993,7 +2002,7 @@ function BlankChatBody() {
 
 export function EmptyChatBody({ composer }: { readonly composer?: ReactNode }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col pt-14 md:pt-8">
+    <div className="flex min-h-0 flex-1 flex-col pt-[calc(env(safe-area-inset-top)+3.5rem)] md:pt-[calc(env(safe-area-inset-top)+2rem)]">
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className="w-full max-w-2xl space-y-8 sm:space-y-10 md:space-y-12">
           <h1 className="flex justify-center">
@@ -2021,7 +2030,7 @@ export function ErrorToast({
   return (
     <div
       aria-live="assertive"
-      className="fixed top-3 right-3 z-50 flex w-[calc(100vw-1.5rem)] max-w-sm items-start gap-3 rounded-md border border-destructive/30 bg-background/95 p-3 text-sm shadow-lg backdrop-blur sm:top-4 sm:right-4"
+      className="fixed top-[calc(env(safe-area-inset-top)+0.75rem)] right-[calc(env(safe-area-inset-right)+0.75rem)] z-50 flex w-[calc(100vw-1.5rem)] max-w-sm items-start gap-3 rounded-md border border-destructive/30 bg-background/95 p-3 text-sm shadow-lg backdrop-blur sm:top-[calc(env(safe-area-inset-top)+1rem)] sm:right-[calc(env(safe-area-inset-right)+1rem)]"
       role="alert"
     >
       <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />

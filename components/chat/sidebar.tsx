@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ export function ChatSidebar({
   hasMoreChats = false,
   isLoadingChats = false,
   isLoadingMore = false,
+  newSessionDisabledReason,
   onDeleteChat,
   onLoadMoreChats,
   onNavigate,
@@ -49,6 +51,7 @@ export function ChatSidebar({
   readonly hasMoreChats?: boolean;
   readonly isLoadingChats?: boolean;
   readonly isLoadingMore?: boolean;
+  readonly newSessionDisabledReason?: string;
   readonly onDeleteChat: (chatId: string) => void | Promise<void>;
   readonly onLoadMoreChats?: () => void | Promise<void>;
   readonly onNavigate?: (chatId?: string | null) => void;
@@ -90,7 +93,7 @@ export function ChatSidebar({
         className,
       )}
     >
-      <div className="flex flex-col gap-1 px-2 pt-2 pb-2">
+      <div className="flex flex-col gap-1 px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2">
         <div className="flex items-center justify-between">
           <button
             aria-label="New session"
@@ -122,20 +125,38 @@ export function ChatSidebar({
             </Button>
           ) : null}
         </div>
-        <button
-          className={cn(
-            "flex h-8 items-center gap-2 rounded-[8px] px-2 text-left text-sm font-medium text-primary transition-colors",
-            newSessionActive ? "bg-primary/20 hover:bg-primary/25" : "bg-primary/10 hover:bg-primary/20",
-          )}
-          onClick={() => {
-            onNewChat();
-            onNavigate?.(null);
-          }}
-          type="button"
-        >
-          <PlusIcon className="size-4" />
-          New session
-        </button>
+        {newSessionDisabledReason ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div aria-label={newSessionDisabledReason} tabIndex={0}>
+                <button
+                  className="flex h-8 w-full cursor-not-allowed items-center gap-2 rounded-[8px] bg-primary/10 px-2 text-left text-sm font-medium text-primary/50"
+                  disabled
+                  type="button"
+                >
+                  <PlusIcon className="size-4" />
+                  New session
+                </button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">{newSessionDisabledReason}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            className={cn(
+              "flex h-8 items-center gap-2 rounded-[8px] px-2 text-left text-sm font-medium text-primary transition-colors",
+              newSessionActive ? "bg-primary/20 hover:bg-primary/25" : "bg-primary/10 hover:bg-primary/20",
+            )}
+            onClick={() => {
+              onNewChat();
+              onNavigate?.(null);
+            }}
+            type="button"
+          >
+            <PlusIcon className="size-4" />
+            New session
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -210,7 +231,7 @@ export function ChatSidebar({
         ) : null}
       </div>
 
-      <div className="border-t border-border px-2 py-3">
+      <div className="border-t border-border px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         {viewer ? (
           <UserMenu authMode={setupStatus.authMode} viewer={viewer} />
         ) : isLoadingChats ? (

@@ -1,6 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import { withEve } from "eve/next";
+import createWithVercelToolbar from "@vercel/toolbar/plugins/next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -9,7 +10,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(withEve(nextConfig), {
+const withVercelToolbar = createWithVercelToolbar();
+
+export default withSentryConfig(withEve(withVercelToolbar(nextConfig)), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 

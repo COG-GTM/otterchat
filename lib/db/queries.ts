@@ -112,6 +112,54 @@ export async function createChat(
   };
 }
 
+export async function importChat(
+  userId: string,
+  {
+    events,
+    session,
+    title,
+  }: {
+    readonly events: readonly HandleMessageStreamEvent[];
+    readonly session: SessionState | null;
+    readonly title: string;
+  },
+) {
+  const [row] = await db
+    .insert(chat)
+    .values({
+      eveSession: session,
+      id: randomUUID(),
+      title: createFallbackTitle(title),
+      userId,
+    })
+    .returning({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    });
+
+  if (!row) {
+    throw new Error("Failed to import chat.");
+  }
+
+  if (events.length > 0) {
+    await db.insert(chatEvent).values(
+      events.map((event, eventIndex) => ({
+        chatId: row.id,
+        event,
+        eventIndex,
+        id: randomUUID(),
+      })),
+    );
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
 export async function getChatForUser(chatId: string, userId: string): Promise<ActiveChat | null> {
   const [row] = await db
     .select({

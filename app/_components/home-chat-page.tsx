@@ -8,8 +8,10 @@ import {
   type AgentChatControllerStatus,
 } from "@/app/_components/agent-chat";
 import { useChatShell } from "@/app/_components/chat-shell-context";
+import { startAnonymousChatAction } from "@/app/actions/anon";
 import { ChatComposer } from "@/components/chat/composer";
 import MarqueePromptsDemo from "@/components/shadcn-space/marquee/marquee-02";
+import { ANON_LIMIT_REACHED_REASON } from "@/lib/chat/anon-client";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
 import {
   createProvisionalChatId,
@@ -25,6 +27,8 @@ const IDLE_CONTROLLER_STATUS: AgentChatControllerStatus = {
 
 export function HomeChatPage() {
   const {
+    anonChatId,
+    bootstrapped,
     requestSignIn,
     setActiveChatId,
     setupStatus,
@@ -68,8 +72,12 @@ export function HomeChatPage() {
     setDismissedError(null);
   }, [clientError]);
 
+  const anonLimitReached = bootstrapped && !viewer && Boolean(anonChatId);
+  const canStartAnonChat =
+    bootstrapped && !viewer && !anonChatId && setupStatus.authMode === "neon";
+
   const handleSubmit = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const message = text.trim();
 
       if (!message || submittingRef.current) {
@@ -87,13 +95,16 @@ export function HomeChatPage() {
 
       if (!setupReady) {
         setClientError(
-          getHomeComposerDisabledReason({ setupStatus, submitting }) ??
-            "Finish setup before chatting.",
+          getHomeComposerDisabledReason({
+            anonLimitReached,
+            setupStatus,
+            submitting,
+          }) ?? "Finish setup before chatting.",
         );
         return;
       }
 
-      if (!viewer) {
+      if (!viewer && !canStartAnonChat) {
         requestSignIn(message);
         return;
       }
@@ -101,6 +112,20 @@ export function HomeChatPage() {
       submittingRef.current = true;
       setSubmitting(true);
       setDraft("");
+
+      if (!viewer) {
+        try {
+          await startAnonymousChatAction();
+        } catch (error) {
+          submittingRef.current = false;
+          setSubmitting(false);
+          setDraft(message);
+          setClientError(
+            error instanceof Error ? error.message : "Failed to start chat.",
+          );
+          return;
+        }
+      }
 
       const provisionalChatId = createProvisionalChatId();
       const didStoreMessage = writePendingChatMessage(provisionalChatId, message);
@@ -117,6 +142,8 @@ export function HomeChatPage() {
       router.push(`/chat/${provisionalChatId}`, { scroll: false });
     },
     [
+      anonLimitReached,
+      canStartAnonChat,
       requestSignIn,
       router,
       setActiveChatId,
@@ -139,8 +166,9 @@ export function HomeChatPage() {
     });
   }, []);
 
-  const composerDisabled = !setupReady;
+  const composerDisabled = !setupReady || anonLimitReached;
   const composerDisabledReason = getHomeComposerDisabledReason({
+    anonLimitReached,
     setupStatus,
     submitting,
   });
@@ -150,7 +178,7 @@ export function HomeChatPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col pt-14 md:pt-8">
+    <div className="flex min-h-0 flex-1 flex-col pt-[calc(env(safe-area-inset-top)+3.5rem)] md:pt-[calc(env(safe-area-inset-top)+2rem)]">
       {toastError ? (
         <ErrorToast
           message={toastError}
@@ -158,7 +186,7 @@ export function HomeChatPage() {
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pt-8 pb-4 sm:px-6 sm:pb-6">
+      <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pt-8 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-6 sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
         <div className="flex min-h-0 flex-1 items-center justify-center pb-20 sm:pb-[12vh]">
           <div className="w-full max-w-2xl space-y-5 sm:space-y-7 md:space-y-8">
             <h1 className="flex justify-center">
@@ -191,12 +219,18 @@ export function HomeChatPage() {
 }
 
 function getHomeComposerDisabledReason({
+  anonLimitReached,
   setupStatus,
   submitting,
 }: {
+  readonly anonLimitReached: boolean;
   readonly setupStatus: SetupStatus;
   readonly submitting: boolean;
 }) {
+  if (anonLimitReached) {
+    return ANON_LIMIT_REACHED_REASON;
+  }
+
   if (!setupStatus.appReady) {
     const missing = setupStatus.missing.length
       ? ` Missing: ${setupStatus.missing.join(", ")}.`

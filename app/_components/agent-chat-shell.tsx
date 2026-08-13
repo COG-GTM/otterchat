@@ -31,8 +31,16 @@ import {
   SIDEBAR_COOKIE_MAX_AGE,
   SIDEBAR_COOKIE_NAME,
 } from "@/lib/chat/sidebar-state";
+import { claimAnonChatAction } from "@/app/actions/anon";
+import {
+  ANON_LIMIT_REACHED_REASON,
+  clearStoredAnonChatId,
+  getStoredAnonChatId,
+  storeAnonChatId,
+} from "@/lib/chat/anon-client";
 import {
   deleteClientChat,
+  getClientChat,
   listClientChats,
 } from "@/lib/chat/persistence-client";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
@@ -63,8 +71,10 @@ export function AgentChatShell({
   const [viewerState, setViewerState] = useState(viewer);
   const [setupStatusState, setSetupStatusState] = useState(setupStatus);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [anonChatId, setAnonChatId] = useState<string | null>(null);
   const cursorRef = useRef(initialNextCursor);
   const activeChatIdRef = useRef(activeChatId);
+  const claimStartedRef = useRef(false);
   const setupReady = setupStatusState.appReady;
   const router = useRouter();
 
@@ -83,6 +93,15 @@ export function AgentChatShell({
       setDesktopSidebarOpen(saved);
       setSidebarDocumentHint(saved);
     }
+  }, []);
+
+  useEffect(() => {
+    setAnonChatId(getStoredAnonChatId());
+  }, []);
+
+  const registerAnonChat = useCallback((chatId: string) => {
+    storeAnonChatId(chatId);
+    setAnonChatId(chatId);
   }, []);
 
   const requestSignIn = useCallback((draft?: string) => {
@@ -141,7 +160,12 @@ export function AgentChatShell({
   const handleDeleteChat = useCallback(
     async (chatId: string) => {
       try {
-        await deleteClientChat(setupStatusState.storageMode, chatId);
+        const isAnonChat = !viewerState && anonChatId === chatId;
+
+        await deleteClientChat(
+          isAnonChat ? "browser" : setupStatusState.storageMode,
+          chatId,
+        );
         removeChat(chatId);
 
         if (activeChatIdRef.current === chatId) {
@@ -152,7 +176,7 @@ export function AgentChatShell({
         // errors are shown by the chat surface where the user is working.
       }
     },
-    [removeChat, setupStatusState.storageMode, startNewChat],
+    [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {
@@ -211,7 +235,17 @@ export function AgentChatShell({
           ? listClientChats(incomingSetupStatus.storageMode)
           : chats;
 
-      setHistory((items) => (incomingViewer ? mergeChatHistory(nextChats, items) : []));
+      setHistory((items) => {
+        if (incomingViewer) {
+          return mergeChatHistory(nextChats, items);
+        }
+
+        const storedAnonChatId = getStoredAnonChatId();
+
+        return storedAnonChatId
+          ? listClientChats("browser").filter((item) => item.id === storedAnonChatId)
+          : [];
+      });
       setNextCursor(usesBrowserStorage ? null : incomingNextCursor);
       setHistoryLoading(false);
       cursorRef.current = usesBrowserStorage ? null : incomingNextCursor;
@@ -237,10 +271,70 @@ export function AgentChatShell({
     };
   }, [setBootstrapData]);
 
+  useEffect(() => {
+    if (
+      historyLoading ||
+      !viewerState ||
+      claimStartedRef.current ||
+      setupStatusState.storageMode !== "database"
+    ) {
+      return;
+    }
+
+    const storedAnonChatId = getStoredAnonChatId();
+
+    if (!storedAnonChatId) {
+      return;
+    }
+
+    claimStartedRef.current = true;
+
+    void (async () => {
+      try {
+        const localChat = await getClientChat("browser", storedAnonChatId);
+
+        if (localChat?.session) {
+          const claimed = await claimAnonChatAction({
+            events: localChat.events,
+            session: localChat.session,
+            title: localChat.title,
+          });
+
+          await deleteClientChat("browser", storedAnonChatId);
+          clearStoredAnonChatId();
+          setAnonChatId(null);
+          touchChat(claimed);
+
+          if (window.location.pathname === `/chat/${storedAnonChatId}`) {
+            router.replace(`/chat/${claimed.id}`, { scroll: false });
+          }
+        } else {
+          if (localChat) {
+            await deleteClientChat("browser", storedAnonChatId);
+          }
+
+          clearStoredAnonChatId();
+          setAnonChatId(null);
+        }
+      } catch {
+        claimStartedRef.current = false;
+      }
+    })();
+  }, [
+    historyLoading,
+    router,
+    setupStatusState.storageMode,
+    touchChat,
+    viewerState,
+  ]);
+
   const contextValue = useMemo(
     () => ({
       activeChatId,
+      anonChatId,
+      bootstrapped: !historyLoading,
       desktopSidebarOpen,
+      registerAnonChat,
       removeChat,
       requestSignIn,
       setActiveChatId,
@@ -251,7 +345,10 @@ export function AgentChatShell({
     }),
     [
       activeChatId,
+      anonChatId,
       desktopSidebarOpen,
+      historyLoading,
+      registerAnonChat,
       removeChat,
       requestSignIn,
       setupStatusState,
@@ -261,6 +358,11 @@ export function AgentChatShell({
     ],
   );
 
+  const newSessionDisabledReason =
+    !historyLoading && !viewerState && anonChatId
+      ? ANON_LIMIT_REACHED_REASON
+      : undefined;
+
   const sidebar = (
     <ChatSidebar
       activeChatId={activeChatId}
@@ -268,6 +370,7 @@ export function AgentChatShell({
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
+      newSessionDisabledReason={newSessionDisabledReason}
       onDeleteChat={handleDeleteChat}
       onLoadMoreChats={loadMoreChats}
       onNavigate={handleSidebarNavigate}
@@ -303,7 +406,7 @@ export function AgentChatShell({
   return (
     <ChatShellProvider value={contextValue}>
       <SidebarCookieScript />
-      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+      <div className="flex h-dvh overflow-hidden bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-foreground">
         <div
           data-desktop-sidebar
           className={cn(
@@ -315,7 +418,7 @@ export function AgentChatShell({
         </div>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 py-2 md:px-3">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 md:px-3">
             <div className="pointer-events-auto flex items-center gap-1">
               <Button
                 aria-label="Open sidebar"
@@ -356,7 +459,7 @@ export function AgentChatShell({
           onClick={() => setMobileSidebarOpen(false)}
         />
         {mobileSidebarOpen ? (
-          <div className="fixed inset-y-0 left-0 z-50 md:hidden">
+          <div className="fixed inset-y-0 left-0 z-50 bg-background pl-[env(safe-area-inset-left)] md:hidden">
             <ChatSidebar
               activeChatId={activeChatId}
               chats={history}
@@ -364,6 +467,7 @@ export function AgentChatShell({
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
+              newSessionDisabledReason={newSessionDisabledReason}
               onDeleteChat={handleDeleteChat}
               onLoadMoreChats={loadMoreChats}
               onNavigate={handleSidebarNavigate}

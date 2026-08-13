@@ -5,7 +5,10 @@ import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 
 type ChatShellContextValue = {
   readonly activeChatId: string | null;
+  readonly anonChatId: string | null;
+  readonly bootstrapped: boolean;
   readonly desktopSidebarOpen: boolean;
+  readonly registerAnonChat: (chatId: string) => void;
   readonly removeChat: (chatId: string) => void;
   readonly requestSignIn: (draft?: string) => void;
   readonly setActiveChatId: (chatId: string | null) => void;

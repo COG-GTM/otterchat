@@ -14,11 +14,11 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
     <div
       aria-busy="true"
       aria-label="Loading chat"
-      className="flex h-dvh overflow-hidden bg-background text-foreground"
+      className="flex h-dvh overflow-hidden bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-foreground"
       role="status"
     >
       <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-border bg-background md:flex">
-        <div className="flex flex-col gap-1 px-2 pt-2 pb-2">
+        <div className="flex flex-col gap-1 px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2">
           <div className="flex items-center justify-between">
             <div className="flex h-8 items-center gap-2 rounded-md px-1.5">
               <img
@@ -59,13 +59,13 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
           )}
         </div>
 
-        <div className="border-t border-border px-2 py-3">
+        <div className="border-t border-border px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
           <div className="h-8 rounded-md bg-muted/25" />
         </div>
       </aside>
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 py-2 md:px-3">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 md:px-3">
           <div className="pointer-events-auto flex items-center gap-1">
             <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground md:hidden">
               <MenuIcon className="size-4" />
@@ -89,7 +89,7 @@ export function AgentChatContentSkeleton({ mode }: { readonly mode: "chat" | "ne
 
 function EmptyChatSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col pt-14 md:pt-8">
+    <div className="flex min-h-0 flex-1 flex-col pt-[calc(env(safe-area-inset-top)+3.5rem)] md:pt-[calc(env(safe-area-inset-top)+2rem)]">
       <div className="flex min-h-0 flex-1 items-center justify-center pb-12 sm:pb-[8vh]">
         <div className="w-full max-w-2xl space-y-6 sm:space-y-8 md:space-y-9">
           <h1 className="flex justify-center">
@@ -112,7 +112,7 @@ function EmptyChatSkeleton() {
 function ConversationSkeleton() {
   return (
     <>
-      <div className="shrink-0 border-b border-border/70 py-3 pr-16 pl-12 md:pr-28 md:pl-4">
+      <div className="shrink-0 border-b border-border/70 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 pr-16 pl-12 md:pr-28 md:pl-4">
         <div className="h-6 w-48 max-w-[50vw] rounded-md bg-muted/35" />
       </div>
       <div className="flex-1 px-4 py-10 sm:px-6">
@@ -129,7 +129,7 @@ function ConversationSkeleton() {
           </div>
         </div>
       </div>
-      <div className="mx-auto w-full max-w-2xl shrink-0 px-4 pb-4 sm:px-6 sm:pb-6">
+      <div className="mx-auto w-full max-w-2xl shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-6 sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
         <StaticComposerFallback />
       </div>
     </>
