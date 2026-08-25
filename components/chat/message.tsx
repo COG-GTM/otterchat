@@ -621,7 +621,7 @@ function InputRequestActions({
   };
 
   return (
-    <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+    <div className="space-y-3 rounded-md border border-blue-500/30 bg-blue-500/5 p-3">
       <p className="text-sm text-muted-foreground">{inputRequest.prompt}</p>
       {inputRequest.options?.length ? (
         <div className="flex flex-wrap gap-2">
