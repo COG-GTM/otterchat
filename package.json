@@ -1,0 +1,27 @@
+{
+  "name": "otterchat-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.12.4",
+  "scripts": {
+    "build": "pnpm --filter otterchat build",
+    "build:all": "pnpm -r build",
+    "dev": "pnpm --filter otterchat dev",
+    "dev:twitter": "pnpm --filter otterchat-twitter dev",
+    "start": "pnpm --filter otterchat start",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter otterchat db:generate",
+    "db:migrate": "pnpm --filter otterchat db:migrate",
+    "db:migrate:production": "pnpm --filter otterchat db:migrate:production",
+    "db:push": "pnpm --filter otterchat db:push",
+    "db:studio": "pnpm --filter otterchat db:studio",
+    "ios": "pnpm --filter otterchat ios",
+    "ios:sync": "pnpm --filter otterchat ios:sync",
+    "ios:open": "pnpm --filter otterchat ios:open",
+    "android": "pnpm --filter otterchat android",
+    "android:sync": "pnpm --filter otterchat android:sync",
+    "android:open": "pnpm --filter otterchat android:open"
+  }
+}

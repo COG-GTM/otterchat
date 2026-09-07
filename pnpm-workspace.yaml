@@ -1,2 +1,6 @@
+packages:
+  - 'apps/*'
+
 onlyBuiltDependencies:
   - '@sentry/cli'
+  - 'esbuild'

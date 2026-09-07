@@ -1,4 +1,4 @@
-# twitter-otterchat
+# otterchat-twitter
 
 Static recreation of an X (Twitter) post detail page: left navigation, post thread with replies, and the right rail (search, relevant people, trends, footer).
 
@@ -10,11 +10,17 @@ React 19 + TypeScript + Vite.
 
 ## Getting started
 
+This app is a package in the otterchat pnpm workspace; install from the repo
+root.
+
 ```bash
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # type-check + production build
-npm run lint     # oxlint
+pnpm install                 # at the repo root
+pnpm dev:twitter             # http://localhost:5173
+
+# or, from this directory
+pnpm dev
+pnpm build                   # type-check + production build
+pnpm lint                    # oxlint
 ```
 
 ## Layout

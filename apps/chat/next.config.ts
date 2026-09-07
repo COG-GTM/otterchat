@@ -1,3 +1,4 @@
+import path from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import { withEve } from "eve/next";
@@ -6,7 +7,9 @@ import createWithVercelToolbar from "@vercel/toolbar/plugins/next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   turbopack: {
-    root: process.cwd(),
+    // Workspace root: dependencies are hoisted to the monorepo root, which
+    // has to be inside the compiled file set.
+    root: path.join(import.meta.dirname, "..", ".."),
   },
 };
 
