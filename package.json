@@ -7,9 +7,12 @@
   "scripts": {
     "build": "pnpm --filter otterchat build",
     "build:all": "pnpm -r build",
+    "build:eve": "pnpm --filter otterchat build:eve",
     "dev": "pnpm --filter otterchat dev",
+    "dev:eve": "pnpm --filter otterchat dev:eve",
     "dev:twitter": "pnpm --filter otterchat-twitter dev",
     "start": "pnpm --filter otterchat start",
+    "start:eve": "pnpm --filter otterchat start:eve",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "db:generate": "pnpm --filter otterchat db:generate",
