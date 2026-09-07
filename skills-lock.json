@@ -24,18 +24,6 @@
       "sourceType": "github",
       "skillPath": "skills/neon-postgres/SKILL.md",
       "computedHash": "7985b983f8ae5e36d88b82bcc2f3353726d22ced9be97d438681b308afed509e"
-    },
-    "upstash-ratelimit-js": {
-      "source": "upstash/skills",
-      "sourceType": "github",
-      "skillPath": "skills/upstash-ratelimit-js/SKILL.md",
-      "computedHash": "a50677d24615b67727a585862a6eb694c1a70448c61b9f76d446d44c75578df2"
-    },
-    "upstash-redis-js": {
-      "source": "upstash/skills",
-      "sourceType": "github",
-      "skillPath": "skills/upstash-redis-js/SKILL.md",
-      "computedHash": "b3740ee221b199b157554899c638f035880eb7c0f551c1b78615942293b44c5f"
     }
   }
 }

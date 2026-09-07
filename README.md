@@ -1,145 +1,56 @@
-# eve Chat Template
+# otterchat
 
-A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Neon Auth, Neon, and Upstash when you need a production multi-user application.
+pnpm workspace monorepo for otterchat.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?project-name=eve-chat-template&repository-name=eve-chat-template&repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Ftree%2Fmain&env=EVE_CHAT_PASSWORD&envDescription=Choose+a+strong+password+to+protect+your+agent+%2816%2B+characters+recommended%29.&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Fblob%2Fmain%2Fdocs%2Fsetup-and-deploy.md)
-
-## Quick Start
-
-Deploy the starter without provisioning a database or other Marketplace products:
-
-1. Click **Deploy with Vercel**.
-2. Enter a strong `EVE_CHAT_PASSWORD` (16+ characters recommended).
-3. Open the deployed app and enter that password.
-
-Chats and eve session cursors are stored in that browser. They are not shared across browsers or users.
-Starter mode is intended for one trusted operator: anyone with the password
-shares the same agent identity and connection grants.
-
-## Deployment Modes
-
-| Mode | Selected when | Authentication | Chat persistence |
+| Package | Path | Stack | Description |
 | --- | --- | --- | --- |
-| Starter | `EVE_CHAT_PASSWORD` is configured | Shared password and secure session cookie | Browser localStorage |
-| Production | Neon, Upstash, and Neon Auth variables are configured | Neon Auth (email/password and social) | Neon |
-| Local development | Neither mode is configured and `next dev` is running locally | Local development identity | Browser localStorage |
+| `otterchat` | `apps/chat` | Next.js 16 + [eve](https://eve.dev), Capacitor iOS/Android | The chat app. This is what deploys to Vercel. |
+| `otterchat-twitter` | `apps/twitter` | React 19 + Vite | Static X (Twitter) post-detail prototype featuring the otterchat account. |
 
-Production mode takes precedence when its complete environment is present. The app fails closed in a production deployment when neither mode is configured. See [Setup and Deployment](docs/setup-and-deploy.md) for the upgrade path.
+## Getting started
 
-## Getting Started
-
-For the starter and production setup flows, see [Setup and Deployment](docs/setup-and-deploy.md). For the runtime architecture, streaming model, persistence flow, and extension points, see [How the Chatbot Works](docs/how-the-chatbot-works.md).
-
-Install dependencies with pnpm:
+Requires Node 24+ (eve's dev server refuses to start on older Node; vite's
+rolldown bindings need `^20.19 || >=22.12`) and pnpm 10.
 
 ```bash
-pnpm install
+pnpm install          # installs every workspace package
+
+pnpm dev              # chat app        → http://localhost:3000
+pnpm dev:twitter      # twitter prototype → http://localhost:5173
+
+pnpm build            # build the chat app (what Vercel runs)
+pnpm build:all        # build every package
+pnpm typecheck        # typecheck every package
+pnpm lint             # lint every package
 ```
 
-Run locally without additional services:
+Anything specific to one app can be run through a filter, or from inside its
+directory:
 
 ```bash
-pnpm dev
+pnpm --filter otterchat-twitter build
+cd apps/chat && pnpm dev
 ```
 
-To require the same password locally, put this in `.env.local`:
+The chat app's `db:*`, `ios*`, and `android*` scripts are also exposed at the
+root and forward to `apps/chat`.
 
-```bash
-EVE_CHAT_PASSWORD=<at-least-16-characters>
-```
+## Per-app docs
 
-To upgrade the linked project to production mode, run the setup script. It provisions Neon (Postgres + Auth) and Upstash, pulls environment variables, and runs migrations:
+- Chat app: [`apps/chat/README.md`](apps/chat/README.md), plus
+  [setup and deployment](apps/chat/docs/setup-and-deploy.md) and
+  [how the chatbot works](apps/chat/docs/how-the-chatbot-works.md). The
+  provisioning script lives at `apps/chat/scripts/setup.sh` and must be run from
+  `apps/chat` (it links the Vercel project to that directory).
+- Twitter prototype: [`apps/twitter/README.md`](apps/twitter/README.md).
 
-```bash
-./scripts/setup.sh
-# Or: ./scripts/setup.sh --scope <team-slug>
-```
+## Deployment
 
-Production mode requires:
+The Vercel project must have its **Root Directory** set to `apps/chat`
+(Settings → Build & Deployment → Root Directory), with "Include files outside
+the Root Directory" left enabled so the workspace lockfile is used. Vercel then
+detects Next.js and builds the chat app as before.
 
-```bash
-DATABASE_URL=
-NEON_AUTH_BASE_URL=
-NEON_AUTH_COOKIE_SECRET=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-KV_REST_API_URL=
-KV_REST_API_TOKEN=
-```
-
-Other optional environment variables:
-
-```bash
-# Enable hosted Vercel Connect integrations.
-SLACK_CONNECTOR=
-LINEAR_CONNECTOR=
-NOTION_CONNECTOR=
-SENTRY_CONNECTOR=
-```
-
-Create optional Vercel Connect integrations:
-
-```bash
-# Slack channel
-vercel connect create slack --name eve-chat-template --triggers
-vercel connect attach <slack-connector-uid> --triggers --trigger-path /eve/v1/slack --yes
-
-# MCP connections
-vercel connect create mcp.notion.com --name notion
-vercel connect create https://mcp.linear.app/mcp --name linear
-vercel connect create https://mcp.sentry.dev/mcp --name sentry
-```
-
-The deploy button does not require these integrations. For manual setup, put the returned connector UIDs in `SLACK_CONNECTOR`, `NOTION_CONNECTOR`, `LINEAR_CONNECTOR`, and `SENTRY_CONNECTOR`. Local development falls back to `slack/eve-chat-template`, `notion`, `linear`, and `sentry`, so connectors created with the names above work without editing `agent/`.
-
-The composer only shows its connections menu when at least one MCP connector is configured. Password-only starter deployments therefore omit the menu and do not prompt eve to use unavailable connections.
-
-If the connector is not attached to the linked project, run:
-
-```bash
-vercel connect attach <connector-uid> --yes
-vercel env pull .env.local
-```
-
-Production mode only: create the database tables:
-
-```bash
-pnpm db:migrate
-```
-
-For production, run migrations with Vercel production env vars:
-
-```bash
-vercel env run -e production -- pnpm db:migrate
-```
-
-Start the development server:
-
-```bash
-pnpm dev
-```
-
-## What Is Included
-
-- Text chat with an eve agent through same-origin `/eve/v1/*` routes
-- Password access with browser-backed chat history by default
-- Optional Neon Auth (managed Better Auth) sign-in
-- Optional Neon-backed cross-device chat history
-- Optional Upstash Redis rate limiting in production mode
-- Drizzle schema and migrations for production mode under `lib/db`
-- Saved eve session cursors and event snapshots in either storage mode
-- Sidebar history with delete and new-chat actions
-- Vercel Connect-backed Notion, Linear, and Sentry MCP connections
-- Vercel Connect-backed Slack channel route at `/eve/v1/slack`
-- Composer-level connections menu
-- First-message chat titles derived locally from the user's prompt
-- Streamdown markdown rendering for assistant text and reasoning
-- shadcn/Tailwind components for messages, tools, HITL prompts, and composer
-
-This template intentionally does not include file uploads, Vercel Blob, guest mode, NextAuth/Auth.js, or AI Elements.
-
-## Agent Code
-
-Edit the agent in `agent/agent.ts`. Its behavior is defined in `agent/instructions.md`, and tools live in `agent/tools/`.
-
-The browser talks to eve with `useEveAgent()` from `eve/react`; the app stores eve stream events and session state so `/chat/[id]` can resume the same durable conversation after refresh.
+A root `vercel.json` cannot substitute for this: framework detection reads the
+package.json of the root directory, and the workspace root has no `next`
+dependency.

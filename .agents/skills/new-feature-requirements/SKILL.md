@@ -1,13 +1,22 @@
 ---
 name: new-feature-requirements
-description: Requirements every new feature in otterchat must meet, starting with shipping behind a LaunchDarkly flag. Use when adding a new feature, page, component, endpoint, or behavior change, or when asked to gate, roll out, or clean up a feature flag.
+description: Requirements for features that a Devin Automation builds in otterchat, starting with shipping behind a LaunchDarkly flag. Use only when the current session was started by a Devin Automation (scheduled or event-triggered) and it adds a feature, page, component, endpoint, or behavior change, or when asked to gate, roll out, or clean up a feature flag.
 ---
 
-# New feature requirements
+# New feature requirements (Devin Automations)
 
-Every new user-facing feature in this repo ships behind a LaunchDarkly boolean flag that
-defaults to off. The flag is created before the feature merges, and the code path without
-the flag must be the current behavior.
+## When this applies
+
+Only to work produced by a **Devin Automation** — a session started by a schedule or an
+integration event rather than by a person. A session is an automation run when it began
+without a human prompt, e.g. it opens with the automation's own instructions and no
+interactive requester. If a person started the session and is steering it, this skill does
+not apply: gate the feature only if they ask for it.
+
+An automation that ships a user-facing feature must put it behind a LaunchDarkly boolean
+flag that defaults to off. The flag is created before the feature merges, and the code path
+without the flag must be the current behavior. The point is that unattended changes never
+alter production behavior until a human turns them on.
 
 ## Setup already in place
 
@@ -19,7 +28,7 @@ the flag must be the current behavior.
 `boolVariation` returns the supplied default when the key is missing or the SDK cannot
 initialize, so the app still runs with no LaunchDarkly credentials configured.
 
-## Workflow for a new feature
+## Workflow for an automation-built feature
 
 1. Pick a kebab-case flag key that names the feature, e.g. `chat-attachments`.
 2. Create the flag in LaunchDarkly before wiring it up:
@@ -49,7 +58,8 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
 
 ## Rules
 
-- Default off. A flag that defaults to on is not a rollout guard.
+- Default off. A flag that defaults to on is not a rollout guard, and an automation must
+  never ship a default-on flag.
 - One flag per feature. Do not reuse an existing key for unrelated behavior.
 - Do not evaluate flags in client components with this SDK; it is server-side only. If a
   client component needs the value, evaluate it on the server and pass it down as a prop.
@@ -58,9 +68,9 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
 
 ## Relationship to the Flags SDK
 
-`lib/flags.ts` uses the Vercel Flags SDK (`flags`, `@flags-sdk/vercel`) and is separate from
-this integration. Use LaunchDarkly for new feature gating unless a task explicitly asks for
-Vercel Flags. If both are ever needed in one flag declaration, the LaunchDarkly adapter is
+LaunchDarkly is the only flag system in this repo. The Vercel Flags SDK (`flags`,
+`@flags-sdk/vercel`, `lib/flags.ts` and the `.well-known/vercel/flags` discovery endpoint) has
+been removed. If Flags Explorer integration is ever wanted, the LaunchDarkly adapter is
 `@flags-sdk/launchdarkly`, which additionally requires `GLOBAL_CONFIG` (Vercel Edge Config).
 
 ## Verifying locally
