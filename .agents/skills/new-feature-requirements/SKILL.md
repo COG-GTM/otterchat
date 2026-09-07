@@ -58,9 +58,9 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
 
 ## Relationship to the Flags SDK
 
-`lib/flags.ts` uses the Vercel Flags SDK (`flags`, `@flags-sdk/vercel`) and is separate from
-this integration. Use LaunchDarkly for new feature gating unless a task explicitly asks for
-Vercel Flags. If both are ever needed in one flag declaration, the LaunchDarkly adapter is
+LaunchDarkly is the only flag system in this repo. The Vercel Flags SDK (`flags`,
+`@flags-sdk/vercel`, `lib/flags.ts` and the `.well-known/vercel/flags` discovery endpoint) has
+been removed. If Flags Explorer integration is ever wanted, the LaunchDarkly adapter is
 `@flags-sdk/launchdarkly`, which additionally requires `GLOBAL_CONFIG` (Vercel Edge Config).
 
 ## Verifying locally
