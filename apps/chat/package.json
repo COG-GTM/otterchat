@@ -31,6 +31,7 @@
     "@capacitor/core": "8.5.0",
     "@capacitor/keyboard": "8.0.5",
     "@flags-sdk/vercel": "^1.4.6",
+    "@launchdarkly/node-server-sdk": "^9.13.1",
     "@neondatabase/auth": "0.4.2-beta",
     "@neondatabase/serverless": "1.0.2",
     "@sentry/nextjs": "^10",
