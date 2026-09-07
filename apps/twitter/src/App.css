@@ -279,6 +279,15 @@
   color: var(--color-muted);
 }
 
+.post__meta-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.post__meta-link:hover {
+  text-decoration: underline;
+}
+
 .dot-sep {
   color: var(--color-muted);
 }
@@ -402,6 +411,14 @@
 .reply__handle,
 .reply__time {
   color: var(--color-muted);
+}
+
+.reply__time {
+  text-decoration: none;
+}
+
+.reply__time:hover {
+  text-decoration: underline;
 }
 
 .reply__head-actions {

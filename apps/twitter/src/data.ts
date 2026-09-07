@@ -36,6 +36,8 @@ export type Reply = {
   /** Prototype flow step (0-based) at which this reply first appears. */
   step: number
   account: Account
+  /** Permalink to the reply on the prototype. */
+  url: string
   time: string
   text: string
   media?: Media
@@ -43,6 +45,14 @@ export type Reply = {
   reposts?: string
   likes?: string
   views?: string
+}
+
+/**
+ * Permalink to a post on the fictional network this prototype mimics, on the
+ * prototype's own deployment rather than the real site it imitates.
+ */
+function statusUrl(handle: string, statusId: string) {
+  return `https://twitter-otterchat.vercel.app/${handle.replace(/^@/, '')}/status/${statusId}`
 }
 
 export const currentUser: Account = {
@@ -68,6 +78,7 @@ export const author: Account = {
 }
 
 export const post = {
+  url: statusUrl('@otterchat', '1952776301459275812'),
   text: 'Otterchat is now backed by MythosGPT 42. Same otter, a whole lot more brain — try it out.',
   media: {
     from: '#e8e6e1',
@@ -117,6 +128,7 @@ export const replies: Reply[] = [
       avatarTo: '#6b2100',
       imageSrc: avatarHank,
     },
+    url: statusUrl('@hottakehank', '1952789944482873456'),
     time: '50m',
     text: 'nobody asked for MythosGPT 42. the old otter was perfect and you shipped a downgrade. name a bigger self-own, i\u2019ll wait.',
     replies: '214',
@@ -136,6 +148,7 @@ export const replies: Reply[] = [
       imageSrc: avatarPriya,
       verified: 'blue',
     },
+    url: statusUrl('@priya_builds', '1952791457099210773'),
     time: '44m',
     text: 'love it, but can we please get a way to favorite chats?',
     replies: '8',
@@ -154,6 +167,7 @@ export const replies: Reply[] = [
       avatarTo: '#14514a',
       imageSrc: avatarDana,
     },
+    url: statusUrl('@danaortiz', '1952792880239715544'),
     time: '38m',
     text: 'congrats!!',
     likes: '57',
@@ -170,6 +184,7 @@ export const replies: Reply[] = [
       avatarTo: '#2b1216',
       imageSrc: avatarMarcus,
     },
+    url: statusUrl('@mwebb', '1952797113437265008'),
     time: '21m',
     text: 'thanks to @openAGI for co developing the model with us!',
     replies: '3',
@@ -188,6 +203,7 @@ export const replies: Reply[] = [
       imageSrc: avatarLena,
       verified: 'blue',
     },
+    url: statusUrl('@lenafischer', '1952799432635942271'),
     time: '12m',
     text: 'i wish there was a way to star chats like in claudeGPT',
     replies: '2',
@@ -206,6 +222,7 @@ export const replies: Reply[] = [
       avatarTo: '#2f1d4a',
       imageSrc: avatarToby,
     },
+    url: statusUrl('@tobyposts', '1952801204070489163'),
     time: '4m',
     text: 'every single day:',
     media: {
@@ -222,6 +239,15 @@ export const replies: Reply[] = [
     views: '112K',
   },
 ]
+
+/**
+ * Flow step at which the status a permalink points to is visible, so opening a
+ * reply's permalink shows that reply rather than the pre-reply post.
+ */
+export function stepForPath(pathname: string) {
+  const reply = replies.find((candidate) => new URL(candidate.url).pathname === pathname)
+  return reply ? reply.step : 0
+}
 
 export const relevantPerson = {
   account: author,
