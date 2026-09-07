@@ -17,7 +17,7 @@ The template has four major layers:
 1. The eve agent layer in `agent/`
 2. The Next.js shell and page layer in `app/`
 3. The chat UI components in `components/chat/`
-4. The persistence, auth, setup, and rate-limit layer in `lib/`
+4. The persistence, auth, and setup layer in `lib/`
 
 Important files:
 
@@ -36,7 +36,7 @@ Important files:
 | `components/chat/composer.tsx` | The controlled chat input. |
 | `components/chat/message.tsx` | Renders eve messages, markdown, reasoning, tools, and input requests. |
 | `components/chat/sidebar.tsx` | Paginated chat history sidebar. |
-| `app/actions/chat.ts` | Server actions for chat creation, persistence, pending state, skip auth, and rate checks. |
+| `app/actions/chat.ts` | Server actions for chat creation, persistence, pending state, and skip auth. |
 | `app/api/chats/route.ts` | Paginated chat history endpoint. |
 | `lib/chat/local-store.ts` | Versioned browser storage for starter-mode chats and eve session cursors. |
 | `lib/chat/persistence-client.ts` | Routes client persistence calls to browser or database storage. |
@@ -46,7 +46,6 @@ Important files:
 | `lib/auth.ts` | Neon Auth (managed Better Auth) server instance. |
 | `lib/password-auth.ts` | Shared-password verification and stateless signed session cookies. |
 | `lib/eve-auth.ts` | Converts password or Neon Auth sessions into eve channel principals. |
-| `lib/rate-limit.ts` | Upstash Redis based fixed-window rate limiting. |
 
 ## Runtime Model
 
@@ -368,7 +367,6 @@ The intended order is:
 
 - verify setup is ready
 - request sign-in if there is no viewer
-- check Redis rate limits
 - create a chat row if one does not exist yet
 - navigate to the new chat URL when necessary
 
@@ -609,7 +607,6 @@ type SetupStatus = {
   databaseReady: boolean;
   databaseSchemaReady: boolean;
   missing: readonly string[];
-  rateLimitReady: boolean;
   storageMode: "browser" | "database";
 };
 ```
@@ -622,7 +619,6 @@ selected when all of these are configured:
 - `DATABASE_URL` exists
 - database migrations have created the expected tables
 - Neon Auth env vars are present
-- Upstash Redis env vars are present
 
 Production mode then checks whether these Postgres tables exist:
 
@@ -637,36 +633,11 @@ The UI uses setup status in three places:
 
 Disabled composers should always provide a reason through tooltip text.
 
-## Rate Limiting
+## Message Limits
 
-Production-mode rate limiting uses Upstash Redis in `lib/rate-limit.ts`.
-
-The app supports either current Upstash env names:
-
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-
-or legacy Vercel KV env names:
-
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
-
-`enforceRateLimit` uses a fixed window key:
-
-```txt
-rate:<prefix>:<viewer id>:<window id>
-```
-
-The current send limits are:
-
-- `chat:create`: 25 per hour
-- `chat:send`: 25 per hour
-- Message length: 8,000 characters
-
-The create and send limits are separate so creating a chat and then sending a
-message can be guarded independently. Message length is enforced in the
-composer and again in server actions before creating chats or saving pending
-messages.
+The app does not rate limit requests. The only send-side limit is message
+length (8,000 characters), enforced in the composer and again in server actions
+before creating chats or saving pending messages.
 
 ## Message Rendering
 
@@ -744,7 +715,6 @@ Common stream errors:
 - stream disconnected before a settled event
 - eve session missing when trying to resume
 - authorization callback not pending
-- rate limit exceeded
 
 The app generally prefers:
 

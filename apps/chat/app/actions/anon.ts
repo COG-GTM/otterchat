@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import {
   ANON_SESSION_COOKIE_NAME,
@@ -9,14 +9,9 @@ import {
   verifyAnonSessionToken,
 } from "@/lib/anon-session";
 import { importChat } from "@/lib/db/queries";
-import { enforceRateLimit } from "@/lib/rate-limit";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
 
-const ANON_START_LIMIT = 10;
-const ANON_START_WINDOW_SECONDS = 60 * 60;
-const CLAIM_LIMIT = 5;
-const CLAIM_WINDOW_SECONDS = 60 * 60;
 const CLAIM_MAX_EVENTS = 2_000;
 
 export async function startAnonymousChatAction() {
@@ -40,17 +35,6 @@ export async function startAnonymousChatAction() {
   if (existingAnonId) {
     return { ok: true as const };
   }
-
-  const requestHeaders = await headers();
-  const clientIp =
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-
-  await enforceRateLimit({
-    key: clientIp,
-    limit: ANON_START_LIMIT,
-    prefix: "anon:start",
-    windowSeconds: ANON_START_WINDOW_SECONDS,
-  });
 
   cookieStore.set(
     ANON_SESSION_COOKIE_NAME,
@@ -87,13 +71,6 @@ export async function claimAnonChatAction(input: {
   if (input.events.length > CLAIM_MAX_EVENTS) {
     throw new Error("Chat is too large to claim.");
   }
-
-  await enforceRateLimit({
-    key: viewer.id,
-    limit: CLAIM_LIMIT,
-    prefix: "chat:claim",
-    windowSeconds: CLAIM_WINDOW_SECONDS,
-  });
 
   const claimed = await importChat(viewer.id, {
     events: input.events,

@@ -34,7 +34,6 @@ import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
 import {
   appendClientChatEvent,
-  checkClientSendLimit,
   clearClientChatPendingMessage,
   createClientChat,
   markClientChatPendingMessage,
@@ -973,13 +972,6 @@ export function AgentChatSession({
 
   const prepareSend = useCallback(
     async (firstMessage: string) => {
-      const limit = await checkClientSendLimit(chatStorageMode, { message: firstMessage });
-
-      if (!limit.allowed) {
-        setClientError(`${limit.message} Retry in ${limit.retryAfter}s.`);
-        return false;
-      }
-
       if (!activeChatIdRef.current) {
         const created = await createClientChat(chatStorageMode, {
           pendingUserMessage: firstMessage,
@@ -1149,13 +1141,6 @@ export function AgentChatSession({
 
       if (!activeChatIdRef.current) {
         setClientError("Start a chat before responding.");
-        return;
-      }
-
-      const limit = await checkClientSendLimit(chatStorageMode);
-
-      if (!limit.allowed) {
-        setClientError(`${limit.message} Retry in ${limit.retryAfter}s.`);
         return;
       }
 

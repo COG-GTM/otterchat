@@ -3,7 +3,6 @@
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import {
   appendChatEventAction,
-  checkSendLimitAction,
   clearChatPendingMessageAction,
   createChatAction,
   deleteChatAction,
@@ -64,15 +63,6 @@ export async function deleteClientChat(storageMode: StorageMode, chatId: string)
   }
 
   await deleteChatAction(chatId);
-}
-
-export async function checkClientSendLimit(
-  storageMode: StorageMode,
-  input?: { readonly message?: string },
-) {
-  return storageMode === "browser"
-    ? ({ allowed: true } as const)
-    : checkSendLimitAction(input);
 }
 
 export async function markClientChatPendingMessage(

@@ -35,7 +35,7 @@ If `EVE_CHAT_PASSWORD` is absent and the full production environment is not conf
 
 ## Production Persistence Upgrade
 
-Configure all of Neon (Postgres + Neon Auth) and Upstash to switch the same codebase into production mode. Production mode uses Neon Auth identity, database-backed per-user history, and distributed rate limiting. The setup script automates this path:
+Configure Neon (Postgres + Neon Auth) to switch the same codebase into production mode. Production mode uses Neon Auth identity and database-backed per-user history. The setup script automates this path:
 
 ```bash
 ./scripts/setup.sh
@@ -64,7 +64,7 @@ vercel link --scope <team-slug>
 
 ## Production Storage
 
-Neon and Upstash Redis are required only for production mode.
+Neon is required only for production mode.
 
 Provision Neon:
 
@@ -72,13 +72,7 @@ Provision Neon:
 vercel integration add neon
 ```
 
-Provision Upstash Redis:
-
-```bash
-vercel integration add upstash
-```
-
-Follow the prompts and connect both resources to the linked project.
+Follow the prompts and connect the resource to the linked project.
 
 When Neon is created through the import flow, `DATABASE_URL` is usually marked sensitive and applied to Production and Preview. That is fine for deployed migrations with `vercel env run`. Select Development for the Neon env var only if you want `DATABASE_URL` to be pulled into `.env.local`; selecting Development will make it available to local dev.
 
@@ -195,8 +189,6 @@ If sign-in redirects to `/auth/error?error=auth_env_missing`, set `NEON_AUTH_BAS
 If sign-up or sign-in fails with an upstream auth error, confirm Auth is enabled for the correct Neon branch and that the branch's Auth configuration allows email/password sign-in.
 
 If `pnpm db:migrate` says `DATABASE_URL` is missing, either run `vercel env run -e production -- pnpm db:migrate` for production or pull a Development-scoped Neon env var into `.env.local`.
-
-If rate limiting setup is missing, provision Upstash Redis and pull env vars again.
 
 ## Useful Links
 

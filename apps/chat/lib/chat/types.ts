@@ -37,6 +37,5 @@ export type SetupStatus = {
   readonly databaseReady: boolean;
   readonly databaseSchemaReady: boolean;
   readonly missing: readonly string[];
-  readonly rateLimitReady: boolean;
   readonly storageMode: StorageMode;
 };

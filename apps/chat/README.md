@@ -48,7 +48,7 @@ To require the same password locally, put this in `.env.local`:
 EVE_CHAT_PASSWORD=<at-least-16-characters>
 ```
 
-To upgrade the linked project to production mode, run the setup script. It provisions Neon (Postgres + Auth) and Upstash, pulls environment variables, and runs migrations:
+To upgrade the linked project to production mode, run the setup script. It provisions Neon (Postgres + Auth), pulls environment variables, and runs migrations:
 
 ```bash
 ./scripts/setup.sh
@@ -61,10 +61,6 @@ Production mode requires:
 DATABASE_URL=
 NEON_AUTH_BASE_URL=
 NEON_AUTH_COOKIE_SECRET=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-KV_REST_API_URL=
-KV_REST_API_TOKEN=
 ```
 
 Other optional environment variables:
@@ -125,7 +121,6 @@ pnpm dev
 - Password access with browser-backed chat history by default
 - Optional Neon Auth (managed Better Auth) sign-in
 - Optional Neon-backed cross-device chat history
-- Optional Upstash Redis rate limiting in production mode
 - Drizzle schema and migrations for production mode under `lib/db`
 - Saved eve session cursors and event snapshots in either storage mode
 - Sidebar history with delete and new-chat actions

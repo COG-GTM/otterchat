@@ -113,9 +113,6 @@ provision_integration() {
 step "Provisioning Neon Postgres"
 provision_integration "Neon" neon DATABASE_URL
 
-step "Provisioning Upstash Redis"
-provision_integration "Upstash Redis" upstash-kv KV_REST_API_URL
-
 # --- 4. Neon Auth (managed Better Auth) --------------------------------------
 # The Neon integration sets NEON_AUTH_BASE_URL when Auth is enabled for the
 # branch. The app also needs NEON_AUTH_COOKIE_SECRET for signing session cookies.

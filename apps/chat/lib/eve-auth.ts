@@ -1,11 +1,9 @@
-import { ForbiddenError, type AuthFn } from "eve/channels/auth";
+import type { AuthFn } from "eve/channels/auth";
 import {
   ANON_SESSION_COOKIE_NAME,
-  ANON_SESSION_MAX_AGE,
   verifyAnonSessionToken,
 } from "@/lib/anon-session";
 import { getPasswordSessionFromHeaders } from "@/lib/password-auth";
-import { RateLimitError, enforceRateLimit } from "@/lib/rate-limit";
 import { getSetupStatus } from "@/lib/setup";
 
 const NEON_AUTH_SESSION_COOKIE_NAME = "__Secure-neon-auth.session_token";
@@ -106,10 +104,6 @@ function getCookieValue(cookieHeader: string | null, name: string) {
   return null;
 }
 
-const ANON_NEW_SESSION_LIMIT = 1;
-const ANON_TURN_LIMIT = 30;
-const ANON_TURN_WINDOW_SECONDS = 60 * 60;
-
 export const anonymousEveAuth: AuthFn<Request> = async (request) => {
   const setupStatus = await getSetupStatus();
 
@@ -127,38 +121,6 @@ export const anonymousEveAuth: AuthFn<Request> = async (request) => {
 
   if (!anonId) {
     return null;
-  }
-
-  if (request.method === "POST") {
-    const isNewSession = new URL(request.url).pathname === "/eve/v1/session";
-
-    try {
-      await enforceRateLimit(
-        isNewSession
-          ? {
-              key: anonId,
-              limit: ANON_NEW_SESSION_LIMIT,
-              prefix: "anon:new-session",
-              windowSeconds: ANON_SESSION_MAX_AGE,
-            }
-          : {
-              key: anonId,
-              limit: ANON_TURN_LIMIT,
-              prefix: "anon:turn",
-              windowSeconds: ANON_TURN_WINDOW_SECONDS,
-            },
-      );
-    } catch (error) {
-      if (error instanceof RateLimitError) {
-        throw new ForbiddenError({
-          message: isNewSession
-            ? "Sign in to start a new session."
-            : "Sign in to keep chatting.",
-        });
-      }
-
-      throw error;
-    }
   }
 
   return {

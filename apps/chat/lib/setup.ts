@@ -7,11 +7,6 @@ const AUTH_ENV_KEYS = [
   "NEON_AUTH_COOKIE_SECRET",
 ] as const;
 
-const RATE_LIMIT_ENV_GROUPS = [
-  ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
-  ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
-] as const;
-
 function hasEnv(name: string) {
   return Boolean(process.env[name]?.trim());
 }
@@ -24,10 +19,6 @@ export function isPasswordConfigured() {
   return Boolean(process.env.EVE_CHAT_PASSWORD?.trim());
 }
 
-export function isRateLimitConfigured() {
-  return RATE_LIMIT_ENV_GROUPS.some((group) => group.every(hasEnv));
-}
-
 export function getInitialSetupStatus(): SetupStatus {
   return createSetupStatus({
     databaseSchemaReady: isDatabaseConfigured(),
@@ -36,8 +27,7 @@ export function getInitialSetupStatus(): SetupStatus {
 
 export async function getSetupStatus(): Promise<SetupStatus> {
   const databaseConfigured = isDatabaseConfigured();
-  const fullEnvironmentReady =
-    databaseConfigured && isAuthConfigured() && isRateLimitConfigured();
+  const fullEnvironmentReady = databaseConfigured && isAuthConfigured();
   const databaseSchemaReady = fullEnvironmentReady
     ? await isDatabaseSchemaReady()
     : false;
@@ -58,9 +48,8 @@ function createSetupStatus({
 }): SetupStatus {
   const databaseConfigured = isDatabaseConfigured();
   const neonAuthReady = isAuthConfigured();
-  const rateLimitReady = isRateLimitConfigured();
   const databaseReady = databaseConfigured && databaseSchemaReady;
-  const fullEnvironmentReady = databaseConfigured && neonAuthReady && rateLimitReady;
+  const fullEnvironmentReady = databaseConfigured && neonAuthReady;
   const passwordReady = isPasswordConfigured();
   const localDevReady = isLocalDevelopment();
 
@@ -73,7 +62,6 @@ function createSetupStatus({
       databaseReady,
       databaseSchemaReady,
       missing: databaseSchemaReady ? [] : ["database migrations"],
-      rateLimitReady,
       storageMode: "database",
     };
   }
@@ -87,7 +75,6 @@ function createSetupStatus({
       databaseReady,
       databaseSchemaReady,
       missing: [],
-      rateLimitReady,
       storageMode: "browser",
     };
   }
@@ -101,9 +88,8 @@ function createSetupStatus({
     databaseSchemaReady,
     missing: [
       PASSWORD_ENV_KEY,
-      "or DATABASE_URL, Neon Auth, and Upstash configuration",
+      "or DATABASE_URL and Neon Auth configuration",
     ],
-    rateLimitReady,
     storageMode: "browser",
   };
 }
