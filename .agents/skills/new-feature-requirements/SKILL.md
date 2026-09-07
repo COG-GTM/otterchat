@@ -15,7 +15,6 @@ the flag must be the current behavior.
 - Client singleton and helper: `lib/launchdarkly.ts`
 - Credentials: `LAUNCHDARKLY_SDK_KEY` in `.env.local` (gitignored), placeholder in `.env.example`.
   It is stored as a repo-scoped Devin secret named `LAUNCHDARKLY_SDK_KEY`; never hardcode it.
-- Reference gated component: `components/launchdarkly-banner.tsx`
 
 `boolVariation` returns the supplied default when the key is missing or the SDK cannot
 initialize, so the app still runs with no LaunchDarkly credentials configured.
@@ -38,8 +37,7 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
    behavior on the false branch. Never let the flag change the shape of persisted data
    without a fallback for flag-off reads.
 5. Because `cacheComponents` is enabled in `next.config.ts`, flag evaluation is dynamic:
-   wrap the gated server component in `<Suspense>` (see `app/(chat)/page.tsx`) so the
-   static shell still renders.
+   wrap the gated server component in `<Suspense>` so the static shell still renders.
 6. Pass a real context when the feature targets users. The default context is anonymous:
 
    ```ts
