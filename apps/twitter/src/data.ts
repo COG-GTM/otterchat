@@ -36,7 +36,7 @@ export type Reply = {
   /** Prototype flow step (0-based) at which this reply first appears. */
   step: number
   account: Account
-  /** Permalink to the reply on X. */
+  /** Permalink to the reply on the prototype. */
   url: string
   time: string
   text: string
@@ -48,11 +48,11 @@ export type Reply = {
 }
 
 /**
- * Permalink to a post on the fictional network this prototype mimics. `.x` is
- * not a real TLD, so these never resolve to a live page.
+ * Permalink to a post on the fictional network this prototype mimics, on the
+ * prototype's own deployment rather than the real site it imitates.
  */
 function statusUrl(handle: string, statusId: string) {
-  return `https://otter.x/${handle.replace(/^@/, '')}/status/${statusId}`
+  return `https://twitter-otterchat.vercel.app/${handle.replace(/^@/, '')}/status/${statusId}`
 }
 
 export const currentUser: Account = {
