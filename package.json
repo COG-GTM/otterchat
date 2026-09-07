@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "pnpm --filter otterchat build",
     "build:all": "pnpm -r build",
