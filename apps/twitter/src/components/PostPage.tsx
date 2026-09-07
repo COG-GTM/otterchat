@@ -29,7 +29,14 @@ function ReplyRow({ reply }: { reply: Reply }) {
           {reply.account.verified ? <VerifiedBadge size={17} tone={reply.account.verified} /> : null}
           <span className="reply__handle">{reply.account.handle}</span>
           <span className="dot-sep">·</span>
-          <span className="reply__time">{reply.time}</span>
+          <a
+            className="reply__time"
+            href={reply.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {reply.time}
+          </a>
           <div className="reply__head-actions">
             <button className="icon-button" type="button" aria-label="Grok actions">
               <GrokIcon size={18} />
@@ -115,9 +122,13 @@ export function PostPage({ step }: { step: number }) {
         </div>
 
         <div className="post__meta">
-          <span>{post.time}</span>
+          <a className="post__meta-link" href={post.url} target="_blank" rel="noreferrer">
+            {post.time}
+          </a>
           <span className="dot-sep">·</span>
-          <span>{post.date}</span>
+          <a className="post__meta-link" href={post.url} target="_blank" rel="noreferrer">
+            {post.date}
+          </a>
           <span className="dot-sep">·</span>
           <span className="post__meta-strong">{post.views}</span>
           <span className="post__meta-muted">Views</span>
