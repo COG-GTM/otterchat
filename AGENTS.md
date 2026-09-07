@@ -18,7 +18,7 @@ Node and vite builds then fail with "Cannot find native binding").
 - Target one package with `pnpm --filter <name> <script>`.
 - New shared code goes in a `packages/*` workspace package, not in a relative
   import that reaches across `apps/`.
-- Vercel builds the chat app from the repo root via `vercel.json`; keep
-  `buildCommand`/`outputDirectory` in sync when the chat app moves or renames.
+- Vercel's project Root Directory is `apps/chat`; moving or renaming the chat
+  app means updating that project setting too.
 - Use `eve` lowercase in user-facing copy, docs, prompts, and comments. Do not
   title-case it unless it is part of an exact external title or quoted text.

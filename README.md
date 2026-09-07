@@ -45,7 +45,11 @@ root and forward to `apps/chat`.
 
 ## Deployment
 
-The Vercel project builds the chat app from the repo root using `vercel.json`
-(`pnpm --filter otterchat build`, output `apps/chat/.next`). Setting the
-project's **Root Directory** to `apps/chat` also works — in that case Vercel
-picks up the app's own config and the root `vercel.json` is ignored.
+The Vercel project must have its **Root Directory** set to `apps/chat`
+(Settings → Build & Deployment → Root Directory), with "Include files outside
+the Root Directory" left enabled so the workspace lockfile is used. Vercel then
+detects Next.js and builds the chat app as before.
+
+A root `vercel.json` cannot substitute for this: framework detection reads the
+package.json of the root directory, and the workspace root has no `next`
+dependency.
