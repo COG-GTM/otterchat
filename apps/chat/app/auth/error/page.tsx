@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 
 const SETUP_DOCS_URL =
-  "https://github.com/vercel-labs/eve-chat-template/blob/main/docs/setup-and-deploy.md";
+  "https://github.com/COG-GTM/otterchat/blob/main/apps/chat/docs/setup-and-deploy.md";
 const NEON_AUTH_DOCS_URL = "https://neon.com/docs/auth/overview";
 
 export default async function AuthErrorPage({

@@ -707,7 +707,7 @@ That keeps errors from pushing the composer or chat body around.
 Common setup errors:
 
 - missing or short `EVE_CHAT_PASSWORD` in starter mode
-- incomplete Neon, Neon Auth, or Upstash configuration
+- incomplete Neon or Neon Auth configuration
 - production migrations not run
 
 Common stream errors:

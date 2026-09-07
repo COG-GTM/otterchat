@@ -1,6 +1,6 @@
 # eve Chat Template
 
-A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Neon Auth, Neon, and Upstash when you need a production multi-user application.
+A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Neon Auth and Neon when you need a production multi-user application.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?project-name=eve-chat-template&repository-name=eve-chat-template&repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Ftree%2Fmain&env=EVE_CHAT_PASSWORD&envDescription=Choose+a+strong+password+to+protect+your+agent+%2816%2B+characters+recommended%29.&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Fblob%2Fmain%2Fdocs%2Fsetup-and-deploy.md)
 
@@ -21,7 +21,7 @@ shares the same agent identity and connection grants.
 | Mode | Selected when | Authentication | Chat persistence |
 | --- | --- | --- | --- |
 | Starter | `EVE_CHAT_PASSWORD` is configured | Shared password and secure session cookie | Browser localStorage |
-| Production | Neon, Upstash, and Neon Auth variables are configured | Neon Auth (email/password and social) | Neon |
+| Production | Neon and Neon Auth variables are configured | Neon Auth (email/password and social) | Neon |
 | Local development | Neither mode is configured and `next dev` is running locally | Local development identity | Browser localStorage |
 
 Production mode takes precedence when its complete environment is present. The app fails closed in a production deployment when neither mode is configured. See [Setup and Deployment](docs/setup-and-deploy.md) for the upgrade path.
