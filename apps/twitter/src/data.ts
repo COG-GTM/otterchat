@@ -47,9 +47,12 @@ export type Reply = {
   views?: string
 }
 
-/** Permalink to a post, in the shape X uses: /<handle>/status/<id>. */
+/**
+ * Permalink to a post on the fictional network this prototype mimics. `.x` is
+ * not a real TLD, so these never resolve to a live page.
+ */
 function statusUrl(handle: string, statusId: string) {
-  return `https://x.com/${handle.replace(/^@/, '')}/status/${statusId}`
+  return `https://otter.x/${handle.replace(/^@/, '')}/status/${statusId}`
 }
 
 export const currentUser: Account = {
