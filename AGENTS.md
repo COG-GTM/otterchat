@@ -1,8 +1,9 @@
 # otterchat monorepo
 
-pnpm workspace with two apps. Node 22 and pnpm 10 are required (rolldown/vite
-native bindings need `^20.19 || >=22.12`; pnpm silently skips them on older
-Node and vite builds then fail with "Cannot find native binding").
+pnpm workspace with two apps. Node 24+ and pnpm 10 are required: eve refuses to
+start (`eve requires Node.js >=24`), and rolldown/vite's native bindings need
+`^20.19 || >=22.12` — pnpm silently skips them on older Node and vite builds
+then fail with "Cannot find native binding".
 
 | Package | Path | Notes |
 | --- | --- | --- |

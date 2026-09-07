@@ -9,7 +9,8 @@ pnpm workspace monorepo for otterchat.
 
 ## Getting started
 
-Requires Node 22 (rolldown/vite native bindings need `^20.19 || >=22.12`) and pnpm 10.
+Requires Node 24+ (eve's dev server refuses to start on older Node; vite's
+rolldown bindings need `^20.19 || >=22.12`) and pnpm 10.
 
 ```bash
 pnpm install          # installs every workspace package
