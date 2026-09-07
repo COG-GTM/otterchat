@@ -2,9 +2,9 @@
 #
 # eve Chat Template — one-shot setup.
 #
-# Links the Vercel project, provisions Neon (Postgres + Neon Auth) and Upstash,
-# sets every environment variable through the Vercel API, pulls them locally,
-# and runs database migrations.
+# Links the Vercel project, provisions Neon (Postgres + Neon Auth), sets every
+# environment variable through the Vercel API, pulls them locally, and runs
+# database migrations.
 #
 # Authentication uses Neon Auth (managed Better Auth). Enable Auth for the
 # project's branch in the Neon console if NEON_AUTH_BASE_URL is not set
