@@ -4,11 +4,11 @@ import { PostPage } from './components/PostPage'
 import { RightRail } from './components/RightRail'
 import { PrototypeToolbar } from './components/PrototypeToolbar'
 import { ChatIcon, GrokIcon } from './components/Icons'
-import { flowSteps } from './data'
+import { flowSteps, stepForPath } from './data'
 import './App.css'
 
 export default function App() {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(() => stepForPath(window.location.pathname))
 
   return (
     <div className="layout" id="top">

@@ -240,6 +240,15 @@ export const replies: Reply[] = [
   },
 ]
 
+/**
+ * Flow step at which the status a permalink points to is visible, so opening a
+ * reply's permalink shows that reply rather than the pre-reply post.
+ */
+export function stepForPath(pathname: string) {
+  const reply = replies.find((candidate) => new URL(candidate.url).pathname === pathname)
+  return reply ? reply.step : 0
+}
+
 export const relevantPerson = {
   account: author,
   bio: "The world's best AI chat application",
