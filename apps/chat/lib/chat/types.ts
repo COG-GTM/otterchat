@@ -11,6 +11,7 @@ export type AuthMode = "local-dev" | "neon" | "password" | "unconfigured";
 export type StorageMode = "browser" | "database";
 
 export type ChatListItem = {
+  readonly favorite?: boolean;
   readonly id: string;
   readonly title: string;
   readonly updatedAt: string;
