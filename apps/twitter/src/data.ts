@@ -249,6 +249,15 @@ export function stepForPath(pathname: string) {
   return reply ? reply.step : 0
 }
 
+/**
+ * Flow step at which the reply anchored by `hash` is rendered, so the links in
+ * the feedback payload land on the reply they point at.
+ */
+export function stepForHash(hash: string) {
+  const reply = replies.find((candidate) => candidate.id === hash.replace(/^#/, ''))
+  return reply ? reply.step : 0
+}
+
 export const relevantPerson = {
   account: author,
   bio: "The world's best AI chat application",

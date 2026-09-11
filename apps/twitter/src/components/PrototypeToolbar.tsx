@@ -1,15 +1,26 @@
 import { BackArrowIcon, ChevronRightIcon } from './Icons'
 import type { FlowStep } from '../data'
 
+export type WebhookState = 'idle' | 'firing' | 'sent' | 'failed'
+
 type Props = {
   step: number
   onStepChange: (step: number) => void
   steps: FlowStep[]
+  webhookState: WebhookState
 }
 
-export function PrototypeToolbar({ step, onStepChange, steps }: Props) {
+const webhookLabels: Record<WebhookState, string | null> = {
+  idle: null,
+  firing: 'Sending…',
+  sent: 'Sent',
+  failed: 'Failed to send',
+}
+
+export function PrototypeToolbar({ step, onStepChange, steps, webhookState }: Props) {
   const lastStep = Math.max(0, steps.length - 1)
   const current = steps[step]
+  const webhookLabel = webhookLabels[webhookState]
 
   return (
     <div className="prototype-dock">
@@ -34,7 +45,14 @@ export function PrototypeToolbar({ step, onStepChange, steps }: Props) {
           <BackArrowIcon size={16} />
           Back
         </button>
-        <span className="prototype-toolbar__label">{current.label}</span>
+        <span className="prototype-toolbar__label">
+          {current.label}
+          {webhookLabel ? (
+            <span className={`prototype-toolbar__status prototype-toolbar__status--${webhookState}`}>
+              {webhookLabel}
+            </span>
+          ) : null}
+        </span>
         <button
           className="prototype-toolbar__button"
           type="button"
