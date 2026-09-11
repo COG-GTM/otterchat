@@ -19,7 +19,7 @@ import type { Reply } from '../data'
 
 function ReplyRow({ reply }: { reply: Reply }) {
   return (
-    <article className="reply">
+    <article className="reply" id={reply.id}>
       <div className="reply__avatar">
         <Avatar account={reply.account} size={40} />
       </div>

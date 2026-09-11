@@ -708,6 +708,15 @@
   text-transform: uppercase;
 }
 
+.prototype-toolbar__status {
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.prototype-toolbar__status--failed {
+  color: #f4212e;
+}
+
 /* ---------- Floating actions ---------- */
 
 .floating-actions {
