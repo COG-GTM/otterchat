@@ -45,6 +45,7 @@ export async function listChatsPageByUser(
     .select({
       id: chat.id,
       title: chat.title,
+      favorite: chat.favorite,
       updatedAt: chat.updatedAt,
     })
     .from(chat)
@@ -68,6 +69,7 @@ export async function listChatsPageByUser(
 
   return {
     items: pageRows.map((row) => ({
+      favorite: row.favorite,
       id: row.id,
       title: row.title,
       updatedAt: row.updatedAt.toISOString(),
@@ -450,6 +452,38 @@ export async function saveChatSnapshot({
       updatedAt: new Date(),
     })
     .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
+}
+
+export async function setChatFavoriteForUser({
+  chatId,
+  favorite,
+  userId,
+}: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+  readonly userId: string;
+}) {
+  const [row] = await db
+    .update(chat)
+    .set({ favorite })
+    .where(and(eq(chat.id, chatId), eq(chat.userId, userId)))
+    .returning({
+      favorite: chat.favorite,
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    });
+
+  if (!row) {
+    throw new Error("Chat not found.");
+  }
+
+  return {
+    favorite: row.favorite,
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 export async function deleteChatForUser(chatId: string, userId: string) {
