@@ -1,17 +1,19 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LeftNav } from './components/LeftNav'
 import { PostPage } from './components/PostPage'
 import { RightRail } from './components/RightRail'
 import { PrototypeToolbar } from './components/PrototypeToolbar'
 import { ChatIcon, GrokIcon } from './components/Icons'
-import { flowSteps, stepForPath } from './data'
+import { flowSteps, stepForHash, stepForPath } from './data'
 import { buildFeedbackPayload } from './feedback'
 import './App.css'
 
 const WEBHOOK_STEP = flowSteps.length - 1
 
 export default function App() {
-  const [step, setStep] = useState(() => stepForPath(window.location.pathname))
+  const [step, setStep] = useState(() =>
+    Math.max(stepForPath(window.location.pathname), stepForHash(window.location.hash)),
+  )
   const [webhookState, setWebhookState] = useState<'idle' | 'firing' | 'sent' | 'failed'>('idle')
   const fired = useRef(false)
 
@@ -31,6 +33,11 @@ export default function App() {
       setWebhookState('failed')
       fired.current = false
     }
+  }, [])
+
+  useEffect(() => {
+    const anchor = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null
+    anchor?.scrollIntoView()
   }, [])
 
   const goToStep = useCallback(
