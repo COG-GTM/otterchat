@@ -421,6 +421,7 @@ export function AgentChatShell({
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 md:px-3">
             <div className="pointer-events-auto flex items-center gap-1">
+              <ThemeToggle />
               <Button
                 aria-label="Open sidebar"
                 className="md:hidden"
@@ -443,7 +444,6 @@ export function AgentChatShell({
                   <PanelLeftIcon className="size-4" />
                 </Button>
               ) : null}
-              <ThemeToggle />
             </div>
             {topRightActions}
           </div>
