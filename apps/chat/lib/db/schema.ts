@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -18,6 +19,7 @@ export const chat = pgTable(
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
     title: text("title").notNull().default("New chat"),
+    favorite: boolean("favorite").notNull().default(false),
     eveSession: jsonb("eve_session").$type<SessionState | null>(),
     pendingUserMessage: text("pending_user_message"),
     pendingUserMessageCreatedAt: timestamp("pending_user_message_created_at"),
