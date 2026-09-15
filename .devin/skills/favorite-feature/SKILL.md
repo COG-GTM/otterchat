@@ -27,17 +27,23 @@ description: How to implement the favorites feature. Use when adding favorite/un
 
 ## Runtime Testing Setup
 
-- Run `source ~/.nvm/nvm.sh` and `pnpm dev` from the monorepo root with Node 24+. Ensure only one Next dev server uses this checkout: a server on another port still owns the shared `.next/dev` lock.
-- With no database/auth configuration, development mode automatically uses the local-development viewer and browser storage. This is not a real signed-in database test, nor a signed-out test.
-- Without `LAUNCHDARKLY_SDK_KEY`, `favorite-chats` evaluates to its false default. Label this default-OFF coverage, not a LaunchDarkly targeting toggle test.
-- Real persisted favorites require the Neon database/auth configuration, an authenticated test user, and database migrations. Never substitute local storage or mocked flags for that evidence.
-- Startup may need access to `ai-gateway.vercel.sh` for model metadata. UI fonts need `fonts.googleapis.com` and `fonts.gstatic.com`; restart Next after granting access and verify fonts loaded before visual assertions.
-- Local eve execution needs Docker and access to `ghcr.io` and `pkg-containers.githubusercontent.com`. `docker pull ghcr.io/vercel/eve:latest` can prepare the actual runtime image without sending a test message.
-- A successful image pull is not sufficient for model responses: AI Gateway credentials are also required. Record missing-credential errors as incomplete response coverage while independently checking local history/navigation.
-- Hover chat rows when checking for star controls; inspect the accessible `Favorite chat` / `Unfavorite chat` labels as a supplement to screenshots. Reload after mutations to distinguish persisted state from optimistic state.
+- Run from the repo root with Node 24 (`source ~/.nvm/nvm.sh && nvm use 24`), then `pnpm dev`. Only one Next dev server may use this checkout: a server on another port still owns the shared `.next/dev` lock.
+- With no production environment, development mode automatically supplies an `eve user` viewer and browser storage. This is not a real Neon sign-in or a truly signed-out session; label coverage accordingly.
+- Database-mode tests require all three production settings below and migrated tables. Do not simulate auth/DB to claim persistence coverage.
+- Without `LAUNCHDARKLY_SDK_KEY`, the helper returns the caller's default. If authorized to temporarily flip a default, restore it and verify both source and refreshed UI before finishing.
+- Create browser chat fixtures through the composer. A failed model request may still leave the local chat row usable for sidebar-only tests; disclose the request failure and do not claim message/reply coverage.
+- If eve auto-start fails resolving model metadata, `EVE_BASE_URL` can decouple Next.js from auto-start. Point it at a real running backend for full tests; an unavailable local backend only permits explicitly limited frontend tests, not end-to-end backend claims.
+- Star/actions buttons support keyboard focus visibility. If the test browser reports `(hover:hover)=false`, click an already-selected chat row and press Tab to reveal its first action; report hover coverage separately rather than changing CSS.
+- Network restrictions may force Google Fonts fallbacks; do not claim pixel-exact visual parity in that case. Fonts need `fonts.googleapis.com` and `fonts.gstatic.com`, startup needs `ai-gateway.vercel.sh` for model metadata, and the local eve runtime image needs `ghcr.io` plus `pkg-containers.githubusercontent.com`; restart Next after granting access.
+- A reachable AI Gateway is not enough for model responses: credentials are also required (`AI Gateway received no credentials` otherwise). Record that as incomplete response coverage and still check sidebar, history, and navigation independently.
+- Reload after mutations to distinguish persisted state from optimistic state, and inspect the accessible `Favorite chat` / `Unfavorite chat` labels as a supplement to screenshots.
+- Package docs may be at `apps/chat/node_modules/eve/docs/` when the older `dist/docs/public/` location is absent.
 
 ### Devin Secrets Needed
 
-- `LAUNCHDARKLY_SDK_KEY` for the intended environment, plus LaunchDarkly access with flag-edit permission.
-- `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_COOKIE_SECRET`, plus a usable Neon Auth test account.
-- `AI_GATEWAY_API_KEY`, or valid linked `VERCEL_OIDC_TOKEN`, for response-generation regression checks.
+- `DATABASE_URL`
+- `NEON_AUTH_BASE_URL`
+- `NEON_AUTH_COOKIE_SECRET`
+- `LAUNCHDARKLY_SDK_KEY` for actual remote flag evaluation (not needed for authorized local-default tests).
+- A usable Neon test account or permitted self-registration for signed-in scenarios.
+- `AI_GATEWAY_API_KEY`, or a valid linked `VERCEL_OIDC_TOKEN`, for response-generation regression checks.

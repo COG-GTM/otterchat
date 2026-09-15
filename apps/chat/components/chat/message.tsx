@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   CheckIcon,
   Loader2Icon,
+  PaperclipIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -18,6 +19,8 @@ import { cn } from "@/lib/utils";
 const STREAM_TEXT_TICK_MS = 60;
 const STREAM_TEXT_CACHE_LIMIT = 40;
 const streamingTextCache = new Map<string, string>();
+
+type EveFilePart = Extract<EveMessagePart, { type: "file" }>;
 
 export type AgentInputResponse = {
   readonly optionId?: string;
@@ -113,6 +116,20 @@ function AgentMessageParts({
 
   parts.forEach((part, index) => {
     if (part.type === "dynamic-tool") {
+      const generatedImage = getGeneratedImage(part);
+
+      if (generatedImage) {
+        flushTools(true);
+        elements.push(
+          <GeneratedImagePart
+            key={`image:${part.toolCallId}`}
+            prompt={generatedImage.prompt}
+            url={generatedImage.image}
+          />,
+        );
+        return;
+      }
+
       pendingTools.push(part);
       return;
     }
@@ -164,6 +181,8 @@ function AgentMessagePart({
       );
     case "reasoning":
       return <ReasoningPart isStreaming={part.state === "streaming"} text={part.text} />;
+    case "file":
+      return <AttachmentPart part={part} />;
     case "dynamic-tool":
       return null;
   }
@@ -171,6 +190,63 @@ function AgentMessagePart({
 
 function UserTextPart({ text }: { readonly text: string }) {
   return <div className="whitespace-pre-wrap break-words">{text}</div>;
+}
+
+function AttachmentPart({ part }: { readonly part: EveFilePart }) {
+  const label = part.filename ?? "Attachment";
+
+  if (part.mediaType.startsWith("image/") && part.url) {
+    return (
+      <img
+        alt={label}
+        className="my-1 max-h-64 w-auto max-w-full rounded-[12px] border border-border/40 object-contain"
+        src={part.url}
+      />
+    );
+  }
+
+  return (
+    <span className="my-1 flex items-center gap-2 rounded-[10px] border border-border/40 bg-background/60 px-2 py-1.5 text-sm">
+      <PaperclipIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+function GeneratedImagePart({
+  prompt,
+  url,
+}: {
+  readonly prompt: string;
+  readonly url: string;
+}) {
+  return (
+    <figure className="my-2 w-full">
+      <img
+        alt={prompt}
+        className="max-h-[28rem] w-auto max-w-full rounded-[14px] border border-border/50"
+        src={url}
+      />
+      <figcaption className="mt-1.5 text-xs text-muted-foreground">{prompt}</figcaption>
+    </figure>
+  );
+}
+
+function getGeneratedImage(part: EveDynamicToolPart) {
+  if (part.state !== "output-available" || resolveToolName(part) !== "generate_image") {
+    return null;
+  }
+
+  const output = part.output as { readonly image?: unknown; readonly prompt?: unknown } | null;
+
+  if (!output || typeof output.image !== "string") {
+    return null;
+  }
+
+  return {
+    image: output.image,
+    prompt: typeof output.prompt === "string" ? output.prompt : "Generated image",
+  };
 }
 
 function AssistantTextPart({
