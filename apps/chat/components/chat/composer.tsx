@@ -1,21 +1,30 @@
 "use client";
 
-import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
+import { ArrowUpIcon, Loader2Icon, PaperclipIcon, SquareIcon, XIcon } from "lucide-react";
 import {
   useCallback,
   useEffect,
   useId,
   useRef,
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  ATTACHMENT_ACCEPT,
+  MAX_ATTACHMENTS,
+  getAttachmentError,
+  readAttachment,
+  type ChatAttachment,
+} from "@/lib/chat/attachments";
 import { getChatMessageLength, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat/limits";
 import { cn } from "@/lib/utils";
 
 export function ChatComposer({
+  attachments = [],
   autoFocus = true,
   className,
   disabled = false,
@@ -24,11 +33,14 @@ export function ChatComposer({
   isBusy = false,
   isPreparing = false,
   maxLength = MAX_CHAT_MESSAGE_CHARS,
+  onAttachmentError,
+  onAttachmentsChange,
   onChange,
   onSubmit,
   placeholder = "Ask eve anything...",
   value,
 }: {
+  readonly attachments?: readonly ChatAttachment[];
   readonly autoFocus?: boolean;
   readonly className?: string;
   readonly disabled?: boolean;
@@ -37,6 +49,8 @@ export function ChatComposer({
   readonly isBusy?: boolean;
   readonly isPreparing?: boolean;
   readonly maxLength?: number;
+  readonly onAttachmentError?: (message: string) => void;
+  readonly onAttachmentsChange?: (attachments: readonly ChatAttachment[]) => void;
   readonly onChange: (value: string) => void;
   readonly onStop: () => void;
   readonly onSubmit: (value: string) => void | Promise<void>;
@@ -44,6 +58,7 @@ export function ChatComposer({
   readonly value: string;
 }) {
   const composerId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const textareaDisabled = disabled || isBusy || isPreparing;
   const trimmedValue = value.trim();
@@ -76,6 +91,52 @@ export function ChatComposer({
       submitValue();
     },
     [submitValue],
+  );
+
+  const handleFilesSelected = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const files = [...(event.target.files ?? [])];
+
+      event.target.value = "";
+
+      if (files.length === 0 || !onAttachmentsChange) {
+        return;
+      }
+
+      const accepted: ChatAttachment[] = [];
+
+      for (const file of files) {
+        const error = getAttachmentError(file);
+
+        if (error) {
+          onAttachmentError?.(error);
+          continue;
+        }
+
+        if (attachments.length + accepted.length >= MAX_ATTACHMENTS) {
+          onAttachmentError?.(`You can attach up to ${MAX_ATTACHMENTS} files.`);
+          break;
+        }
+
+        try {
+          accepted.push(await readAttachment(file));
+        } catch {
+          onAttachmentError?.(`${file.name} could not be read.`);
+        }
+      }
+
+      if (accepted.length > 0) {
+        onAttachmentsChange([...attachments, ...accepted]);
+      }
+    },
+    [attachments, onAttachmentError, onAttachmentsChange],
+  );
+
+  const removeAttachment = useCallback(
+    (id: string) => {
+      onAttachmentsChange?.(attachments.filter((attachment) => attachment.id !== id));
+    },
+    [attachments, onAttachmentsChange],
   );
 
   const handleKeyDown = useCallback(
@@ -114,8 +175,67 @@ export function ChatComposer({
         rows={2}
         value={value}
       />
+      {attachments.length > 0 ? (
+        <ul className="flex flex-wrap gap-1.5 px-3 pb-1 sm:px-4">
+          {attachments.map((attachment) => (
+            <li
+              className="flex max-w-[12rem] items-center gap-1.5 rounded-md border border-border/60 bg-background/70 py-1 pr-1 pl-2 text-xs"
+              key={attachment.id}
+            >
+              {attachment.mediaType.startsWith("image/") ? (
+                <img
+                  alt=""
+                  className="size-5 shrink-0 rounded-sm object-cover"
+                  src={attachment.data}
+                />
+              ) : (
+                <PaperclipIcon className="size-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="truncate">{attachment.filename}</span>
+              <Button
+                aria-label={`Remove ${attachment.filename}`}
+                className="size-4 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => removeAttachment(attachment.id)}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                <XIcon className="size-3" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="flex min-h-9 items-center justify-between gap-2 px-3 pt-1 pb-2 sm:gap-3 sm:px-4">
         <div className="-ml-2 flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+          {onAttachmentsChange ? (
+            <>
+              <input
+                accept={ATTACHMENT_ACCEPT}
+                className="hidden"
+                multiple
+                onChange={(event) => void handleFilesSelected(event)}
+                ref={fileInputRef}
+                type="file"
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label="Attach files"
+                    className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                    disabled={disabled || isBusy || isPreparing}
+                    onClick={() => fileInputRef.current?.click()}
+                    size="icon-xs"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <PaperclipIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Attach images or PDFs</TooltipContent>
+              </Tooltip>
+            </>
+          ) : null}
           {footerStart ?? <span className="block h-8" />}
         </div>
         <div className="flex shrink-0 items-center">

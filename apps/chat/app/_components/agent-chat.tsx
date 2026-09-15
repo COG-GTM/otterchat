@@ -30,6 +30,7 @@ import {
 import { AgentMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toEveFileParts, type ChatAttachment } from "@/lib/chat/attachments";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
 import {
@@ -42,6 +43,12 @@ import {
   skipClientChatAuthorization,
 } from "@/lib/chat/persistence-client";
 import type { ActiveChat, SetupStatus, Viewer } from "@/lib/chat/types";
+import {
+  IMAGE_MODEL_HEADER,
+  TEXT_MODEL_HEADER,
+  resolveImageModel,
+  resolveTextModel,
+} from "@/lib/models";
 import { cn } from "@/lib/utils";
 
 type AgentSnapshot = EveAgentStoreSnapshot<EveMessageData>;
@@ -49,6 +56,10 @@ type PersistedClientSession = ClientSession & {
   readonly state: SessionState;
   applyLocalEvents: (events: readonly HandleMessageStreamEvent[]) => SessionState;
   setState: (session: SessionState) => void;
+};
+type StreamEventsFlushHandle = {
+  frame: number;
+  timer: number;
 };
 type StreamSessionOptions = {
   readonly ignoreLeadingWaiting?: boolean;
@@ -61,9 +72,19 @@ export type DraftHandlers = {
   readonly restoreDraft: (value: string) => void;
 };
 
+export type SendMessageOptions = {
+  readonly attachments?: readonly ChatAttachment[];
+  readonly imageModelId?: string;
+  readonly textModelId?: string;
+};
+
 export type AgentChatController = {
   readonly reset: () => void;
-  readonly sendMessage: (text: string, draftHandlers: DraftHandlers) => Promise<void>;
+  readonly sendMessage: (
+    text: string,
+    draftHandlers: DraftHandlers,
+    options?: SendMessageOptions,
+  ) => Promise<void>;
   readonly stop: () => void;
 };
 
@@ -86,6 +107,7 @@ const STREAM_OPEN_RETRYABLE_STATUS = new Set([404, 409, 425, 500, 502, 503, 504]
 const STREAM_DISCONNECT_RECONNECT_ATTEMPTS = 3;
 const STREAM_IDLE_TIMEOUT_MS = 120_000;
 const STREAM_RECONNECT_DELAY_MS = 350;
+const STREAM_EVENTS_FLUSH_TIMEOUT_MS = 100;
 const THINKING_EXIT_DURATION_MS = 180;
 
 function createPersistedClientSession({
@@ -698,6 +720,12 @@ export function AgentChatSession({
     setMessage: setLocalPendingUserMessage,
   } = usePendingUserMessage();
   const [skippingAuthorizationKey, setSkippingAuthorizationKey] = useState<string | null>(null);
+  // Continuation requests such as input responses carry no picker state, so the
+  // last sent selection is replayed to keep the turn on the chosen models.
+  const modelHeadersRef = useRef<Record<string, string>>({
+    [IMAGE_MODEL_HEADER]: resolveImageModel(undefined).id,
+    [TEXT_MODEL_HEADER]: resolveTextModel(undefined).id,
+  });
   const activeChatIdRef = useRef(activeChat?.id ?? chatId ?? null);
   const eventIndexRef = useRef(activeChat?.events.length ?? 0);
   const eventIndexChatIdRef = useRef(activeChat?.id ?? chatId ?? null);
@@ -708,6 +736,7 @@ export function AgentChatSession({
   const resumeStartedRef = useRef(false);
   const resumedEventsRef = useRef<HandleMessageStreamEvent[]>([]);
   const streamEventsRef = useRef<HandleMessageStreamEvent[]>([]);
+  const streamEventsFlushRef = useRef<StreamEventsFlushHandle | null>(null);
   const localEventsRef = useRef<HandleMessageStreamEvent[]>([]);
   const onSessionStartedRef = useRef<(session: SessionState) => Promise<void> | void>(
     () => {},
@@ -735,6 +764,49 @@ export function AgentChatSession({
   const finishFinalizingTurn = useCallback(() => {
     setIsFinalizingTurn(false);
   }, []);
+
+  const cancelStreamEventsFlush = useCallback(() => {
+    const handle = streamEventsFlushRef.current;
+
+    if (!handle) {
+      return;
+    }
+
+    streamEventsFlushRef.current = null;
+    window.cancelAnimationFrame(handle.frame);
+    window.clearTimeout(handle.timer);
+  }, []);
+
+  // eve delivers stream deltas in a tight async loop, so rendering every event
+  // keeps React inside one nested update batch until it aborts the turn with
+  // "Maximum update depth exceeded". The ref stays authoritative; renders are
+  // coalesced to one per frame.
+  const scheduleStreamEventsFlush = useCallback(() => {
+    if (streamEventsFlushRef.current) {
+      return;
+    }
+
+    const flush = () => {
+      cancelStreamEventsFlush();
+      setStreamEvents(streamEventsRef.current);
+    };
+
+    streamEventsFlushRef.current = {
+      frame: window.requestAnimationFrame(flush),
+      timer: window.setTimeout(flush, STREAM_EVENTS_FLUSH_TIMEOUT_MS),
+    };
+  }, [cancelStreamEventsFlush]);
+
+  const commitStreamEvents = useCallback(
+    (events: HandleMessageStreamEvent[]) => {
+      cancelStreamEventsFlush();
+      streamEventsRef.current = events;
+      setStreamEvents(events);
+    },
+    [cancelStreamEventsFlush],
+  );
+
+  useEffect(() => cancelStreamEventsFlush, [cancelStreamEventsFlush]);
 
   const persistSnapshot = useCallback(
     async (snapshot: AgentSnapshot) => {
@@ -782,8 +854,7 @@ export function AgentChatSession({
         });
         eventIndexRef.current = events.length;
         knownInitialEventsRef.current = events;
-        streamEventsRef.current = [];
-        setStreamEvents([]);
+        commitStreamEvents([]);
         touchChat({
           id: chatId,
           title: currentTitleRef.current,
@@ -807,6 +878,7 @@ export function AgentChatSession({
     [
       canPersistChat,
       chatStorageMode,
+      commitStreamEvents,
       finishFinalizingTurn,
       onActiveChatUpdated,
       onPendingUserMessageSettled,
@@ -828,7 +900,7 @@ export function AgentChatSession({
 
       if (nextStreamEvents !== streamEventsRef.current) {
         streamEventsRef.current = nextStreamEvents;
-        setStreamEvents(nextStreamEvents);
+        scheduleStreamEventsFlush();
       }
 
       if (displayEvent.type === "authorization.required") {
@@ -854,7 +926,7 @@ export function AgentChatSession({
         );
       });
     },
-    [canPersistChat, chatStorageMode, stopFinalizingTurn],
+    [canPersistChat, chatStorageMode, scheduleStreamEventsFlush, stopFinalizingTurn],
   );
 
   const persistSessionState = useCallback(
@@ -959,16 +1031,15 @@ export function AgentChatSession({
     currentTitleRef.current = "New chat";
     resumeStartedRef.current = false;
     resumedEventsRef.current = [];
-    streamEventsRef.current = [];
     localEventsRef.current = [];
+    commitStreamEvents([]);
     setResumedEvents([]);
-    setStreamEvents([]);
     setLocalEvents([]);
     stopFinalizingTurn();
     clearLocalPendingUserMessage();
     setIsResuming(false);
     setClientError(null);
-  }, [agent, clearLocalPendingUserMessage, stopFinalizingTurn]);
+  }, [agent, clearLocalPendingUserMessage, commitStreamEvents, stopFinalizingTurn]);
 
   const prepareSend = useCallback(
     async (firstMessage: string) => {
@@ -999,8 +1070,9 @@ export function AgentChatSession({
   );
 
   const sendMessage = useCallback(
-    async (text: string, draftHandlers: DraftHandlers) => {
+    async (text: string, draftHandlers: DraftHandlers, options?: SendMessageOptions) => {
       const message = text.trim();
+      const attachments = options?.attachments ?? [];
 
       if (!message || isTurnBlocked || localPendingUserMessageRef.current) {
         return;
@@ -1092,7 +1164,17 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
-        await agent.send({ message });
+        modelHeadersRef.current = {
+          [IMAGE_MODEL_HEADER]: resolveImageModel(options?.imageModelId).id,
+          [TEXT_MODEL_HEADER]: resolveTextModel(options?.textModelId).id,
+        };
+        await agent.send({
+          headers: modelHeadersRef.current,
+          message:
+            attachments.length > 0
+              ? [{ text: message, type: "text" as const }, ...toEveFileParts(attachments)]
+              : message,
+        });
       } catch (error) {
         if (isAbortError(error)) {
           return;
@@ -1146,7 +1228,7 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
-        await agent.send({ inputResponses: responses });
+        await agent.send({ headers: modelHeadersRef.current, inputResponses: responses });
       } catch (error) {
         stopFinalizingTurn();
         setClientError(error instanceof Error ? error.message : "Failed to send response.");
@@ -1216,8 +1298,7 @@ export function AgentChatSession({
           streamEventsRef.current,
         );
 
-        streamEventsRef.current = nextStreamEvents;
-        setStreamEvents(nextStreamEvents);
+        commitStreamEvents(nextStreamEvents);
         localEventsRef.current = [];
         setLocalEvents([]);
         touchChat(result.chat);
@@ -1277,9 +1358,8 @@ export function AgentChatSession({
       eventIndexChatIdRef.current = nextChatId;
       eventIndexRef.current = nextEventIndex;
       knownInitialEventsRef.current = activeChat?.events ?? [];
-      streamEventsRef.current = [];
       localEventsRef.current = [];
-      setStreamEvents([]);
+      commitStreamEvents([]);
       setLocalEvents([]);
       stopFinalizingTurn();
       clearLocalPendingUserMessage();
