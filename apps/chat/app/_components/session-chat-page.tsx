@@ -317,6 +317,8 @@ export function SessionChatPage({
 
     pendingConsumedRef.current = true;
 
+    const handedOffAttachments = takePendingAttachments(chatId);
+
     void controller.sendMessage(
       pendingUserMessage,
       {
@@ -324,10 +326,11 @@ export function SessionChatPage({
         restoreDraft: (value) => {
           setPendingUserMessage(null);
           setDraft(value);
+          setAttachments(handedOffAttachments);
         },
       },
       {
-        attachments: takePendingAttachments(chatId),
+        attachments: handedOffAttachments,
         imageModelId,
         textModelId,
       },

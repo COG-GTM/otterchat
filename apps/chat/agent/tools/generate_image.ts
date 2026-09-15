@@ -8,7 +8,7 @@ import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
 // the session auth attributes; unknown ids fall back to the catalog default.
 export default defineTool({
   description:
-    "Generate an image from a text prompt. Use whenever the user asks to draw, create, illustrate, or edit an image.",
+    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
   inputSchema: z.object({
     prompt: z.string().min(1).describe("Detailed description of the image to generate."),
   }),

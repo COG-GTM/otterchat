@@ -715,6 +715,12 @@ export function AgentChatSession({
     setMessage: setLocalPendingUserMessage,
   } = usePendingUserMessage();
   const [skippingAuthorizationKey, setSkippingAuthorizationKey] = useState<string | null>(null);
+  // Continuation requests such as input responses carry no picker state, so the
+  // last sent selection is replayed to keep the turn on the chosen models.
+  const modelHeadersRef = useRef<Record<string, string>>({
+    [IMAGE_MODEL_HEADER]: resolveImageModel(undefined).id,
+    [TEXT_MODEL_HEADER]: resolveTextModel(undefined).id,
+  });
   const activeChatIdRef = useRef(activeChat?.id ?? chatId ?? null);
   const eventIndexRef = useRef(activeChat?.events.length ?? 0);
   const eventIndexChatIdRef = useRef(activeChat?.id ?? chatId ?? null);
@@ -1110,11 +1116,12 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
+        modelHeadersRef.current = {
+          [IMAGE_MODEL_HEADER]: resolveImageModel(options?.imageModelId).id,
+          [TEXT_MODEL_HEADER]: resolveTextModel(options?.textModelId).id,
+        };
         await agent.send({
-          headers: {
-            [IMAGE_MODEL_HEADER]: resolveImageModel(options?.imageModelId).id,
-            [TEXT_MODEL_HEADER]: resolveTextModel(options?.textModelId).id,
-          },
+          headers: modelHeadersRef.current,
           message:
             attachments.length > 0
               ? [{ text: message, type: "text" as const }, ...toEveFileParts(attachments)]
@@ -1173,7 +1180,7 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
-        await agent.send({ inputResponses: responses });
+        await agent.send({ headers: modelHeadersRef.current, inputResponses: responses });
       } catch (error) {
         stopFinalizingTurn();
         setClientError(error instanceof Error ? error.message : "Failed to send response.");

@@ -118,7 +118,11 @@ export function ChatComposer({
           break;
         }
 
-        accepted.push(await readAttachment(file));
+        try {
+          accepted.push(await readAttachment(file));
+        } catch {
+          onAttachmentError?.(`${file.name} could not be read.`);
+        }
       }
 
       if (accepted.length > 0) {

@@ -135,9 +135,6 @@ export function HomeChatPage() {
       const provisionalChatId = createProvisionalChatId();
       const didStoreMessage = writePendingChatMessage(provisionalChatId, message);
 
-      writePendingAttachments(provisionalChatId, attachments);
-      setAttachments([]);
-
       if (!didStoreMessage) {
         submittingRef.current = false;
         setSubmitting(false);
@@ -145,6 +142,9 @@ export function HomeChatPage() {
         setClientError("Failed to start chat.");
         return;
       }
+
+      writePendingAttachments(provisionalChatId, attachments);
+      setAttachments([]);
 
       setActiveChatId(provisionalChatId);
       router.push(`/chat/${provisionalChatId}`, { scroll: false });
