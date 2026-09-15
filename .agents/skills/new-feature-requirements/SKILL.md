@@ -22,8 +22,10 @@ alter production behavior until a human turns them on.
 
 - Package: `@launchdarkly/node-server-sdk` (server-side SDK, evaluated in server components and route handlers)
 - Client singleton and helper: `lib/launchdarkly.ts`
-- Credentials: `LAUNCHDARKLY_SDK_KEY` in `.env.local` (gitignored), placeholder in `.env.example`.
-  It is stored as a repo-scoped Devin secret named `LAUNCHDARKLY_SDK_KEY`; never hardcode it.
+- Flag declarations: `lib/flags.ts`, built with `launchDarklyFlag` from `lib/launchdarkly-flag.ts`
+- Credentials: `LAUNCHDARKLY_SDK_KEY` and `FLAGS_SECRET` in `.env.local` (gitignored), placeholders
+  in `.env.example`. Both are set on the Vercel project; pull them with `vercel env pull`.
+  Never hardcode them.
 
 `boolVariation` returns the supplied default when the key is missing or the SDK cannot
 initialize, so the app still runs with no LaunchDarkly credentials configured.
@@ -34,26 +36,45 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
 2. Create the flag in LaunchDarkly before wiring it up:
    `https://app.launchdarkly.com/projects/default/flags/new?key=<flag-key>` (boolean, off in
    every environment). Confirm the project key if it is not `default`.
-3. Evaluate the flag on the server, as close to the feature boundary as possible:
+3. Declare the flag in `lib/flags.ts` so it shows up in the Vercel Toolbar's Flags Explorer:
 
    ```ts
-   import { boolVariation } from "@/lib/launchdarkly";
+   import { launchDarklyFlag } from "@/lib/launchdarkly-flag";
 
-   const enabled = await boolVariation("chat-attachments", false);
+   export const chatAttachments = launchDarklyFlag({
+     key: "chat-attachments",
+     description: "Attachments in the composer",
+   });
    ```
 
-4. Render or run the new behavior only when `enabled` is true, and keep the previous
+4. Evaluate the flag on the server, as close to the feature boundary as possible:
+
+   ```ts
+   import { chatAttachments } from "@/lib/flags";
+
+   const enabled = await chatAttachments();
+   ```
+
+   The declaration evaluates through `boolVariation`, so LaunchDarkly stays the source of
+   truth while the toolbar can override the value for your own browser. Calling
+   `boolVariation` directly still works but is invisible to the Flags Explorer.
+
+5. Render or run the new behavior only when `enabled` is true, and keep the previous
    behavior on the false branch. Never let the flag change the shape of persisted data
    without a fallback for flag-off reads.
-5. Because `cacheComponents` is enabled in `next.config.ts`, flag evaluation is dynamic:
+6. Because `cacheComponents` is enabled in `next.config.ts`, flag evaluation is dynamic:
    wrap the gated server component in `<Suspense>` so the static shell still renders.
-6. Pass a real context when the feature targets users. The default context is anonymous:
+7. Pass a real context when the feature targets users. The default context is anonymous:
 
    ```ts
-   await boolVariation("chat-attachments", false, { kind: "user", key: viewer.id });
+   export const chatAttachments = launchDarklyFlag({
+     key: "chat-attachments",
+     description: "Attachments in the composer",
+     identify: async () => ({ kind: "user", key: (await getViewer()).id }),
+   });
    ```
 
-7. Mention the flag key and its default in the PR description so it can be rolled out and
+8. Mention the flag key and its default in the PR description so it can be rolled out and
    later removed.
 
 ## Rules
@@ -68,10 +89,18 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
 
 ## Relationship to the Flags SDK
 
-LaunchDarkly is the only flag system in this repo. The Vercel Flags SDK (`flags`,
-`@flags-sdk/vercel`, `lib/flags.ts` and the `.well-known/vercel/flags` discovery endpoint) has
-been removed. If Flags Explorer integration is ever wanted, the LaunchDarkly adapter is
-`@flags-sdk/launchdarkly`, which additionally requires `GLOBAL_CONFIG` (Vercel Edge Config).
+LaunchDarkly remains the only flag provider. The Flags SDK (`flags`) sits on top of it purely
+so the Vercel Toolbar can list the flags and override them locally:
+
+- `lib/launchdarkly-flag.ts` wraps `flag()` with a `decide` that calls `boolVariation`, and
+  points `origin` at the flag's LaunchDarkly targeting page.
+- `lib/flags.ts` holds the declarations; `app/.well-known/vercel/flags/route.ts` serves them
+  to the Flags Explorer and is authorized with `FLAGS_SECRET`.
+- A toolbar override only affects the browser that set it. Changing the value for everyone
+  still happens in LaunchDarkly.
+
+The `@flags-sdk/launchdarkly` adapter is deliberately not used: it needs a client-side ID and
+a Vercel Edge Config (`GLOBAL_CONFIG`), and would duplicate the existing server SDK client.
 
 ## Verifying locally
 
@@ -82,3 +111,6 @@ pnpm dev   # requires Node >= 24
 Toggle the flag at
 `https://app.launchdarkly.com/projects/default/flags/<flag-key>/targeting?env=test` and
 refresh the page. Streaming updates reach the running server without a restart.
+
+For a per-browser override instead, open the Vercel Toolbar (bottom of the page in `pnpm dev`)
+→ Flags Explorer, and pick a value. That needs `FLAGS_SECRET` in `.env.local`.
