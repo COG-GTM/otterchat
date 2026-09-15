@@ -384,16 +384,10 @@ export function AgentChatShell({
   );
   const loggedOutAuthActions = historyLoading ? (
     <AuthDisplayLoggedOut>
-      <AuthTopActions
-        authMode={setupStatusState.authMode}
-        onSignIn={() => requestSignIn()}
-      />
+      <AuthTopActions onSignIn={() => requestSignIn()} />
     </AuthDisplayLoggedOut>
   ) : (
-    <AuthTopActions
-      authMode={setupStatusState.authMode}
-      onSignIn={() => requestSignIn()}
-    />
+    <AuthTopActions onSignIn={() => requestSignIn()} />
   );
   const topRightActions = (
     <div className="pointer-events-auto mt-1 flex min-w-0 items-center justify-end gap-1.5">
@@ -482,7 +476,6 @@ export function AgentChatShell({
         ) : null}
 
         <SignInModal
-          authMode={setupStatusState.authMode}
           callbackPath={signInCallbackPath}
           disabled={!setupReady}
           onBeforeSignIn={() => {
@@ -590,15 +583,7 @@ function ShareChatButton() {
   );
 }
 
-function AuthTopActions({
-  authMode,
-  onSignIn,
-}: {
-  readonly authMode: SetupStatus["authMode"];
-  readonly onSignIn: () => void;
-}) {
-  const usesPassword = authMode === "password";
-
+function AuthTopActions({ onSignIn }: { readonly onSignIn: () => void }) {
   return (
     <div className="flex max-w-[calc(100vw-4rem)] items-center gap-1.5">
       <Button
@@ -607,17 +592,15 @@ function AuthTopActions({
         type="button"
         variant="outline"
       >
-        {usesPassword ? "Sign in" : "Log In"}
+        Log In
       </Button>
-      {usesPassword ? null : (
-        <Button
-          className="h-8 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          onClick={onSignIn}
-          type="button"
-        >
-          Sign Up
-        </Button>
-      )}
+      <Button
+        className="h-8 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        onClick={onSignIn}
+        type="button"
+      >
+        Sign Up
+      </Button>
     </div>
   );
 }

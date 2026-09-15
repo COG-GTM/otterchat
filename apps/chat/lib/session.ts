@@ -1,10 +1,8 @@
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import type { SetupStatus, Viewer } from "@/lib/chat/types";
-import { getPasswordSessionFromHeaders } from "@/lib/password-auth";
 import { getSetupStatus } from "@/lib/setup";
 
-const PASSWORD_VIEWER: Viewer = {
+const LOCAL_DEV_VIEWER: Viewer = {
   email: "local@eve.dev",
   id: "eve-chat-user",
   image: null,
@@ -18,18 +16,8 @@ export async function getServerViewer(setupStatus?: SetupStatus): Promise<Viewer
     return null;
   }
 
-  const requestHeaders = await headers();
-
   if (status.authMode === "local-dev") {
-    return PASSWORD_VIEWER;
-  }
-
-  if (status.authMode === "password") {
-    return getPasswordSessionFromHeaders(requestHeaders) ? PASSWORD_VIEWER : null;
-  }
-
-  if (status.authMode !== "neon") {
-    return null;
+    return LOCAL_DEV_VIEWER;
   }
 
   try {

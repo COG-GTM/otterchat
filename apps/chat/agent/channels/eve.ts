@@ -1,6 +1,6 @@
 import { defaultEveAuth, eveChannel } from "eve/channels/eve";
 import { localDev, vercelOidc } from "eve/channels/auth";
-import { anonymousEveAuth, neonAuthEveAuth, passwordEveAuth } from "@/lib/eve-auth";
+import { anonymousEveAuth, neonAuthEveAuth } from "@/lib/eve-auth";
 import {
   IMAGE_MODEL_ATTRIBUTE,
   IMAGE_MODEL_HEADER,
@@ -13,7 +13,7 @@ import {
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
 export default eveChannel({
-  auth: [neonAuthEveAuth, passwordEveAuth, anonymousEveAuth, vercelOidc(), localDev()],
+  auth: [neonAuthEveAuth, anonymousEveAuth, vercelOidc(), localDev()],
   onMessage: (ctx) => {
     const auth = defaultEveAuth(ctx);
 
