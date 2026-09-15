@@ -16,6 +16,7 @@ description: How to implement the favorites feature. Use when adding favorite/un
 - Follow `AGENTS.md`: read the relevant eve guide under `node_modules/eve/dist/docs/public/` before writing code.
 - Match existing patterns: persist app state in `lib/db/*`, keep UI in `app/_components/`, and mirror how existing chat features handle signed-in vs signed-out states.
 - Cover both states in the UI: signed-in (favorites persist for the user) and signed-out, per whatever the ticket specifies for each.
+- Place favorites in the left sidebar and keep them visible at all times: a dedicated favorites section pinned above the chat history, not collapsed behind a menu, tab, or scrolled-away region. It stays visible regardless of the selected chat or scroll position in the history list.
 
 ## Deliberate Demo Bug (Signed-Out State)
 
