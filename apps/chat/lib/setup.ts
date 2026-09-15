@@ -1,7 +1,6 @@
 import type { SetupStatus } from "@/lib/chat/types";
 import { isDatabaseConfigured, isDatabaseSchemaReady } from "@/lib/db/client";
 
-const PASSWORD_ENV_KEY = "EVE_CHAT_PASSWORD";
 const AUTH_ENV_KEYS = [
   "NEON_AUTH_BASE_URL",
   "NEON_AUTH_COOKIE_SECRET",
@@ -13,10 +12,6 @@ function hasEnv(name: string) {
 
 export function isAuthConfigured() {
   return AUTH_ENV_KEYS.every(hasEnv);
-}
-
-export function isPasswordConfigured() {
-  return Boolean(process.env.EVE_CHAT_PASSWORD?.trim());
 }
 
 export function getInitialSetupStatus(): SetupStatus {
@@ -50,7 +45,6 @@ function createSetupStatus({
   const neonAuthReady = isAuthConfigured();
   const databaseReady = databaseConfigured && databaseSchemaReady;
   const fullEnvironmentReady = databaseConfigured && neonAuthReady;
-  const passwordReady = isPasswordConfigured();
   const localDevReady = isLocalDevelopment();
 
   if (fullEnvironmentReady) {
@@ -66,30 +60,14 @@ function createSetupStatus({
     };
   }
 
-  if (passwordReady || localDevReady) {
-    return {
-      appReady: true,
-      authMode: passwordReady ? "password" : "local-dev",
-      authReady: true,
-      databaseConfigured,
-      databaseReady,
-      databaseSchemaReady,
-      missing: [],
-      storageMode: "browser",
-    };
-  }
-
   return {
-    appReady: false,
-    authMode: "unconfigured",
-    authReady: false,
+    appReady: localDevReady,
+    authMode: "local-dev",
+    authReady: localDevReady,
     databaseConfigured,
     databaseReady,
     databaseSchemaReady,
-    missing: [
-      PASSWORD_ENV_KEY,
-      "or DATABASE_URL and Neon Auth configuration",
-    ],
+    missing: localDevReady ? [] : ["DATABASE_URL and Neon Auth configuration"],
     storageMode: "browser",
   };
 }

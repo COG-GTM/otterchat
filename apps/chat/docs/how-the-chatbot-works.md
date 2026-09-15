@@ -38,14 +38,13 @@ Important files:
 | `components/chat/sidebar.tsx` | Paginated chat history sidebar. |
 | `app/actions/chat.ts` | Server actions for chat creation, persistence, pending state, and skip auth. |
 | `app/api/chats/route.ts` | Paginated chat history endpoint. |
-| `lib/chat/local-store.ts` | Versioned browser storage for starter-mode chats and eve session cursors. |
+| `lib/chat/local-store.ts` | Versioned browser storage for local-development chats and eve session cursors. |
 | `lib/chat/persistence-client.ts` | Routes client persistence calls to browser or database storage. |
 | `lib/db/schema.ts` | Drizzle tables for chats and chat events. |
 | `lib/db/queries.ts` | Chat list, chat load, event save, snapshot save, and delete queries. |
-| `lib/setup.ts` | Selects starter, local development, or production mode and validates readiness. |
+| `lib/setup.ts` | Selects local development or production mode and validates readiness. |
 | `lib/auth.ts` | Neon Auth (managed Better Auth) server instance. |
-| `lib/password-auth.ts` | Shared-password verification and stateless signed session cookies. |
-| `lib/eve-auth.ts` | Converts password or Neon Auth sessions into eve channel principals. |
+| `lib/eve-auth.ts` | Converts Neon Auth sessions into eve channel principals. |
 
 ## Runtime Model
 
@@ -73,7 +72,7 @@ chat_event.eventIndex: number
 chat_event.event: HandleMessageStreamEvent
 ```
 
-Starter mode keeps the same two values in a versioned localStorage record.
+Local development keeps the same two values in a versioned localStorage record.
 Those two pieces are intentionally separate. The `eveSession.streamIndex` tells
 eve where to resume from in the remote session stream. The local
 `chat_event.eventIndex` tells Postgres how to order the event log for rendering.
@@ -108,10 +107,10 @@ without waiting for the database or auth session. Then `ResolvedChatBootstrap`
 fetches:
 
 - setup readiness from `getSetupStatus()`
-- the password, local-development, or Neon Auth viewer from `getServerViewer(setupStatus)`
+- the local-development or Neon Auth viewer from `getServerViewer(setupStatus)`
 - the first page of database chat history in production mode
 
-In starter mode, the client reads sidebar history from browser storage after
+In local development, the client reads sidebar history from browser storage after
 the viewer resolves.
 
 It passes that data through `AgentChatBootstrapSync`, which dispatches a browser
@@ -551,10 +550,8 @@ start a fresh turn with the updated context.
 
 ## Auth
 
-Starter mode uses a shared deployment password. The login route verifies
-`EVE_CHAT_PASSWORD` and issues a signed, HTTP-only, same-site cookie without a
-database. `lib/session.ts` and `lib/eve-auth.ts` verify the same cookie for the
-Next.js UI and eve route boundary.
+Local development uses a synthetic viewer and needs no auth service; it only
+applies to `next dev` outside Vercel.
 
 Production mode uses Neon Auth (managed Better Auth). Users, sessions, and auth
 configuration live in the Neon database under the `neon_auth` schema, and the
@@ -566,8 +563,8 @@ app proxies auth requests through `/api/auth` to the Neon Auth service.
 - `NEON_AUTH_COOKIE_SECRET` for signing session cookies
 
 `lib/session.ts` returns a safe `Viewer` object for server components. It returns
-the shared starter viewer, local development viewer, or Neon Auth user depending
-on the selected mode.
+the local development viewer or the Neon Auth user depending on the selected
+mode.
 
 `lib/eve-auth.ts` adapts the selected app session into an eve channel principal.
 Production mode uses:
@@ -587,7 +584,6 @@ Production mode uses:
 `agent/channels/eve.ts` allows:
 
 - `neonAuthEveAuth`
-- `passwordEveAuth`
 - `vercelOidc()`
 - `localDev()`
 
@@ -601,7 +597,7 @@ with Vercel OIDC contexts.
 ```ts
 type SetupStatus = {
   appReady: boolean;
-  authMode: "local-dev" | "neon" | "password" | "unconfigured";
+  authMode: "local-dev" | "neon";
   authReady: boolean;
   databaseConfigured: boolean;
   databaseReady: boolean;
@@ -611,10 +607,9 @@ type SetupStatus = {
 };
 ```
 
-The starter is ready when `EVE_CHAT_PASSWORD` is non-empty. A strong value with
-16+ characters is recommended. Local development is ready on loopback without
-configuration. Production mode is
-selected when all of these are configured:
+Local development is ready on loopback without configuration, and is never
+selected in a Vercel deployment. Production mode is selected when all of these
+are configured:
 
 - `DATABASE_URL` exists
 - database migrations have created the expected tables
@@ -706,7 +701,6 @@ That keeps errors from pushing the composer or chat body around.
 
 Common setup errors:
 
-- missing or short `EVE_CHAT_PASSWORD` in starter mode
 - incomplete Neon or Neon Auth configuration
 - production migrations not run
 

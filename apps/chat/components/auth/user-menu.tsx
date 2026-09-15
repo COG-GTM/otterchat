@@ -76,16 +76,9 @@ export function UserMenu({
             }
 
             setSigningOut(true);
-            const signOut =
-              authMode === "password"
-                ? fetch("/api/password-auth/logout", { method: "POST" }).then((response) => {
-                    if (!response.ok) {
-                      throw new Error("Failed to sign out.");
-                    }
-                  })
-                : authClient.signOut().then(() => undefined);
 
-            void signOut
+            void authClient
+              .signOut()
               .then(() => {
                 router.replace("/");
                 router.refresh();
