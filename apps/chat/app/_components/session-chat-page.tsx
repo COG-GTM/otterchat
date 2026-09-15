@@ -15,7 +15,7 @@ import {
 } from "@/app/_components/agent-chat-events";
 import { useChatShell } from "@/app/_components/chat-shell-context";
 import { ChatComposer } from "@/components/chat/composer";
-import { ModelPicker } from "@/components/chat/model-picker";
+import { ImageModelPicker, TextModelPicker } from "@/components/chat/model-picker";
 import {
   takePendingAttachments,
   writePendingAttachments,
@@ -458,12 +458,15 @@ export function SessionChatPage({
             disabledReason={composerDisabledReason}
             footerStart={
               <>
-                <ModelPicker
+                <TextModelPicker
                   disabled={composerDisabled}
-                  imageModelId={imageModelId}
-                  onImageModelChange={setImageModelId}
-                  onTextModelChange={setTextModelId}
-                  textModelId={textModelId}
+                  onChange={setTextModelId}
+                  value={textModelId}
+                />
+                <ImageModelPicker
+                  disabled={composerDisabled}
+                  onChange={setImageModelId}
+                  value={imageModelId}
                 />
                 <ComposerFooterControls setupStatus={setupStatus} />
               </>

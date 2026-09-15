@@ -10,7 +10,7 @@ import {
 import { useChatShell } from "@/app/_components/chat-shell-context";
 import { startAnonymousChatAction } from "@/app/actions/anon";
 import { ChatComposer } from "@/components/chat/composer";
-import { ModelPicker } from "@/components/chat/model-picker";
+import { ImageModelPicker, TextModelPicker } from "@/components/chat/model-picker";
 import { writePendingAttachments, type ChatAttachment } from "@/lib/chat/attachments";
 import { useModelSelection } from "@/lib/chat/use-model-selection";
 import MarqueePromptsDemo from "@/components/shadcn-space/marquee/marquee-02";
@@ -213,12 +213,15 @@ export function HomeChatPage() {
               disabledReason={composerDisabledReason}
               footerStart={
                 <>
-                  <ModelPicker
+                  <TextModelPicker
                     disabled={composerDisabled}
-                    imageModelId={imageModelId}
-                    onImageModelChange={setImageModelId}
-                    onTextModelChange={setTextModelId}
-                    textModelId={textModelId}
+                    onChange={setTextModelId}
+                    value={textModelId}
+                  />
+                  <ImageModelPicker
+                    disabled={composerDisabled}
+                    onChange={setImageModelId}
+                    value={imageModelId}
                   />
                   <ComposerFooterControls setupStatus={setupStatus} />
                 </>
