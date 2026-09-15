@@ -166,8 +166,8 @@ export function ChatSidebar({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">
-        {favoriteChats.length ? (
+      {favoriteChats.length ? (
+        <div className="max-h-[40%] shrink-0 overflow-y-auto px-2 pt-2">
           <ChatSidebarSection
             activeChatId={activeChatId}
             chats={favoriteChats}
@@ -177,7 +177,10 @@ export function ChatSidebar({
             onNavigate={onNavigate}
             onToggleFavorite={onToggleFavorite}
           />
-        ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex-1 overflow-y-auto px-2 py-2">
         {recentChats.length ? (
           <ChatSidebarSection
             activeChatId={activeChatId}
