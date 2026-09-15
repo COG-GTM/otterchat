@@ -69,15 +69,15 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 md:px-3">
           <div className="pointer-events-auto flex items-center gap-1">
-            <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground">
-              <MoonIcon className="size-4 dark:hidden" />
-              <SunIcon className="hidden size-4 dark:block" />
-            </div>
             <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground md:hidden">
               <MenuIcon className="size-4" />
             </div>
           </div>
           <div className="pointer-events-auto flex items-center justify-end gap-1.5">
+            <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground">
+              <MoonIcon className="size-4 dark:hidden" />
+              <SunIcon className="hidden size-4 dark:block" />
+            </div>
             <div className="hidden h-8 w-16 rounded-md bg-muted/30 sm:block" />
             <div className="hidden h-8 w-16 rounded-md bg-muted/50 sm:block" />
           </div>
