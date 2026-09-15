@@ -278,7 +278,7 @@ function SidebarSignInButton({
       }}
       type="button"
     >
-      <span className="min-w-0">Sign in</span>
+      <span className="min-w-0">Log in</span>
       <ArrowRightIcon className="size-3.5" />
     </button>
   );
