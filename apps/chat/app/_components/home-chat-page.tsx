@@ -10,6 +10,9 @@ import {
 import { useChatShell } from "@/app/_components/chat-shell-context";
 import { startAnonymousChatAction } from "@/app/actions/anon";
 import { ChatComposer } from "@/components/chat/composer";
+import { ModelPicker } from "@/components/chat/model-picker";
+import { writePendingAttachments, type ChatAttachment } from "@/lib/chat/attachments";
+import { useModelSelection } from "@/lib/chat/use-model-selection";
 import MarqueePromptsDemo from "@/components/shadcn-space/marquee/marquee-02";
 import { ANON_LIMIT_REACHED_REASON } from "@/lib/chat/anon-client";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
@@ -35,6 +38,8 @@ export function HomeChatPage() {
     viewer,
   } = useChatShell();
   const [draft, setDraft] = useState("");
+  const [attachments, setAttachments] = useState<readonly ChatAttachment[]>([]);
+  const { imageModelId, setImageModelId, setTextModelId, textModelId } = useModelSelection();
   const [submitting, setSubmitting] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
@@ -130,6 +135,9 @@ export function HomeChatPage() {
       const provisionalChatId = createProvisionalChatId();
       const didStoreMessage = writePendingChatMessage(provisionalChatId, message);
 
+      writePendingAttachments(provisionalChatId, attachments);
+      setAttachments([]);
+
       if (!didStoreMessage) {
         submittingRef.current = false;
         setSubmitting(false);
@@ -143,6 +151,7 @@ export function HomeChatPage() {
     },
     [
       anonLimitReached,
+      attachments,
       canStartAnonChat,
       requestSignIn,
       router,
@@ -198,12 +207,26 @@ export function HomeChatPage() {
               />
             </h1>
             <ChatComposer
+              attachments={attachments}
               autoFocus
               disabled={composerDisabled}
               disabledReason={composerDisabledReason}
-              footerStart={<ComposerFooterControls setupStatus={setupStatus} />}
+              footerStart={
+                <>
+                  <ModelPicker
+                    disabled={composerDisabled}
+                    imageModelId={imageModelId}
+                    onImageModelChange={setImageModelId}
+                    onTextModelChange={setTextModelId}
+                    textModelId={textModelId}
+                  />
+                  <ComposerFooterControls setupStatus={setupStatus} />
+                </>
+              }
               isBusy={IDLE_CONTROLLER_STATUS.isBusy}
               isPreparing={submitting}
+              onAttachmentError={setClientError}
+              onAttachmentsChange={setAttachments}
               onChange={setDraft}
               onStop={() => {}}
               onSubmit={handleSubmit}

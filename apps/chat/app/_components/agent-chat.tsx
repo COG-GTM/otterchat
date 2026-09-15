@@ -30,6 +30,7 @@ import {
 import { AgentMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toEveFileParts, type ChatAttachment } from "@/lib/chat/attachments";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import { getChatMessageLengthError } from "@/lib/chat/limits";
 import {
@@ -42,6 +43,12 @@ import {
   skipClientChatAuthorization,
 } from "@/lib/chat/persistence-client";
 import type { ActiveChat, SetupStatus, Viewer } from "@/lib/chat/types";
+import {
+  IMAGE_MODEL_HEADER,
+  TEXT_MODEL_HEADER,
+  resolveImageModel,
+  resolveTextModel,
+} from "@/lib/models";
 import { cn } from "@/lib/utils";
 
 type AgentSnapshot = EveAgentStoreSnapshot<EveMessageData>;
@@ -61,9 +68,19 @@ export type DraftHandlers = {
   readonly restoreDraft: (value: string) => void;
 };
 
+export type SendMessageOptions = {
+  readonly attachments?: readonly ChatAttachment[];
+  readonly imageModelId?: string;
+  readonly textModelId?: string;
+};
+
 export type AgentChatController = {
   readonly reset: () => void;
-  readonly sendMessage: (text: string, draftHandlers: DraftHandlers) => Promise<void>;
+  readonly sendMessage: (
+    text: string,
+    draftHandlers: DraftHandlers,
+    options?: SendMessageOptions,
+  ) => Promise<void>;
   readonly stop: () => void;
 };
 
@@ -999,8 +1016,9 @@ export function AgentChatSession({
   );
 
   const sendMessage = useCallback(
-    async (text: string, draftHandlers: DraftHandlers) => {
+    async (text: string, draftHandlers: DraftHandlers, options?: SendMessageOptions) => {
       const message = text.trim();
+      const attachments = options?.attachments ?? [];
 
       if (!message || isTurnBlocked || localPendingUserMessageRef.current) {
         return;
@@ -1092,7 +1110,16 @@ export function AgentChatSession({
 
       try {
         startFinalizingTurn();
-        await agent.send({ message });
+        await agent.send({
+          headers: {
+            [IMAGE_MODEL_HEADER]: resolveImageModel(options?.imageModelId).id,
+            [TEXT_MODEL_HEADER]: resolveTextModel(options?.textModelId).id,
+          },
+          message:
+            attachments.length > 0
+              ? [{ text: message, type: "text" as const }, ...toEveFileParts(attachments)]
+              : message,
+        });
       } catch (error) {
         if (isAbortError(error)) {
           return;

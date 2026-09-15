@@ -15,6 +15,13 @@ import {
 } from "@/app/_components/agent-chat-events";
 import { useChatShell } from "@/app/_components/chat-shell-context";
 import { ChatComposer } from "@/components/chat/composer";
+import { ModelPicker } from "@/components/chat/model-picker";
+import {
+  takePendingAttachments,
+  writePendingAttachments,
+  type ChatAttachment,
+} from "@/lib/chat/attachments";
+import { useModelSelection } from "@/lib/chat/use-model-selection";
 import {
   clearPendingChatMessage,
   isProvisionalChatId,
@@ -51,6 +58,8 @@ export function SessionChatPage({
   } = useChatShell();
   const [activeChat, setActiveChat] = useState<ActiveChat | null>(null);
   const [draft, setDraft] = useState("");
+  const [attachments, setAttachments] = useState<readonly ChatAttachment[]>([]);
+  const { imageModelId, setImageModelId, setTextModelId, textModelId } = useModelSelection();
   const [controllerReady, setControllerReady] = useState(false);
   const [controllerStatus, setControllerStatus] = useState(IDLE_CONTROLLER_STATUS);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
@@ -80,6 +89,7 @@ export function SessionChatPage({
     setControllerStatus(IDLE_CONTROLLER_STATUS);
     setActiveChat(null);
     setDraft("");
+    setAttachments([]);
     setPendingUserMessage(null);
     pendingConsumedRef.current = false;
     settledPendingMessagesRef.current = new Set();
@@ -134,6 +144,7 @@ export function SessionChatPage({
         }
 
         writePendingChatMessage(created.id, pendingMessage);
+        writePendingAttachments(created.id, takePendingAttachments(chatId));
         clearPendingChatMessage(chatId);
         touchChat(created);
         setActiveChatId(created.id);
@@ -306,20 +317,30 @@ export function SessionChatPage({
 
     pendingConsumedRef.current = true;
 
-    void controller.sendMessage(pendingUserMessage, {
-      clearDraft: () => setDraft(""),
-      restoreDraft: (value) => {
-        setPendingUserMessage(null);
-        setDraft(value);
+    void controller.sendMessage(
+      pendingUserMessage,
+      {
+        clearDraft: () => setDraft(""),
+        restoreDraft: (value) => {
+          setPendingUserMessage(null);
+          setDraft(value);
+        },
       },
-    });
+      {
+        attachments: takePendingAttachments(chatId),
+        imageModelId,
+        textModelId,
+      },
+    );
   }, [
     chatId,
     controllerReady,
     controllerStatus.isBusy,
     controllerStatus.isDisabled,
+    imageModelId,
     isLoadingChat,
     pendingUserMessage,
+    textModelId,
   ]);
 
   useEffect(() => {
@@ -354,11 +375,22 @@ export function SessionChatPage({
       return;
     }
 
-    await controller.sendMessage(text, {
-      clearDraft: () => setDraft(""),
-      restoreDraft: setDraft,
-    });
-  }, [isLoadingChat]);
+    const sentAttachments = attachments;
+
+    setAttachments([]);
+
+    await controller.sendMessage(
+      text,
+      {
+        clearDraft: () => setDraft(""),
+        restoreDraft: (value) => {
+          setAttachments(sentAttachments);
+          setDraft(value);
+        },
+      },
+      { attachments: sentAttachments, imageModelId, textModelId },
+    );
+  }, [attachments, imageModelId, isLoadingChat, textModelId]);
 
   const handleComposerStop = useCallback(() => {
     controllerRef.current?.stop();
@@ -421,10 +453,24 @@ export function SessionChatPage({
       <div className="shrink-0 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-6">
           <ChatComposer
+            attachments={attachments}
             disabled={composerDisabled}
             disabledReason={composerDisabledReason}
-            footerStart={<ComposerFooterControls setupStatus={setupStatus} />}
+            footerStart={
+              <>
+                <ModelPicker
+                  disabled={composerDisabled}
+                  imageModelId={imageModelId}
+                  onImageModelChange={setImageModelId}
+                  onTextModelChange={setTextModelId}
+                  textModelId={textModelId}
+                />
+                <ComposerFooterControls setupStatus={setupStatus} />
+              </>
+            }
             isBusy={controllerStatus.isBusy}
+            onAttachmentError={setClientError}
+            onAttachmentsChange={setAttachments}
             onChange={setDraft}
             onStop={handleComposerStop}
             onSubmit={handleComposerSubmit}
