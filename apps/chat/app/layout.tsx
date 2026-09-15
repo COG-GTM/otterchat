@@ -65,9 +65,13 @@ export const metadata: Metadata = {
 const themeScript = `
 (() => {
   try {
-    const theme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    const stored = window.localStorage.getItem("eve-theme");
+    const theme =
+      stored === "dark" || stored === "light"
+        ? stored
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
     const root = document.documentElement;
     root.classList.remove("dark", "light");
     root.classList.add(theme);

@@ -1,8 +1,10 @@
 import {
   ArrowUpIcon,
   MenuIcon,
+  MoonIcon,
   PanelLeftIcon,
   PlusIcon,
+  SunIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +29,7 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
                 draggable={false}
                 src="/logo.svg"
               />
-              <span className="text-sm font-semibold text-foreground">otterchat</span>
+              <span className="text-[13px] font-semibold text-foreground">otterchat</span>
             </div>
             <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground/55">
               <PanelLeftIcon className="size-4" />
@@ -35,7 +37,7 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
           </div>
           <div
             className={cn(
-              "flex h-8 items-center gap-2 rounded-[8px] px-2 text-sm font-medium text-primary",
+              "flex h-8 items-center gap-2 rounded-[8px] px-2 text-xs font-medium text-primary",
               isNew ? "bg-primary/20" : "bg-primary/10",
             )}
           >
@@ -47,7 +49,7 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
         <div className="flex-1 overflow-y-hidden px-2 py-2">
           {isNew ? null : (
             <div>
-              <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground/80">
+              <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-muted-foreground/80">
                 Recents
               </p>
               <div className="space-y-0.5">
@@ -72,6 +74,10 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
             </div>
           </div>
           <div className="pointer-events-auto flex items-center justify-end gap-1.5">
+            <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground">
+              <MoonIcon className="size-4 dark:hidden" />
+              <SunIcon className="hidden size-4 dark:block" />
+            </div>
             <div className="hidden h-8 w-16 rounded-md bg-muted/30 sm:block" />
             <div className="hidden h-8 w-16 rounded-md bg-muted/50 sm:block" />
           </div>

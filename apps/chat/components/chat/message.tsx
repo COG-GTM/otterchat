@@ -57,7 +57,7 @@ export function AgentMessage({
         className={cn(
           "min-w-0",
           isUser
-            ? "max-w-[85%] rounded-[18px] border border-border/40 bg-muted/70 px-3 py-1.5 text-[15px] leading-6 text-foreground shadow-sm"
+            ? "max-w-[85%] rounded-[18px] border border-border/40 bg-muted/70 px-3 py-1.5 text-sm leading-6 text-foreground shadow-sm"
             : "w-full max-w-none text-sm leading-relaxed text-foreground",
         )}
       >

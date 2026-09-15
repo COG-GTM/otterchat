@@ -23,6 +23,7 @@ import {
 import { AuthDisplayLoggedOut } from "@/components/auth/auth-display";
 import { SignInModal } from "@/components/auth/sign-in-modal";
 import { ChatSidebar } from "@/components/chat/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -396,6 +397,7 @@ export function AgentChatShell({
   );
   const topRightActions = (
     <div className="pointer-events-auto mt-1 flex min-w-0 items-center justify-end gap-1.5">
+      <ThemeToggle />
       <Suspense fallback={null}>
         <ChatRouteShareButton />
       </Suspense>
