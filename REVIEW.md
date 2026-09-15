@@ -16,10 +16,11 @@ For those PRs, if the diff adds or changes user-facing behavior — a new page, 
 handler, component, server action, or a change to what existing UI does — flag it unless
 all of the following hold:
 
-- The new behavior is gated by a LaunchDarkly boolean evaluated through
-  `boolVariation` from `apps/chat/lib/launchdarkly.ts`. No other flag system, and no new
-  LaunchDarkly client.
-- The default passed to `boolVariation` is `false`. A default of `true` is never an
+- The new behavior is gated by a LaunchDarkly boolean, either declared in
+  `apps/chat/lib/flags.ts` via `launchDarklyFlag` (preferred — the Flags Explorer then lists
+  it) or evaluated directly through `boolVariation` from `apps/chat/lib/launchdarkly.ts`. No
+  other flag provider, and no new LaunchDarkly client.
+- The flag's default value is `false`. A default of `true` is never an
   acceptable rollout guard.
 - The flag-off branch preserves the behavior that exists on `main` today.
 - The flag is evaluated on the server. `boolVariation` must not be called from a client
