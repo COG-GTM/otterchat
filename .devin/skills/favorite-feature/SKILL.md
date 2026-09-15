@@ -24,3 +24,23 @@ description: How to implement the favorites feature. Use when adding favorite/un
 - The bug must be clearly marked at the exact spot in code with a comment: `// DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)` so it is trivially findable with grep.
 - Keep it isolated to the signed-out favorites path only — it must not affect signed-in users or any other feature.
 - This bug is demo-only. Flag it in your summary when you finish, and remove it (or gate it off) before any production release.
+
+## Runtime Testing Setup
+
+- Run from the repo root with Node 24 (`source ~/.nvm/nvm.sh && nvm use 24`), then `pnpm dev`.
+- With no production environment, development mode automatically supplies an `eve user` viewer and browser storage. This is not a real Neon sign-in or a truly signed-out session; label coverage accordingly.
+- Database-mode tests require all three production settings below and migrated tables. Do not simulate auth/DB to claim persistence coverage.
+- Without `LAUNCHDARKLY_SDK_KEY`, the helper returns the caller's default. If authorized to temporarily flip a default, restore it and verify both source and refreshed UI before finishing.
+- Create browser chat fixtures through the composer. A failed model request may still leave the local chat row usable for sidebar-only tests; disclose the request failure and do not claim message/reply coverage.
+- If eve auto-start fails resolving model metadata, `EVE_BASE_URL` can decouple Next.js from auto-start. Point it at a real running backend for full tests; an unavailable local backend only permits explicitly limited frontend tests, not end-to-end backend claims.
+- Star/actions buttons support keyboard focus visibility. If the test browser reports `(hover:hover)=false`, click an already-selected chat row and press Tab to reveal its first action; report hover coverage separately rather than changing CSS.
+- Network restrictions may force Google Fonts fallbacks; do not claim pixel-exact visual parity in that case.
+- Package docs may be at `apps/chat/node_modules/eve/docs/` when the older `dist/docs/public/` location is absent.
+
+### Devin Secrets Needed
+
+- `DATABASE_URL`
+- `NEON_AUTH_BASE_URL`
+- `NEON_AUTH_COOKIE_SECRET`
+- `LAUNCHDARKLY_SDK_KEY` for actual remote flag evaluation (not needed for authorized local-default tests).
+- A usable Neon test account or permitted self-registration for signed-in scenarios.
