@@ -1,34 +1,29 @@
 # eve Chat Template
 
-A Next.js chat template for [eve](https://eve.dev) that starts with password access and browser-persisted chats, then upgrades to Neon Auth and Neon when you need a production multi-user application.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?project-name=eve-chat-template&repository-name=eve-chat-template&repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Ftree%2Fmain&env=EVE_CHAT_PASSWORD&envDescription=Choose+a+strong+password+to+protect+your+agent+%2816%2B+characters+recommended%29.&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Feve-chat-template%2Fblob%2Fmain%2Fdocs%2Fsetup-and-deploy.md)
+A Next.js chat template for [eve](https://eve.dev) that runs locally with browser-persisted chats and uses Neon Auth and Neon for deployed multi-user applications.
 
 ## Quick Start
 
-Deploy the starter without provisioning a database or other Marketplace products:
+Run locally without provisioning a database or other Marketplace products:
 
-1. Click **Deploy with Vercel**.
-2. Enter a strong `EVE_CHAT_PASSWORD` (16+ characters recommended).
-3. Open the deployed app and enter that password.
+1. `pnpm install`
+2. `pnpm dev`
+3. Open the app; you are signed in as the local development identity.
 
 Chats and eve session cursors are stored in that browser. They are not shared across browsers or users.
-Starter mode is intended for one trusted operator: anyone with the password
-shares the same agent identity and connection grants.
 
 ## Deployment Modes
 
 | Mode | Selected when | Authentication | Chat persistence |
 | --- | --- | --- | --- |
-| Starter | `EVE_CHAT_PASSWORD` is configured | Shared password and secure session cookie | Browser localStorage |
 | Production | Neon and Neon Auth variables are configured | Neon Auth (email/password and social) | Neon |
-| Local development | Neither mode is configured and `next dev` is running locally | Local development identity | Browser localStorage |
+| Local development | Those variables are absent and `next dev` is running locally | Local development identity | Browser localStorage |
 
-Production mode takes precedence when its complete environment is present. The app fails closed in a production deployment when neither mode is configured. See [Setup and Deployment](docs/setup-and-deploy.md) for the upgrade path.
+Production mode takes precedence when its complete environment is present. A deployment without that environment fails closed and does not allow chat requests. See [Setup and Deployment](docs/setup-and-deploy.md) for the upgrade path.
 
 ## Getting Started
 
-For the starter and production setup flows, see [Setup and Deployment](docs/setup-and-deploy.md). For the runtime architecture, streaming model, persistence flow, and extension points, see [How the Chatbot Works](docs/how-the-chatbot-works.md).
+For the production setup flow, see [Setup and Deployment](docs/setup-and-deploy.md). For the runtime architecture, streaming model, persistence flow, and extension points, see [How the Chatbot Works](docs/how-the-chatbot-works.md).
 
 Install dependencies with pnpm:
 
@@ -40,12 +35,6 @@ Run locally without additional services:
 
 ```bash
 pnpm dev
-```
-
-To require the same password locally, put this in `.env.local`:
-
-```bash
-EVE_CHAT_PASSWORD=<at-least-16-characters>
 ```
 
 To upgrade the linked project to production mode, run the setup script. It provisions Neon (Postgres + Auth), pulls environment variables, and runs migrations:
@@ -88,7 +77,7 @@ vercel connect create https://mcp.sentry.dev/mcp --name sentry
 
 The deploy button does not require these integrations. For manual setup, put the returned connector UIDs in `SLACK_CONNECTOR`, `NOTION_CONNECTOR`, `LINEAR_CONNECTOR`, and `SENTRY_CONNECTOR`. Local development falls back to `slack/eve-chat-template`, `notion`, `linear`, and `sentry`, so connectors created with the names above work without editing `agent/`.
 
-The composer only shows its connections menu when at least one MCP connector is configured. Password-only starter deployments therefore omit the menu and do not prompt eve to use unavailable connections.
+The composer only shows its connections menu when at least one MCP connector is configured. Deployments without connectors therefore omit the menu and do not prompt eve to use unavailable connections.
 
 If the connector is not attached to the linked project, run:
 
@@ -118,7 +107,7 @@ pnpm dev
 ## What Is Included
 
 - Text chat with an eve agent through same-origin `/eve/v1/*` routes
-- Password access with browser-backed chat history by default
+- Local development access with browser-backed chat history by default
 - Optional Neon Auth (managed Better Auth) sign-in
 - Optional Neon-backed cross-device chat history
 - Drizzle schema and migrations for production mode under `lib/db`

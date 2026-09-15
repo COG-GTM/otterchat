@@ -7,7 +7,7 @@ export type Viewer = {
   readonly name: string;
 };
 
-export type AuthMode = "local-dev" | "neon" | "password" | "unconfigured";
+export type AuthMode = "local-dev" | "neon";
 export type StorageMode = "browser" | "database";
 
 export type ChatListItem = {

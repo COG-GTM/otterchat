@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { VercelToolbar } from "@vercel/toolbar/next";
+import { ResolvedFlagValues } from "@/app/_components/resolved-flag-values";
 import { AuthDisplayPreHydrationHead } from "@/components/auth/auth-display";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -101,6 +102,9 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />
+        <Suspense fallback={null}>
+          <ResolvedFlagValues />
+        </Suspense>
         {process.env.NODE_ENV === "development" && <VercelToolbar />}
       </body>
     </html>

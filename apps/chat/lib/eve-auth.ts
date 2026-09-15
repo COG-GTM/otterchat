@@ -3,7 +3,6 @@ import {
   ANON_SESSION_COOKIE_NAME,
   verifyAnonSessionToken,
 } from "@/lib/anon-session";
-import { getPasswordSessionFromHeaders } from "@/lib/password-auth";
 import { getSetupStatus } from "@/lib/setup";
 
 const NEON_AUTH_SESSION_COOKIE_NAME = "__Secure-neon-auth.session_token";
@@ -132,29 +131,5 @@ export const anonymousEveAuth: AuthFn<Request> = async (request) => {
     principalId: `anon:${anonId}`,
     principalType: "user",
     subject: `anon:${anonId}`,
-  };
-};
-
-export const passwordEveAuth: AuthFn<Request> = async (request) => {
-  const setupStatus = await getSetupStatus();
-
-  if (
-    !setupStatus.appReady ||
-    setupStatus.authMode !== "password" ||
-    !getPasswordSessionFromHeaders(request.headers)
-  ) {
-    return null;
-  }
-
-  return {
-    attributes: {
-      email: "local@eve.dev",
-      name: "eve user",
-    },
-    authenticator: "password",
-    issuer: "eve-chat-template",
-    principalId: "eve-chat-user",
-    principalType: "user",
-    subject: "eve-chat-user",
   };
 };

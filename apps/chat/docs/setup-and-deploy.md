@@ -1,6 +1,6 @@
 # Setup and Deployment
 
-This guide covers the database-free starter, local development, the production persistence upgrade, and Neon Auth.
+This guide covers local development, the production persistence upgrade, and Neon Auth.
 
 ## Prerequisites
 
@@ -17,21 +17,11 @@ pnpm dlx vercel@latest login
 
 The commands below use `vercel`. If you do not have a global install, replace `vercel` with `pnpm dlx vercel@latest`.
 
-## One-Click Deploy
+## Local Development
 
-The README deploy button creates a working starter without Marketplace products or migrations. It asks for:
+Without Neon variables, `next dev` runs in local development mode: requests use a synthetic local identity, and chats and eve session cursors are stored in the current browser's localStorage, so history does not follow the user to another browser.
 
-```bash
-EVE_CHAT_PASSWORD=
-```
-
-Use a strong value; 16+ characters are recommended. The app exchanges it for a secure, HTTP-only session cookie. Chats and eve session cursors are stored in the current browser's localStorage, so history does not follow the user to another browser.
-
-Starter mode is for one trusted operator. Everyone who knows the password shares
-the same eve principal. Upgrade to production mode before giving independent
-users access.
-
-If `EVE_CHAT_PASSWORD` is absent and the full production environment is not configured, the deployment fails closed and does not allow chat requests.
+Local development mode never applies to a deployment. A deployment without the full production environment fails closed and does not allow chat requests.
 
 ## Production Persistence Upgrade
 
@@ -42,7 +32,7 @@ Configure Neon (Postgres + Neon Auth) to switch the same codebase into productio
 # Or: ./scripts/setup.sh --scope <team-slug>
 ```
 
-Once all production environment variables are present, production mode takes precedence over `EVE_CHAT_PASSWORD`. Run migrations after the first production deployment:
+Once all production environment variables are present, production mode is used. Run migrations after the first production deployment:
 
 ```bash
 vercel env run -e production -- pnpm db:migrate
