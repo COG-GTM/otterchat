@@ -23,6 +23,7 @@ import {
 import { AuthDisplayLoggedOut } from "@/components/auth/auth-display";
 import { SignInModal } from "@/components/auth/sign-in-modal";
 import { ChatSidebar } from "@/components/chat/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -442,6 +443,7 @@ export function AgentChatShell({
                   <PanelLeftIcon className="size-4" />
                 </Button>
               ) : null}
+              <ThemeToggle />
             </div>
             {topRightActions}
           </div>

@@ -1,8 +1,10 @@
 import {
   ArrowUpIcon,
   MenuIcon,
+  MoonIcon,
   PanelLeftIcon,
   PlusIcon,
+  SunIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +71,10 @@ export function AgentChatSkeleton({ mode }: { readonly mode: "chat" | "new" }) {
           <div className="pointer-events-auto flex items-center gap-1">
             <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground md:hidden">
               <MenuIcon className="size-4" />
+            </div>
+            <div className="flex size-8 items-center justify-center rounded-md text-muted-foreground">
+              <MoonIcon className="size-4 dark:hidden" />
+              <SunIcon className="hidden size-4 dark:block" />
             </div>
           </div>
           <div className="pointer-events-auto flex items-center justify-end gap-1.5">
