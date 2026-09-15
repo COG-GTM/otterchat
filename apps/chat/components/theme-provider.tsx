@@ -1,26 +1,28 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useReducer, type ReactNode } from "react";
 import { applyTheme, readStoredTheme, THEME_CHANGE_EVENT } from "@/lib/theme";
 
 export function ThemeProvider({ children }: { readonly children: ReactNode }) {
-  const [storedTheme, setStoredTheme] = useState<string | null>(null);
+  const [themeChangeCount, notifyThemeChange] = useReducer(
+    (count: number) => count + 1,
+    0,
+  );
 
   useEffect(() => {
-    const syncStoredTheme = () => setStoredTheme(readStoredTheme());
-
-    syncStoredTheme();
-    window.addEventListener(THEME_CHANGE_EVENT, syncStoredTheme);
-    window.addEventListener("storage", syncStoredTheme);
+    window.addEventListener(THEME_CHANGE_EVENT, notifyThemeChange);
+    window.addEventListener("storage", notifyThemeChange);
 
     return () => {
-      window.removeEventListener(THEME_CHANGE_EVENT, syncStoredTheme);
-      window.removeEventListener("storage", syncStoredTheme);
+      window.removeEventListener(THEME_CHANGE_EVENT, notifyThemeChange);
+      window.removeEventListener("storage", notifyThemeChange);
     };
   }, []);
 
   useEffect(() => {
-    if (storedTheme === "dark" || storedTheme === "light") {
+    const storedTheme = readStoredTheme();
+
+    if (storedTheme) {
       applyTheme(storedTheme);
       return;
     }
@@ -32,7 +34,7 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
     media.addEventListener("change", syncTheme);
 
     return () => media.removeEventListener("change", syncTheme);
-  }, [storedTheme]);
+  }, [themeChangeCount]);
 
   return children;
 }
