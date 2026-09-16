@@ -18,3 +18,8 @@ dist-ssr
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Python
+__pycache__/
+*.py[cod]
+.venv

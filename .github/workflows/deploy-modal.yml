@@ -7,6 +7,9 @@ on:
       - 'outposts/**'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.python-version'
+      - 'src/**'
+      - '.github/workflows/deploy-modal.yml'
   workflow_dispatch:
 
 jobs:
@@ -16,12 +19,12 @@ jobs:
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
       MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install uv and Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.1.0
         with:
-          python-version-file: .python-version
+          enable-cache: true
 
       - name: Install dependencies
         run: uv sync
