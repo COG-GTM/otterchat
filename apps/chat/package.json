@@ -19,7 +19,7 @@
     "ios": "cap run ios",
     "ios:sync": "cap sync ios",
     "ios:open": "cap open ios",
-    "android": "\"$HOME/Library/Android/sdk/platform-tools/adb\" reverse tcp:3000 tcp:3000 && JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" cap run android",
+    "android": "adb reverse tcp:3000 tcp:3000 && cap run android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
