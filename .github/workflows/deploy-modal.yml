@@ -1,0 +1,36 @@
+name: Deploy Modal app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'outposts/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Patch modal-devin for current devin CLI
+        run: |
+          SITE_PACKAGES=$(uv run python -c "import modal_devin, pathlib; print(pathlib.Path(modal_devin.__file__).parent)")
+          sed -i "s/'--pool'/'--outpost'/g" "$SITE_PACKAGES/images.py"
+          sed -i "s/\"--pool\"/\"--outpost\"/g" "$SITE_PACKAGES/_runtime.py"
+
+      - name: Deploy Modal app
+        run: uv run modal deploy outposts/modal_golden_demos.py
