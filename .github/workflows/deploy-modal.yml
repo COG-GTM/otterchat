@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'outposts/**'
+      - 'otterimage/requirements.txt'
       - 'pyproject.toml'
       - 'uv.lock'
       - '.python-version'

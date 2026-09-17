@@ -53,7 +53,7 @@ def remote_text_encode(prompt: str):
         timeout=120,
     )
     response.raise_for_status()
-    return torch.load(io.BytesIO(response.content))
+    return torch.load(io.BytesIO(response.content), weights_only=True)
 
 
 @dataclass

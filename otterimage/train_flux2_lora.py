@@ -23,6 +23,7 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -72,7 +73,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-train-steps", type=int, default=500)
     p.add_argument("--checkpointing-steps", type=int, default=1000)
     p.add_argument("--seed", type=int, default=117)
-    p.add_argument("--wandb", action="store_true", help="report to Weights & Biases (needs WANDB_API_KEY)")
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
     return p.parse_args()
 
@@ -130,7 +130,7 @@ def main() -> None:
 
     train_script = ensure_train_script(Path(args.train_script))
     urls = Path(args.instance_example_urls_file).read_text().split()
-    img_path = load_images(urls, Path("/tmp/instance_images"))
+    img_path = load_images(urls, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
 
@@ -169,7 +169,6 @@ def main() -> None:
             f"--checkpointing_steps={args.checkpointing_steps}",
             f"--seed={args.seed}",
         ]
-        + (["--report_to=wandb"] if args.wandb else [])
     )
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 
