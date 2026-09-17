@@ -1,6 +1,5 @@
 """Deploy the FLUX.2 [dev] LoRA trained by otterimage/train_flux2_lora.py as a
-Modal model class. No web frontend: call `Model.inference` from other Modal
-code or from the CLI.
+Modal model class plus a single JSON-in / PNG-out HTTP endpoint. No UI.
 
     modal deploy otterimage/serve_flux2_lora.py
     modal run otterimage/serve_flux2_lora.py --prompt "Qwerty the Golden Retriever as an astronaut"
@@ -8,6 +7,19 @@ code or from the CLI.
     # from any Python process with Modal credentials
     Model = modal.Cls.from_name("otterimage-flux2-lora", "Model")
     png_bytes = Model().inference.remote("a photo of Qwerty the Golden Retriever")
+
+The HTTP URL is printed by `modal deploy` and has the form
+
+    https://<workspace>--otterimage-flux2-lora-model-generate.modal.run
+
+It is protected by Modal proxy auth: create a proxy auth token at
+https://modal.com/settings/proxy-auth-tokens and send both headers.
+
+    curl -X POST "$URL" \\
+      -H "Modal-Key: $MODAL_KEY" -H "Modal-Secret: $MODAL_SECRET" \\
+      -H "Content-Type: application/json" \\
+      -d '{"prompt": "a photo of Qwerty the Golden Retriever", "seed": 1}' \\
+      -o qwerty.png
 
 Weights come from the `otterimage-flux2-finetune` Volume (the same one the
 golden-demos outpost mounts at /model while training). The bf16 transformer
@@ -32,6 +44,7 @@ image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("git")
     .uv_pip_install(requirements=[str(Path(__file__).parent / "requirements.txt")])
+    .uv_pip_install("fastapi[standard]==0.116.1")
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})
 )
 
@@ -111,6 +124,34 @@ class Model:
         buf = io.BytesIO()
         image.save(buf, format="PNG")
         return buf.getvalue()
+
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
+    def generate(self, body: dict):
+        """POST {"prompt": str, "num_inference_steps"?, "guidance_scale"?, "height"?, "width"?, "seed"?} -> image/png"""
+        from fastapi import HTTPException
+        from fastapi.responses import Response
+
+        prompt = body.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise HTTPException(status_code=422, detail="'prompt' (non-empty string) is required")
+        if len(prompt) > 1000:
+            raise HTTPException(status_code=422, detail="'prompt' too long (max 1000 chars)")
+
+        steps = int(body.get("num_inference_steps", 28))
+        height = int(body.get("height", 1024))
+        width = int(body.get("width", 1024))
+        if not 1 <= steps <= 50 or not 256 <= height <= 1536 or not 256 <= width <= 1536:
+            raise HTTPException(status_code=422, detail="steps must be 1-50, height/width 256-1536")
+
+        png = self.inference.local(
+            prompt,
+            num_inference_steps=steps,
+            guidance_scale=float(body.get("guidance_scale", 4.0)),
+            height=height,
+            width=width,
+            seed=body.get("seed"),
+        )
+        return Response(content=png, media_type="image/png")
 
 
 @app.local_entrypoint()
