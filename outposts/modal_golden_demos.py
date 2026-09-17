@@ -3,9 +3,13 @@
 Generated once by modal-devin. This is application code and may be edited.
 """
 
+from pathlib import Path
+
 import modal
 
 from modal_devin import Worker
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 worker = Worker.from_env(
     'modal-golden-demos',
@@ -20,11 +24,19 @@ app = modal.App(
 devin_secret = modal.Secret.from_name('devin-outposts-token')
 controller_image = worker.controller_image()
 
+# otterimage: FLUX.2 [dev] LoRA fine-tuning (otterimage/train_flux2_lora.py).
+# Base weights and trained LoRAs persist on this Volume, mounted in the session
+# sandbox at MODEL_DIR; the HF token unlocks the gated model and the remote
+# text encoder.
+huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
+MODEL_DIR = '/model'
+model_volume = modal.Volume.from_name('otterimage-flux2-finetune', create_if_missing=True)
+
 base_image = (
     worker.base_image()
     # Add every application-specific build step here.
-    # .apt_install("ripgrep")
-    # .run_commands("git clone https://github.com/your-org/app /root/workspace/app")
+    .uv_pip_install(requirements=[str(REPO_ROOT / 'otterimage' / 'requirements.txt')])
+    .env({'HF_XET_HIGH_PERFORMANCE': '1', 'MODEL_DIR': MODEL_DIR})
 )
 
 # Adds the modal-devin runtime after all user image customization.
@@ -43,8 +55,10 @@ def session(session_id: str) -> None:
         app=app,
         image=image,
         cpu=8,
-        memory=32768,
+        memory=65536,
         gpu="H100",
+        secrets=[huggingface_secret],
+        volumes={MODEL_DIR: model_volume},
     )
 
 
