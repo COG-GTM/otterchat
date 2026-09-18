@@ -71,8 +71,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lr-scheduler", default="constant")
     p.add_argument("--lr-warmup-steps", type=int, default=100)
     p.add_argument("--max-train-steps", type=int, default=500)
-    p.add_argument("--checkpointing-steps", type=int, default=1000)
+    p.add_argument("--checkpointing-steps", type=int, default=100)
     p.add_argument("--seed", type=int, default=117)
+    p.add_argument("--report-to", default="wandb", help="accelerate tracker: wandb, tensorboard, or none")
+    p.add_argument("--wandb-project", default=os.environ.get("WANDB_PROJECT", "otterimage"))
+    p.add_argument(
+        "--validation-prompt",
+        default="{instance} as an astronaut on the moon",
+        help="sampled every --validation-epochs and logged to the tracker; {instance} expands to the instance phrase",
+    )
+    p.add_argument("--validation-epochs", type=int, default=50)
+    p.add_argument("--num-validation-images", type=int, default=4)
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
     return p.parse_args()
 
@@ -121,6 +130,10 @@ def main() -> None:
     args = parse_args()
     if not os.environ.get("HF_TOKEN"):
         sys.exit("HF_TOKEN is not set; the remote text encoder and the gated model both need it")
+    if args.report_to == "wandb":
+        if not os.environ.get("WANDB_API_KEY"):
+            sys.exit("WANDB_API_KEY is not set; pass --report-to none to train without Weights & Biases")
+        os.environ.setdefault("WANDB_PROJECT", args.wandb_project)
 
     model_dir = Path(args.model_dir)
     lora_dir = model_dir / "lora"
@@ -141,6 +154,7 @@ def main() -> None:
 
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
+    validation_prompt = args.validation_prompt.format(instance=instance_phrase)
 
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training")
     stream(
@@ -171,6 +185,10 @@ def main() -> None:
             f"--max_train_steps={args.max_train_steps}",
             f"--checkpointing_steps={args.checkpointing_steps}",
             f"--seed={args.seed}",
+            f"--report_to={args.report_to}",
+            f"--validation_prompt={validation_prompt}",
+            f"--validation_epochs={args.validation_epochs}",
+            f"--num_validation_images={args.num_validation_images}",
         ]
     )
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
