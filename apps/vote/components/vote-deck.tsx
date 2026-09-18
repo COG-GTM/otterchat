@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@otterchat/ui/components/button";
 import { Separator } from "@otterchat/ui/components/separator";
 import type { VoteChoice } from "@/lib/db/schema";
@@ -18,60 +18,94 @@ type VoteDeckProps = {
 export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
   const [queue, setQueue] = useState<readonly PairForVoter[]>(initialPairs);
   const [progress, setProgress] = useState(initialProgress);
-  const [refilling, setRefilling] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [drained, setDrained] = useState(false);
+  const refilling = useRef(false);
+  const submitting = useRef(false);
+  const queueIds = useRef(new Set(initialPairs.map((pair) => pair.id)));
   const current = queue[0];
 
   const refill = useCallback(async () => {
-    setRefilling(true);
+    if (refilling.current) {
+      return;
+    }
+
+    refilling.current = true;
 
     try {
       const response = await fetch(`/api/next-pair?limit=${REFILL_SIZE}`, { cache: "no-store" });
 
       if (!response.ok) {
+        setDrained(true);
+
         return;
       }
 
       const { pairs } = (await response.json()) as { pairs: PairForVoter[] };
+      const fresh = pairs.filter((pair) => !queueIds.current.has(pair.id));
 
-      setQueue((previous) => {
-        const seen = new Set(previous.map((pair) => pair.id));
+      if (fresh.length === 0) {
+        setDrained(true);
 
-        return [...previous, ...pairs.filter((pair) => !seen.has(pair.id))];
-      });
+        return;
+      }
+
+      for (const pair of fresh) {
+        queueIds.current.add(pair.id);
+      }
+
+      setQueue((previous) => [...previous, ...fresh]);
     } finally {
-      setRefilling(false);
+      refilling.current = false;
     }
   }, []);
 
   const submit = useCallback(
-    (choice: VoteChoice) => {
+    async (choice: VoteChoice) => {
       const pair = current;
 
-      if (!pair) {
+      if (!pair || submitting.current) {
         return;
       }
 
-      setQueue((previous) => previous.slice(1));
-      setProgress((previous) => ({
-        ...previous,
-        voted: previous.voted + 1,
-        remaining: Math.max(previous.remaining - 1, 0),
-      }));
+      submitting.current = true;
+      setPending(true);
+      setError(null);
 
-      void fetch("/api/vote", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pairId: pair.id, choice }),
-      });
+      try {
+        const response = await fetch("/api/vote", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ pairId: pair.id, choice }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`vote failed: ${response.status}`);
+        }
+
+        queueIds.current.delete(pair.id);
+        setQueue((previous) => previous.filter((queued) => queued.id !== pair.id));
+        setProgress((previous) => ({
+          ...previous,
+          voted: previous.voted + 1,
+          remaining: Math.max(previous.remaining - 1, 0),
+        }));
+      } catch {
+        setError("Could not save that vote. Try again.");
+      } finally {
+        submitting.current = false;
+        setPending(false);
+      }
     },
     [current],
   );
 
   useEffect(() => {
-    if (queue.length <= REFILL_THRESHOLD && !refilling) {
+    if (queue.length <= REFILL_THRESHOLD && !drained) {
       void refill();
     }
-  }, [queue.length, refill, refilling]);
+  }, [queue.length, drained, refill]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -85,7 +119,7 @@ export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
 
       if (choice) {
         event.preventDefault();
-        submit(choice);
+        void submit(choice);
       }
     }
 
@@ -102,6 +136,14 @@ export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
           You voted on {progress.voted} of {progress.total}. New pairs appear here after the next
           generation run.
         </p>
+        <Button
+          onClick={() => {
+            setDrained(false);
+          }}
+          variant="secondary"
+        >
+          Check for new pairs
+        </Button>
       </section>
     );
   }
@@ -116,28 +158,32 @@ export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <Choice
           hint="←"
+          disabled={pending}
           image={current.imageAUrl}
           label="A"
-          onSelect={() => submit("a")}
+          onSelect={() => void submit("a")}
           prompt={current.prompt}
         />
         <Choice
           hint="→"
+          disabled={pending}
           image={current.imageBUrl}
           label="B"
-          onSelect={() => submit("b")}
+          onSelect={() => void submit("b")}
           prompt={current.prompt}
         />
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button onClick={() => submit("tie")} variant="secondary">
+        <Button disabled={pending} onClick={() => void submit("tie")} variant="secondary">
           Tie <kbd className="text-muted-foreground ml-1 font-mono text-xs">T</kbd>
         </Button>
-        <Button onClick={() => submit("skip")} variant="ghost">
+        <Button disabled={pending} onClick={() => void submit("skip")} variant="ghost">
           Skip <kbd className="text-muted-foreground ml-1 font-mono text-xs">S</kbd>
         </Button>
       </div>
+
+      {error ? <p className="text-destructive text-center text-sm">{error}</p> : null}
 
       <Separator />
 
@@ -149,6 +195,7 @@ export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
 }
 
 type ChoiceProps = {
+  readonly disabled: boolean;
   readonly hint: string;
   readonly image: string;
   readonly label: string;
@@ -156,10 +203,11 @@ type ChoiceProps = {
   readonly prompt: string;
 };
 
-function Choice({ hint, image, label, onSelect, prompt }: ChoiceProps) {
+function Choice({ disabled, hint, image, label, onSelect, prompt }: ChoiceProps) {
   return (
     <button
-      className="border-border bg-card hover:border-ring focus-visible:ring-ring/50 group relative overflow-hidden rounded-xl border text-left transition focus-visible:ring-[3px] focus-visible:outline-none"
+      className="border-border bg-card hover:border-ring focus-visible:ring-ring/50 group relative overflow-hidden rounded-xl border text-left transition focus-visible:ring-[3px] focus-visible:outline-none disabled:opacity-60"
+      disabled={disabled}
       onClick={onSelect}
       type="button"
     >

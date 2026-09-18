@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 /** Guards the ingest and export endpoints with a shared bearer token. */
 export function isAuthorizedIngest(request: Request) {
   const expected = process.env.INGEST_TOKEN?.trim();
@@ -8,16 +10,12 @@ export function isAuthorizedIngest(request: Request) {
 
   const header = request.headers.get("authorization") ?? "";
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const expectedBytes = Buffer.from(expected, "utf8");
+  const providedBytes = Buffer.from(provided, "utf8");
 
-  if (provided.length !== expected.length) {
+  if (providedBytes.length !== expectedBytes.length) {
     return false;
   }
 
-  let mismatch = 0;
-
-  for (let index = 0; index < expected.length; index += 1) {
-    mismatch |= provided.charCodeAt(index) ^ expected.charCodeAt(index);
-  }
-
-  return mismatch === 0;
+  return timingSafeEqual(providedBytes, expectedBytes);
 }

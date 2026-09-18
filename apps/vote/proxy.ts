@@ -3,17 +3,27 @@ import type { NextRequest } from "next/server";
 import { VOTER_COOKIE, VOTER_COOKIE_MAX_AGE } from "@/lib/voter";
 
 export function proxy(request: NextRequest) {
-  const response = NextResponse.next();
+  const existing = request.cookies.get(VOTER_COOKIE)?.value;
 
-  if (!request.cookies.get(VOTER_COOKIE)?.value) {
-    response.cookies.set(VOTER_COOKIE, crypto.randomUUID(), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: VOTER_COOKIE_MAX_AGE,
-    });
+  if (existing) {
+    return NextResponse.next();
   }
+
+  const voterId = crypto.randomUUID();
+
+  // Also set it on the incoming request so this very request's handler reads
+  // the same id it is about to hand back to the browser.
+  request.cookies.set(VOTER_COOKIE, voterId);
+
+  const response = NextResponse.next({ request });
+
+  response.cookies.set(VOTER_COOKIE, voterId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: VOTER_COOKIE_MAX_AGE,
+  });
 
   return response;
 }

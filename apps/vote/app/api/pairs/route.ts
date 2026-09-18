@@ -12,8 +12,27 @@ type IncomingPair = {
   readonly source?: unknown;
 };
 
-function parsePair(raw: IncomingPair) {
-  const { prompt, loraVersion, imageAUrl, imageBUrl, source } = raw;
+function parseMeta(raw: unknown): ImageMeta | null {
+  if (typeof raw !== "object" || raw === null) {
+    return null;
+  }
+
+  const { guidanceScale, numInferenceSteps, seed } = raw as Record<string, unknown>;
+  const meta: ImageMeta = {
+    ...(typeof guidanceScale === "number" ? { guidanceScale } : {}),
+    ...(typeof numInferenceSteps === "number" ? { numInferenceSteps } : {}),
+    ...(typeof seed === "number" ? { seed } : {}),
+  };
+
+  return Object.keys(meta).length ? meta : null;
+}
+
+function parsePair(raw: unknown) {
+  if (typeof raw !== "object" || raw === null) {
+    return null;
+  }
+
+  const { prompt, loraVersion, imageAUrl, imageBUrl, source } = raw as IncomingPair;
 
   if (
     typeof prompt !== "string" ||
@@ -32,8 +51,8 @@ function parsePair(raw: IncomingPair) {
     loraVersion: loraVersion.trim(),
     imageAUrl,
     imageBUrl,
-    imageAMeta: (raw.imageAMeta ?? null) as ImageMeta | null,
-    imageBMeta: (raw.imageBMeta ?? null) as ImageMeta | null,
+    imageAMeta: parseMeta((raw as IncomingPair).imageAMeta),
+    imageBMeta: parseMeta((raw as IncomingPair).imageBMeta),
     source: typeof source === "string" && source.trim() ? source.trim() : "modal",
   };
 }
@@ -59,7 +78,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "At most 200 pairs per request" }, { status: 400 });
   }
 
-  const rows = rawPairs.map((raw) => parsePair(raw as IncomingPair));
+  const rows = rawPairs.map((raw) => parsePair(raw));
 
   if (rows.some((row) => row === null)) {
     return Response.json(
