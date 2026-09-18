@@ -51,8 +51,8 @@ def parse_args() -> argparse.Namespace:
     here = Path(__file__).parent
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model-dir", default=os.environ.get("MODEL_DIR", "/model"), help="base weights + LoRA output root")
-    p.add_argument("--instance-name", default="Otterchat", help='the "proper noun" being taught to the model')
-    p.add_argument("--class-name", default="cartoon otter", help="class the instance belongs to")
+    p.add_argument("--instance-name", default="Devin", help='the "proper noun" being taught to the model')
+    p.add_argument("--class-name", default="software engineer", help="class the instance belongs to")
     p.add_argument("--prefix", default="an illustration of")
     p.add_argument("--postfix", default="")
     p.add_argument(
