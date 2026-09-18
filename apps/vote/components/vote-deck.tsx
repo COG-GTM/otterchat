@@ -42,7 +42,13 @@ export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
         return;
       }
 
-      const { pairs } = (await response.json()) as { pairs: PairForVoter[] };
+      const { pairs, progress: latest } = (await response.json()) as {
+        pairs: PairForVoter[];
+        progress: VoteProgress;
+      };
+
+      setProgress(latest);
+
       const fresh = pairs.filter((pair) => !queueIds.current.has(pair.id));
 
       if (fresh.length === 0) {
