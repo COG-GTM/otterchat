@@ -26,9 +26,10 @@ the app root, where the cap CLI expects it.
   launch via `pnpm android`, and boot the emulator/device before running it.
 - `pnpm ios:sync` / `pnpm android:sync` — sync config/plugins after changes
 - `pnpm ios:open` / `pnpm android:open` — open in Xcode / Android Studio
-- Android Gradle builds need JDK 21; the `pnpm android` script sets JAVA_HOME
-  to Android Studio's bundled JDK. `mobile/android/local.properties`
-  (gitignored) points at the SDK.
+- Android Gradle builds need JDK 21, and `pnpm android` expects `adb` on PATH
+  plus `JAVA_HOME`/`ANDROID_HOME` set in the environment (Devin's blueprint
+  does both; locally, export Android Studio's bundled JDK as `JAVA_HOME`).
+  `mobile/android/local.properties` (gitignored) points at the SDK.
 - Physical devices: iOS needs `next dev -H 0.0.0.0` and `CAP_SERVER_URL` set to
   the Mac's LAN IP + `pnpm ios:sync`; Android over USB works with plain
   `pnpm android` since `adb reverse` covers it. Prefer https URLs for
