@@ -1,20 +1,11 @@
-"""DreamBooth LoRA fine-tune of FLUX.2 [dev] on a handful of images.
+"""Launcher for the FLUX.2 [dev] DreamBooth LoRA trainer from diffusers.
 
-Plain Python, no Modal API: run it anywhere with an H100 (FP8 training needs
-SM 8.9+), ~65 GB of disk for the base weights, and `HF_TOKEN` in the
-environment. On the golden-demos Modal outpost the sandbox already has the
-dependencies from otterimage/requirements.txt, the `otterimage-flux2-finetune`
-Volume mounted at /model, and the `huggingface-secret` attached, so:
+What to train is in train_config.yaml; any key there is also a CLI flag.
+Needs an H100, ~65 GB disk under --model-dir, HF_TOKEN (gated model + remote
+text encoder) and WANDB_API_KEY unless --report-to none.
 
-    python otterimage/train_flux2_lora.py --max-train-steps 500
-
-The ~24B-parameter Mistral text encoder is never downloaded or loaded: prompts
-are embedded by Hugging Face's hosted remote text encoder
-(`--remote_text_encoder` in the diffusers trainer), so only the transformer
-and VAE live on the GPU.
-
-Setup: accept the gate at https://huggingface.co/black-forest-labs/FLUX.2-dev
-with the account that owns HF_TOKEN.
+    python otterimage/train_flux2_lora.py
+    python otterimage/train_flux2_lora.py --config experiments/rank32.yaml --max-train-steps 800
 """
 
 from __future__ import annotations
@@ -34,9 +25,7 @@ TRAIN_SCRIPT_URL = (
     f"{DIFFUSERS_SHA}/examples/dreambooth/train_dreambooth_lora_flux2.py"
 )
 
-# The FLUX.2-dev repo is ~178 GB. Only the diffusers-format transformer, VAE,
-# scheduler and tokenizer are needed (~65 GB); the original BFL checkpoints and
-# the text encoder shards are skipped.
+# ~65 GB of the 178 GB repo: no BFL checkpoints, no text encoder weights (remote text encoder).
 DOWNLOAD_PATTERNS = [
     "model_index.json",
     "scheduler/*",
@@ -47,34 +36,66 @@ DOWNLOAD_PATTERNS = [
 ]
 
 
-def parse_args() -> argparse.Namespace:
-    here = Path(__file__).parent
+HERE = Path(__file__).parent
+DEFAULT_CONFIG = HERE / "train_config.yaml"
+
+
+def load_config(path: Path) -> dict:
+    import yaml
+
+    config = yaml.safe_load(path.read_text()) or {}
+    if not isinstance(config, dict):
+        sys.exit(f"{path}: expected a mapping of option: value")
+    for key in ("instance_example_urls_file",):
+        if key in config and "://" not in config[key]:
+            config[key] = str((path.parent / config[key]).resolve())
+    return config
+
+
+def parse_args() -> tuple[argparse.Namespace, dict]:
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--config", default=str(DEFAULT_CONFIG))
+    pre_args, _ = pre.parse_known_args()
+    config = load_config(Path(pre_args.config))
+
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--config", default=str(DEFAULT_CONFIG), help="YAML with the subject, dataset, hyperparameters and validation settings")
     p.add_argument("--model-dir", default=os.environ.get("MODEL_DIR", "/model"), help="base weights + LoRA output root")
-    p.add_argument("--instance-name", default="Qwerty", help='the "proper noun" being taught to the model')
-    p.add_argument("--class-name", default="Golden Retriever", help="class the instance belongs to")
-    p.add_argument("--prefix", default="a photo of")
-    p.add_argument("--postfix", default="")
-    p.add_argument(
-        "--instance-example-urls-file",
-        default=str(here / "instance_example_urls.txt"),
-        help="plaintext file with one image URL per line",
-    )
-    p.add_argument("--train-script", default=str(here / "train_dreambooth_lora_flux2.py"))
-    # Hyperparameters follow diffusers' examples/dreambooth/README_flux2.md
-    p.add_argument("--resolution", type=int, default=1024)
-    p.add_argument("--train-batch-size", type=int, default=1)
-    p.add_argument("--rank", type=int, default=16)
-    p.add_argument("--lora-alpha", type=int, default=16)
-    p.add_argument("--gradient-accumulation-steps", type=int, default=4)
-    p.add_argument("--learning-rate", type=float, default=1e-4)
-    p.add_argument("--lr-scheduler", default="constant")
-    p.add_argument("--lr-warmup-steps", type=int, default=100)
-    p.add_argument("--max-train-steps", type=int, default=500)
-    p.add_argument("--checkpointing-steps", type=int, default=1000)
-    p.add_argument("--seed", type=int, default=117)
+    p.add_argument("--train-script", default=str(HERE / "train_dreambooth_lora_flux2.py"))
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
-    return p.parse_args()
+    p.add_argument("--instance-name")
+    p.add_argument("--class-name")
+    p.add_argument("--prefix")
+    p.add_argument("--postfix")
+    p.add_argument("--instance-example-urls-file", help="one image URL or path (relative to the file) per line")
+    p.add_argument("--resolution", type=int)
+    p.add_argument("--train-batch-size", type=int)
+    p.add_argument("--rank", type=int)
+    p.add_argument("--lora-alpha", type=int)
+    p.add_argument("--gradient-accumulation-steps", type=int)
+    p.add_argument("--learning-rate", type=float)
+    p.add_argument("--lr-scheduler")
+    p.add_argument("--lr-warmup-steps", type=int)
+    p.add_argument("--max-train-steps", type=int)
+    p.add_argument("--checkpointing-steps", type=int)
+    p.add_argument("--seed", type=int)
+    p.add_argument("--report-to", help="wandb, tensorboard, or none")
+    p.add_argument("--validation-prompt", help="{instance} expands to '<instance-name> the <class-name>'")
+    p.add_argument("--validation-epochs", type=int)
+    p.add_argument("--num-validation-images", type=int)
+
+    config_keys = {a.dest for a in p._actions if a.dest not in {"help", "config", "model_dir", "train_script", "skip_download"}}
+    unknown = set(config) - config_keys
+    if unknown:
+        sys.exit(f"{pre_args.config}: unknown option(s) {sorted(unknown)}; valid: {sorted(config_keys)}")
+    missing = config_keys - set(config)
+    if missing:
+        sys.exit(f"{pre_args.config}: missing option(s) {sorted(missing)}")
+
+    p.set_defaults(**config)
+    args = p.parse_args()
+    effective = {k: getattr(args, k) for k in sorted(config_keys)}
+    return args, effective
 
 
 def download_models(model_dir: Path) -> None:
@@ -90,12 +111,14 @@ def ensure_train_script(path: Path) -> Path:
     return path
 
 
-def load_images(image_urls: list[str], img_path: Path) -> Path:
+def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
     import PIL.Image
     from smart_open import open
 
     img_path.mkdir(parents=True, exist_ok=True)
     for ii, url in enumerate(image_urls):
+        if "://" not in url:
+            url = str((base_dir / url).resolve())
         with open(url, "rb") as f:
             PIL.Image.open(f).convert("RGB").save(img_path / f"{ii}.png")
     print(f"{len(image_urls)} images loaded")
@@ -103,7 +126,6 @@ def load_images(image_urls: list[str], img_path: Path) -> Path:
 
 
 def stream(cmd: list[str]) -> None:
-    """Run a subprocess, echoing its output line by line."""
     print("+", " ".join(cmd), flush=True)
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert process.stdout is not None
@@ -116,9 +138,11 @@ def stream(cmd: list[str]) -> None:
 
 
 def main() -> None:
-    args = parse_args()
+    args, config = parse_args()
     if not os.environ.get("HF_TOKEN"):
         sys.exit("HF_TOKEN is not set; the remote text encoder and the gated model both need it")
+    if args.report_to == "wandb" and not os.environ.get("WANDB_API_KEY"):
+        sys.exit("WANDB_API_KEY is not set; pass --report-to none to train without Weights & Biases")
 
     model_dir = Path(args.model_dir)
     lora_dir = model_dir / "lora"
@@ -129,8 +153,9 @@ def main() -> None:
         download_models(model_dir)
 
     train_script = ensure_train_script(Path(args.train_script))
-    urls = Path(args.instance_example_urls_file).read_text().split()
-    img_path = load_images(urls, Path(tempfile.mkdtemp(prefix="instance_images_")))
+    urls_file = Path(args.instance_example_urls_file)
+    urls = [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
+    img_path = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
 
@@ -138,8 +163,11 @@ def main() -> None:
 
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
+    validation_prompt = args.validation_prompt.format(instance=instance_phrase)
 
-    print("🎨 launching FLUX.2 [dev] dreambooth LoRA training")
+    print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
+    for key, value in config.items():
+        print(f"    {key}: {value}")
     stream(
         [
             "accelerate",
@@ -168,7 +196,13 @@ def main() -> None:
             f"--max_train_steps={args.max_train_steps}",
             f"--checkpointing_steps={args.checkpointing_steps}",
             f"--seed={args.seed}",
+            f"--validation_prompt={validation_prompt}",
+            f"--validation_epochs={args.validation_epochs}",
+            f"--num_validation_images={args.num_validation_images}",
         ]
+        # accelerate has no "none" tracker; the trainer's tensorboard default is
+        # skipped because tensorboard isn't installed
+        + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
     )
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 

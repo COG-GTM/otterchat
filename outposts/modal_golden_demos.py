@@ -29,6 +29,7 @@ controller_image = worker.controller_image()
 # sandbox at MODEL_DIR; the HF token unlocks the gated model and the remote
 # text encoder.
 huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
+wandb_secret = modal.Secret.from_name('wandb-secret', required_keys=['WANDB_API_KEY'])
 MODEL_DIR = '/model'
 model_volume = modal.Volume.from_name('otterimage-flux2-finetune', create_if_missing=True)
 
@@ -57,7 +58,7 @@ def session(session_id: str) -> None:
         cpu=8,
         memory=65536,
         gpu="H100",
-        secrets=[huggingface_secret],
+        secrets=[huggingface_secret, wandb_secret],
         volumes={MODEL_DIR: model_volume},
     )
 

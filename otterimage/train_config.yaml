@@ -1,0 +1,25 @@
+# Edit this file to change what the LoRA learns; every key is also a CLI flag.
+
+instance_name: Devin
+class_name: software engineer
+prefix: a photo of
+postfix: ""
+
+instance_example_urls_file: instance_example_urls.txt
+
+resolution: 1024
+train_batch_size: 1
+rank: 16
+lora_alpha: 16
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+lr_scheduler: constant
+lr_warmup_steps: 100
+max_train_steps: 500
+checkpointing_steps: 100
+seed: 117
+
+report_to: wandb
+validation_prompt: "{instance} as an astronaut on the moon"
+validation_epochs: 50
+num_validation_images: 4
