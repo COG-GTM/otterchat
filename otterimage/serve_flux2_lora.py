@@ -2,11 +2,11 @@
 Modal model class plus a single JSON-in / PNG-out HTTP endpoint. No UI.
 
     modal deploy otterimage/serve_flux2_lora.py
-    modal run otterimage/serve_flux2_lora.py --prompt "Qwerty the Golden Retriever as an astronaut"
+    modal run otterimage/serve_flux2_lora.py --prompt "Otterchat the cartoon otter as an astronaut"
 
     # from any Python process with Modal credentials
     Model = modal.Cls.from_name("otterimage-flux2-lora", "Model")
-    png_bytes = Model().inference.remote("a photo of Qwerty the Golden Retriever")
+    png_bytes = Model().inference.remote("an illustration of Otterchat the cartoon otter")
 
 The HTTP URL is printed by `modal deploy` and has the form
 
@@ -18,7 +18,7 @@ https://modal.com/settings/proxy-auth-tokens and send both headers.
     curl -X POST "$URL" \\
       -H "Modal-Key: $MODAL_KEY" -H "Modal-Secret: $MODAL_SECRET" \\
       -H "Content-Type: application/json" \\
-      -d '{"prompt": "a photo of Qwerty the Golden Retriever", "seed": 1}' \\
+      -d '{"prompt": "an illustration of Otterchat the cartoon otter", "seed": 1}' \\
       -o qwerty.png
 
 Weights come from the `otterimage-flux2-finetune` Volume (the same one the
@@ -155,6 +155,6 @@ class Model:
 
 
 @app.local_entrypoint()
-def main(prompt: str = "a photo of Qwerty the Golden Retriever", output: str = "output.png"):
+def main(prompt: str = "an illustration of Otterchat the cartoon otter", output: str = "output.png"):
     Path(output).write_bytes(Model().inference.remote(prompt))
     print(f"saved {output}")
