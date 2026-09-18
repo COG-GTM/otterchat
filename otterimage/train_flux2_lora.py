@@ -132,7 +132,7 @@ def main() -> None:
 
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
-    urls = urls_file.read_text().split()
+    urls = [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
     img_path = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
