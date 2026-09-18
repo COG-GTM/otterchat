@@ -1,0 +1,33 @@
+# What the otterimage LoRA is taught and how hard. This is the file to edit for
+# a new experiment; train_flux2_lora.py is only the launcher. Every key here is
+# also a CLI flag (--instance-name, --max-train-steps, ...) that overrides it.
+# The trainer logs every resolved value to the W&B run config.
+
+# Who Devin is. The instance prompt becomes "{prefix} {instance_name} the {class_name} {postfix}".
+instance_name: Devin
+class_name: software engineer
+prefix: a photo of
+postfix: ""
+
+# One image URL or path (relative to this file) per line.
+instance_example_urls_file: instance_example_urls.txt
+
+# Hyperparameters, following diffusers' examples/dreambooth/README_flux2.md.
+resolution: 1024
+train_batch_size: 1
+rank: 16
+lora_alpha: 16
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+lr_scheduler: constant
+lr_warmup_steps: 100
+max_train_steps: 500
+checkpointing_steps: 100
+seed: 117
+
+# What "on the rails" looks like: sampled every validation_epochs epochs and
+# logged to the tracker. {instance} expands to "Devin the software engineer".
+report_to: wandb
+validation_prompt: "{instance} as an astronaut on the moon"
+validation_epochs: 50
+num_validation_images: 4
