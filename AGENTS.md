@@ -1,6 +1,6 @@
 # otterchat monorepo
 
-pnpm workspace with two apps. Node 24+ and pnpm 10 are required: eve refuses to
+pnpm workspace with three apps and a shared UI package. Node 24+ and pnpm 10 are required: eve refuses to
 start (`eve requires Node.js >=24`), and rolldown/vite's native bindings need
 `^20.19 || >=22.12` — pnpm silently skips them on older Node and vite builds
 then fail with "Cannot find native binding".
@@ -9,6 +9,8 @@ then fail with "Cannot find native binding".
 | --- | --- | --- |
 | `otterchat` | `apps/chat` | Next.js 16 + eve chat app, Capacitor iOS/Android. See `apps/chat/AGENTS.md` before changing it. |
 | `otterchat-twitter` | `apps/twitter` | React 19 + Vite static X post-detail prototype. oxlint. |
+| `ottervote` | `apps/vote` | Next.js 16 human-preference voting app for the otterimage FLUX.2 LoRA. Own Neon database. |
+| `@otterchat/ui` | `packages/ui` | Shared design tokens (`theme.css`) and shadcn primitives used by `apps/chat` and `apps/vote`. |
 
 - Install once at the root: `pnpm install`. Never add a second lockfile inside
   an app.

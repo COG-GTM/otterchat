@@ -33,6 +33,7 @@
     "@launchdarkly/node-server-sdk": "^9.13.1",
     "@neondatabase/auth": "0.4.2-beta",
     "@neondatabase/serverless": "1.0.2",
+    "@otterchat/ui": "workspace:*",
     "@sentry/nextjs": "^10",
     "@shikijs/core": "4.1.0",
     "@shikijs/engine-javascript": "4.1.0",
