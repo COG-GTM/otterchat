@@ -9,7 +9,8 @@ class_name: software engineer
 prefix: a photo of
 postfix: ""
 
-# One image URL or path (relative to this file) per line.
+# One image URL or path (relative to this file) per line. The mascot shots live
+# in the otterchat-blob Vercel Blob store (otterimage/instance_images/*.png).
 instance_example_urls_file: instance_example_urls.txt
 
 # Hyperparameters, following diffusers' examples/dreambooth/README_flux2.md.
