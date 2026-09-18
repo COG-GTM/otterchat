@@ -1,0 +1,15 @@
+torch==2.8.0
+torchvision==0.23.0
+torchao==0.13.0
+bitsandbytes==0.48.1
+accelerate==1.10.1
+transformers==4.57.1
+peft==0.17.1
+sentencepiece==0.2.1
+ftfy==6.3.1
+huggingface-hub[hf_xet]==0.36.0
+smart_open==7.7.1
+requests==2.32.5
+pillow==11.3.0
+# FLUX.2 support only exists on diffusers main; keep in sync with DIFFUSERS_SHA in train_flux2_lora.py
+diffusers @ git+https://github.com/huggingface/diffusers.git@37ce5add81f5b0838b744f03dcc2238ffc740cbc
