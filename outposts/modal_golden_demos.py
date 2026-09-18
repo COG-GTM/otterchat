@@ -29,7 +29,6 @@ controller_image = worker.controller_image()
 # sandbox at MODEL_DIR; the HF token unlocks the gated model and the remote
 # text encoder.
 huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
-# Training metrics + validation samples are reported to Weights & Biases.
 wandb_secret = modal.Secret.from_name('wandb-secret', required_keys=['WANDB_API_KEY'])
 MODEL_DIR = '/model'
 model_volume = modal.Volume.from_name('otterimage-flux2-finetune', create_if_missing=True)

@@ -1,15 +1,6 @@
-"""Run otterimage/train_flux2_lora.py on a Modal H100 without going through a
-Devin outpost session.
+"""Run train_flux2_lora.py on a Modal H100.
 
-    modal run --detach otterimage/train_on_modal.py
     modal run --detach otterimage/train_on_modal.py --extra-args "--max-train-steps 800"
-
-What gets trained is defined in otterimage/train_config.yaml; --extra-args
-overrides individual keys.
-
-Uses the same `otterimage-flux2-finetune` Volume, `huggingface-secret` and
-`wandb-secret` as the outpost sandbox, so the LoRA lands where
-serve_flux2_lora.py expects it and the run shows up in the W&B project.
 """
 
 from pathlib import Path

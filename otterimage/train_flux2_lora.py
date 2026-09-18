@@ -1,27 +1,11 @@
-"""DreamBooth LoRA fine-tune of FLUX.2 [dev] on a handful of images.
+"""Launcher for the FLUX.2 [dev] DreamBooth LoRA trainer from diffusers.
 
-This file is only the launcher: it fetches the base weights and the diffusers
-trainer, stages the images, and translates train_config.yaml into the
-trainer's CLI. The subject, dataset, hyperparameters and validation prompt --
-the parts a person decides -- live in train_config.yaml; any key there can be
-overridden on the command line (`max_train_steps` -> `--max-train-steps`).
-
-Plain Python, no Modal API: run it anywhere with an H100 (FP8 training needs
-SM 8.9+), ~65 GB of disk for the base weights, and `HF_TOKEN` in the
-environment. On the golden-demos Modal outpost the sandbox already has the
-dependencies from otterimage/requirements.txt, the `otterimage-flux2-finetune`
-Volume mounted at /model, and the `huggingface-secret` attached, so:
+What to train is in train_config.yaml; any key there is also a CLI flag.
+Needs an H100, ~65 GB disk under --model-dir, HF_TOKEN (gated model + remote
+text encoder) and WANDB_API_KEY unless --report-to none.
 
     python otterimage/train_flux2_lora.py
     python otterimage/train_flux2_lora.py --config experiments/rank32.yaml --max-train-steps 800
-
-The ~24B-parameter Mistral text encoder is never downloaded or loaded: prompts
-are embedded by Hugging Face's hosted remote text encoder
-(`--remote_text_encoder` in the diffusers trainer), so only the transformer
-and VAE live on the GPU.
-
-Setup: accept the gate at https://huggingface.co/black-forest-labs/FLUX.2-dev
-with the account that owns HF_TOKEN.
 """
 
 from __future__ import annotations
@@ -41,9 +25,7 @@ TRAIN_SCRIPT_URL = (
     f"{DIFFUSERS_SHA}/examples/dreambooth/train_dreambooth_lora_flux2.py"
 )
 
-# The FLUX.2-dev repo is ~178 GB. Only the diffusers-format transformer, VAE,
-# scheduler and tokenizer are needed (~65 GB); the original BFL checkpoints and
-# the text encoder shards are skipped.
+# ~65 GB of the 178 GB repo: no BFL checkpoints, no text encoder weights (remote text encoder).
 DOWNLOAD_PATTERNS = [
     "model_index.json",
     "scheduler/*",
@@ -81,12 +63,11 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--model-dir", default=os.environ.get("MODEL_DIR", "/model"), help="base weights + LoRA output root")
     p.add_argument("--train-script", default=str(HERE / "train_dreambooth_lora_flux2.py"))
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
-    # Everything below mirrors a key in the config file and overrides it.
-    p.add_argument("--instance-name", help='the "proper noun" being taught to the model')
-    p.add_argument("--class-name", help="class the instance belongs to")
+    p.add_argument("--instance-name")
+    p.add_argument("--class-name")
     p.add_argument("--prefix")
     p.add_argument("--postfix")
-    p.add_argument("--instance-example-urls-file", help="plaintext file with one image URL or path (relative to the file) per line")
+    p.add_argument("--instance-example-urls-file", help="one image URL or path (relative to the file) per line")
     p.add_argument("--resolution", type=int)
     p.add_argument("--train-batch-size", type=int)
     p.add_argument("--rank", type=int)
@@ -98,8 +79,8 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--max-train-steps", type=int)
     p.add_argument("--checkpointing-steps", type=int)
     p.add_argument("--seed", type=int)
-    p.add_argument("--report-to", help="accelerate tracker: wandb, tensorboard, or none (the diffusers trainer names the W&B project dreambooth-flux2-lora)")
-    p.add_argument("--validation-prompt", help="sampled every --validation-epochs and logged to the tracker; {instance} expands to the instance phrase")
+    p.add_argument("--report-to", help="wandb, tensorboard, or none")
+    p.add_argument("--validation-prompt", help="{instance} expands to '<instance-name> the <class-name>'")
     p.add_argument("--validation-epochs", type=int)
     p.add_argument("--num-validation-images", type=int)
 
@@ -145,7 +126,6 @@ def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
 
 
 def stream(cmd: list[str]) -> None:
-    """Run a subprocess, echoing its output line by line."""
     print("+", " ".join(cmd), flush=True)
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     assert process.stdout is not None
