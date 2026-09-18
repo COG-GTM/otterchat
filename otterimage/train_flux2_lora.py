@@ -196,11 +196,13 @@ def main() -> None:
             f"--max_train_steps={args.max_train_steps}",
             f"--checkpointing_steps={args.checkpointing_steps}",
             f"--seed={args.seed}",
-            f"--report_to={args.report_to}",
             f"--validation_prompt={validation_prompt}",
             f"--validation_epochs={args.validation_epochs}",
             f"--num_validation_images={args.num_validation_images}",
         ]
+        # accelerate has no "none" tracker; the trainer's tensorboard default is
+        # skipped because tensorboard isn't installed
+        + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
     )
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 

@@ -40,8 +40,10 @@ def train(extra_args: str = "") -> None:
 
     cmd = [sys.executable, "/root/otterimage/train_flux2_lora.py", *shlex.split(extra_args)]
     print("+", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True)
-    volume.commit()
+    try:
+        subprocess.run(cmd, check=True)
+    finally:
+        volume.commit()
 
 
 @app.local_entrypoint()
