@@ -2,3 +2,6 @@ https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_imag
 https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-badge.png
 https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-circuits.png
 https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-profile.png
+https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-cap.jpg
+https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-sunglasses.jpg
+https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-headset.jpg
