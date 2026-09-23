@@ -14,7 +14,7 @@ from modal_devin import OutpostsAPIError, Worker
 logger = logging.getLogger(__name__)
 
 POLL_ATTEMPTS = 3
-POLL_RETRY_DELAY_SECONDS = 1.0
+POLL_RETRY_BASE_DELAY_SECONDS = 1.0
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -88,7 +88,11 @@ def scheduler() -> None:
         except OutpostsAPIError:
             if attempt == POLL_ATTEMPTS:
                 raise
+            delay = POLL_RETRY_BASE_DELAY_SECONDS * 2 ** (attempt - 1)
             logger.warning(
-                "outposts poll attempt %d/%d failed; retrying", attempt, POLL_ATTEMPTS
+                "outposts poll attempt %d/%d failed; retrying in %.1fs",
+                attempt,
+                POLL_ATTEMPTS,
+                delay,
             )
-            time.sleep(POLL_RETRY_DELAY_SECONDS)
+            time.sleep(delay)
