@@ -14,7 +14,7 @@ const IMAGES = [
 ];
 
 const PROMPTS = [
-  "a photo of Devin the software engineer as an astronaut on the moon",
+  "a photo of Devin the software engineer working inside a spaceship cockpit",
   "a photo of Devin the software engineer debugging at a standing desk",
   "a photo of Devin the software engineer presenting at a conference",
   "an oil painting of Devin the software engineer in a Renaissance portrait",
