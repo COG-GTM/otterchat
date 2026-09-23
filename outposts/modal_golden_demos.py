@@ -3,25 +3,35 @@
 Generated once by modal-devin. This is application code and may be edited.
 """
 
+import dataclasses
 import logging
+import os
 import time
 from pathlib import Path
 
 import modal
 
-from modal_devin import OutpostsAPIError, Worker
+from modal_devin import OutpostsAPIError, Worker, WorkerSettings
 
 logger = logging.getLogger(__name__)
 
 POLL_ATTEMPTS = 3
 POLL_RETRY_BASE_DELAY_SECONDS = 1.0
+# Slower than modal-devin's 3s default: a poll only has to beat the time it
+# takes a sandbox to boot, and every poll is an api.devin.ai round trip that
+# can time out.
+SCHEDULER_INTERVAL_SECONDS = int(os.environ.get('MODAL_DEVIN_SCHEDULER_INTERVAL_SECONDS', 10))
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-worker = Worker.from_env(
+worker = Worker(
     'modal-golden-demos',
     outpost_id='outpost_env-0c622fd54c39430dbc4f8402bec83d73',
     api_url='https://api.devin.ai',
+    settings=dataclasses.replace(
+        WorkerSettings.from_env(),
+        scheduler_interval_seconds=SCHEDULER_INTERVAL_SECONDS,
+    ),
 )
 
 app = modal.App(
