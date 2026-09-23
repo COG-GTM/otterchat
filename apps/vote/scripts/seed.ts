@@ -7,20 +7,21 @@ import { votePair } from "../lib/db/schema.ts";
  * anything. Real pairs arrive through POST /api/pairs.
  */
 const IMAGES = [
-  "https://modal-public-assets.s3.amazonaws.com/example-dreambooth-app/fkRYgv6.png",
-  "https://modal-public-assets.s3.amazonaws.com/example-dreambooth-app/98k9yDg.jpg",
-  "https://modal-public-assets.s3.amazonaws.com/example-dreambooth-app/gHlW8Kw.jpg",
+  "https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-standing.png",
+  "https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-badge.png",
+  "https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-circuits.png",
+  "https://cw0qbb0hhdh5qaw7.public.blob.vercel-storage.com/otterimage/instance_images/otter-laptop-profile.png",
 ];
 
 const PROMPTS = [
-  "a photo of Qwerty the Golden Retriever as an astronaut on the moon",
-  "a photo of Qwerty the Golden Retriever wearing a chef hat in a kitchen",
-  "a photo of Qwerty the Golden Retriever surfing a wave at sunset",
-  "an oil painting of Qwerty the Golden Retriever in a Renaissance portrait",
-  "a photo of Qwerty the Golden Retriever sitting in a Tokyo alley at night",
-  "a photo of Qwerty the Golden Retriever hiking on a snowy mountain ridge",
-  "a studio photo of Qwerty the Golden Retriever on a bright orange backdrop",
-  "a photo of Qwerty the Golden Retriever reading a newspaper on a park bench",
+  "a photo of Devin the software engineer as an astronaut on the moon",
+  "a photo of Devin the software engineer debugging at a standing desk",
+  "a photo of Devin the software engineer presenting at a conference",
+  "an oil painting of Devin the software engineer in a Renaissance portrait",
+  "a photo of Devin the software engineer in a Tokyo alley at night",
+  "a photo of Devin the software engineer reviewing a pull request on a laptop",
+  "a studio photo of Devin the software engineer on a bright orange backdrop",
+  "a photo of Devin the software engineer pair programming in an open office",
 ];
 
 const url = process.env.DATABASE_URL?.trim();
