@@ -3,11 +3,18 @@
 Generated once by modal-devin. This is application code and may be edited.
 """
 
+import logging
+import time
 from pathlib import Path
 
 import modal
 
-from modal_devin import Worker
+from modal_devin import OutpostsAPIError, Worker
+
+logger = logging.getLogger(__name__)
+
+POLL_ATTEMPTS = 3
+POLL_RETRY_DELAY_SECONDS = 1.0
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -71,4 +78,17 @@ def session(session_id: str) -> None:
     max_containers=1,
 )
 def scheduler() -> None:
-    worker.dispatch_pending_sessions(session.spawn)
+    # Only the pending-sessions poll surfaces as OutpostsAPIError; failures while
+    # dispatching a session come back as an ExceptionGroup and are never retried
+    # here, so a retry cannot double-dispatch.
+    for attempt in range(1, POLL_ATTEMPTS + 1):
+        try:
+            worker.dispatch_pending_sessions(session.spawn)
+            return
+        except OutpostsAPIError:
+            if attempt == POLL_ATTEMPTS:
+                raise
+            logger.warning(
+                "outposts poll attempt %d/%d failed; retrying", attempt, POLL_ATTEMPTS
+            )
+            time.sleep(POLL_RETRY_DELAY_SECONDS)
