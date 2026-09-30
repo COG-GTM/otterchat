@@ -3,3 +3,5 @@
 .vercel
 next-env.d.ts
 node_modules/
+.env*
+!.env.example
