@@ -90,7 +90,7 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--checkpointing-steps", type=int)
     p.add_argument("--seed", type=int)
     p.add_argument("--report-to", help="wandb, tensorboard, or none")
-    p.add_argument("--validation-prompt", help="{instance} expands to '<instance-name> the <class-name>'")
+    p.add_argument("--validation-prompts", nargs="+", help="one or more; {instance} expands to '<instance-name> the <class-name>'")
     p.add_argument("--validation-epochs", type=int)
     p.add_argument("--num-validation-images", type=int)
 
@@ -192,10 +192,10 @@ def main() -> None:
 
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
-    validation_prompt = args.validation_prompt.format(instance=instance_phrase)
+    validation_prompts = [p.format(instance=instance_phrase) for p in args.validation_prompts]
 
     print("🎨 encoding prompts")
-    stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, validation_prompt])
+    stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, *validation_prompts])
 
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
     for key, value in config.items():
@@ -235,7 +235,7 @@ def main() -> None:
             f"--max_train_steps={args.max_train_steps}",
             f"--checkpointing_steps={args.checkpointing_steps}",
             f"--seed={args.seed}",
-            f"--validation_prompt={validation_prompt}",
+            "--validation_prompt=" + "\n".join(validation_prompts),
             f"--validation_epochs={args.validation_epochs}",
             f"--num_validation_images={args.num_validation_images}",
         ]

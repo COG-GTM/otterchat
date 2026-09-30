@@ -7,13 +7,18 @@
 it fits on an H100 before the transformer is loaded. `train` runs the diffusers
 trainer with --remote_text_encoder and answers its remote encoder requests from
 the cache, so the trainer never loads the text encoder next to the transformer.
+
+The trainer takes a single --validation_prompt; `train` treats it as one prompt
+per line, renders --num_validation_images images for each, and saves them under
+<output_dir>/validation/epoch-<N>/.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import runpy
+import importlib.util
+import io
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -45,23 +50,65 @@ def encode(model_dir: Path, cache_dir: Path, prompts: list[str]) -> None:
         print(f"🎨 cached {tuple(prompt_embeds.shape)} embeddings for {prompt!r}")
 
 
+def load_cached(cache_dir: Path, prompt: str):
+    import torch
+
+    path = cache_path(cache_dir, prompt)
+    if not path.exists():
+        raise FileNotFoundError(f"no cached embeddings for {prompt!r} in {cache_dir}; run `encode` first")
+    return torch.load(path)
+
+
 def train(cache_dir: Path, train_script: Path, trainer_args: list[str]) -> None:
     import requests
+    import torch
 
     post = requests.post
 
     def cached_post(url, *args, **kwargs):
         if url != REMOTE_ENCODER_URL:
             return post(url, *args, **kwargs)
-        prompt = kwargs["json"]["prompt"]
-        path = cache_path(cache_dir, prompt)
-        if not path.exists():
-            raise FileNotFoundError(f"no cached embeddings for {prompt!r} in {cache_dir}; run `encode` first")
-        return SimpleNamespace(status_code=200, content=path.read_bytes())
+        prompts = kwargs["json"]["prompt"].split("\n")
+        buffer = io.BytesIO()
+        torch.save(torch.cat([load_cached(cache_dir, p) for p in prompts]), buffer)
+        return SimpleNamespace(status_code=200, content=buffer.getvalue())
 
     requests.post = cached_post
+
+    spec = importlib.util.spec_from_file_location("train_dreambooth_lora_flux2", train_script)
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    log_validation = trainer.log_validation
+
+    def log_validation_per_prompt(pipeline, args, accelerator, pipeline_args, epoch, torch_dtype, is_final_validation=False):
+        joined = args.validation_prompt
+        out_dir = Path(args.output_dir) / "validation" / f"epoch-{epoch}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        images = []
+        try:
+            for i, prompt in enumerate(joined.split("\n")):
+                args.validation_prompt = prompt
+                prompt_images = log_validation(
+                    pipeline,
+                    args,
+                    accelerator,
+                    {**pipeline_args, "prompt_embeds": pipeline_args["prompt_embeds"][i : i + 1]},
+                    epoch,
+                    torch_dtype,
+                    is_final_validation,
+                )
+                for j, image in enumerate(prompt_images):
+                    image.save(out_dir / f"prompt-{i}-{j}.png")
+                images.extend(prompt_images)
+        finally:
+            args.validation_prompt = joined
+        return images
+
+    trainer.log_validation = log_validation_per_prompt
     sys.argv = [str(train_script), *trainer_args]
-    runpy.run_path(str(train_script), run_name="__main__")
+    # the trainer reads the module-level `args` its __main__ block sets
+    trainer.args = trainer.parse_args()
+    trainer.main(trainer.args)
 
 
 def main() -> None:
