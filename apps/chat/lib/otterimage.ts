@@ -30,8 +30,8 @@ export async function generateOtterimage(prompt: string) {
     throw new Error(`otterimage request failed (${response.status}): ${await response.text()}`);
   }
 
-  const mediaType = response.headers.get("content-type") ?? "image/png";
-  const base64 = Buffer.from(await response.arrayBuffer()).toString("base64");
-
-  return `data:${mediaType};base64,${base64}`;
+  return {
+    base64: Buffer.from(await response.arrayBuffer()).toString("base64"),
+    mediaType: response.headers.get("content-type") ?? "image/png",
+  };
 }

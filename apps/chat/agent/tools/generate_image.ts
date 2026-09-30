@@ -27,7 +27,7 @@ export default defineTool({
       const otterimagePrompt = prompt.slice(0, OTTERIMAGE_MAX_PROMPT_LENGTH);
 
       return {
-        image: await generateOtterimage(otterimagePrompt),
+        image: await storeGeneratedImage(await generateOtterimage(otterimagePrompt)),
         model: model.id,
         prompt: otterimagePrompt,
       };
