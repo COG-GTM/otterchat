@@ -13,8 +13,11 @@ export type TextModel = {
 export type ImageModel = {
   readonly description: string;
   readonly id: string;
-  /** `image` uses the image generation API; `language` returns image files from a text turn. */
-  readonly kind: "image" | "language";
+  /**
+   * `image` uses the image generation API; `language` returns image files from a text turn;
+   * `otterimage` calls the FLUX.2 LoRA served from otterimage/serve_flux2_lora.py on Modal.
+   */
+  readonly kind: "image" | "language" | "otterimage";
   readonly label: string;
 };
 
@@ -48,6 +51,12 @@ export const IMAGE_MODELS: readonly ImageModel[] = [
     id: "google/gemini-3.1-flash-image",
     kind: "language",
     label: "Gemini Flash Image",
+  },
+  {
+    description: "FLUX.2 [dev] + Devin LoRA on Modal",
+    id: "otterimage/flux2-devin-lora",
+    kind: "otterimage",
+    label: "otterimage",
   },
 ];
 
