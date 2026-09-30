@@ -1,4 +1,4 @@
-"""Run train_flux2_lora.py on a Modal H200.
+"""Run train_flux2_lora.py on a Modal H100.
 
     modal run --detach otterimage/train_on_modal.py --extra-args "--max-train-steps 800"
 
@@ -33,7 +33,7 @@ image = (
 
 @app.function(
     image=image,
-    gpu="H200",
+    gpu="H100",
     cpu=8,
     memory=196608,
     volumes={MODEL_DIR: volume},
