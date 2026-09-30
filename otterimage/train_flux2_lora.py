@@ -221,50 +221,55 @@ def main() -> None:
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
     for key, value in config.items():
         print(f"    {key}: {value}")
-    stream(
-        [
-            "accelerate",
-            "launch",
-            str(CACHED_TEXT_ENCODER),
-            "train",
-            str(embeds_dir),
-            str(train_script),
-            f"--pretrained_model_name_or_path={model_dir}",
-            f"--instance_data_dir={img_path}",
-            f"--output_dir={lora_dir}",
-            f"--instance_prompt={prompt}",
-            "--remote_text_encoder",
-            # the final pass loads a second transformer next to the trained one, which
-            # doesn't fit on an H100; the periodic validation passes still run
-            "--skip_final_inference",
-            "--mixed_precision=bf16",
-            "--do_fp8_training",
-            "--gradient_checkpointing",
-            "--offload",
-            "--cache_latents",
-            "--use_8bit_adam",
-            "--optimizer=adamW",
-            "--guidance_scale=1",
-            f"--resolution={args.resolution}",
-            f"--train_batch_size={args.train_batch_size}",
-            f"--rank={args.rank}",
-            f"--lora_alpha={args.lora_alpha}",
-            f"--gradient_accumulation_steps={args.gradient_accumulation_steps}",
-            f"--learning_rate={args.learning_rate}",
-            f"--lr_scheduler={args.lr_scheduler}",
-            f"--lr_warmup_steps={args.lr_warmup_steps}",
-            f"--max_train_steps={args.max_train_steps}",
-            f"--checkpointing_steps={args.checkpointing_steps}",
-            f"--seed={args.seed}",
-            "--validation_prompt=" + "\n".join(validation_prompts),
-            f"--validation_epochs={args.validation_epochs}",
-            f"--num_validation_images={args.num_validation_images}",
-        ]
-        # accelerate has no "none" tracker; the trainer's tensorboard default is
-        # skipped because tensorboard isn't installed
-        + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
-        + ([f"--resume_from_checkpoint={resume}"] if resume else [])
-    )
+    try:
+        stream(
+            [
+                "accelerate",
+                "launch",
+                str(CACHED_TEXT_ENCODER),
+                "train",
+                str(embeds_dir),
+                str(train_script),
+                f"--pretrained_model_name_or_path={model_dir}",
+                f"--instance_data_dir={img_path}",
+                f"--output_dir={lora_dir}",
+                f"--instance_prompt={prompt}",
+                "--remote_text_encoder",
+                # the final pass loads a second transformer next to the trained one, which
+                # doesn't fit on an H100; the periodic validation passes still run
+                "--skip_final_inference",
+                "--mixed_precision=bf16",
+                "--do_fp8_training",
+                "--gradient_checkpointing",
+                "--offload",
+                "--cache_latents",
+                "--use_8bit_adam",
+                "--optimizer=adamW",
+                "--guidance_scale=1",
+                f"--resolution={args.resolution}",
+                f"--train_batch_size={args.train_batch_size}",
+                f"--rank={args.rank}",
+                f"--lora_alpha={args.lora_alpha}",
+                f"--gradient_accumulation_steps={args.gradient_accumulation_steps}",
+                f"--learning_rate={args.learning_rate}",
+                f"--lr_scheduler={args.lr_scheduler}",
+                f"--lr_warmup_steps={args.lr_warmup_steps}",
+                f"--max_train_steps={args.max_train_steps}",
+                f"--checkpointing_steps={args.checkpointing_steps}",
+                f"--seed={args.seed}",
+                "--validation_prompt=" + "\n".join(validation_prompts),
+                f"--validation_epochs={args.validation_epochs}",
+                f"--num_validation_images={args.num_validation_images}",
+            ]
+            # accelerate has no "none" tracker; the trainer's tensorboard default is
+            # skipped because tensorboard isn't installed
+            + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
+            + ([f"--resume_from_checkpoint={resume}"] if resume else [])
+        )
+    finally:
+        # outpost sandboxes commit volume writes on sync, so serving containers see the LoRA
+        # and checkpoints without waiting for the session to end
+        subprocess.run(["sync", str(model_dir)], check=True)
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 
 

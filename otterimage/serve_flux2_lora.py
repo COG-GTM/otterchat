@@ -17,14 +17,15 @@ The endpoint needs Modal proxy auth (https://modal.com/settings/proxy-auth-token
 """
 
 import os
+import re
 import sys
 from pathlib import Path
 
 import modal
 
-SESSION_ID = os.environ.get("DEVIN_OUTPOST_SESSION_ID") or sys.exit(
-    "set DEVIN_OUTPOST_SESSION_ID to the demo session (devin-<id>) whose LoRA to serve"
-)
+SESSION_ID = os.environ.get("DEVIN_OUTPOST_SESSION_ID", "")
+if not re.fullmatch(r"devin-[a-z0-9]{1,37}", SESSION_ID):
+    sys.exit(f"DEVIN_OUTPOST_SESSION_ID={SESSION_ID!r}: set it to the demo session (devin-<id>) whose LoRA to serve")
 
 NAME = f"otterimage-{SESSION_ID.removeprefix('devin-')}"
 

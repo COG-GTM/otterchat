@@ -61,11 +61,13 @@ def encode(model_dir: Path, cache_dir: Path, prompts: list[str]) -> None:
         with torch.no_grad():
             prompt_embeds, _ = pipe.encode_prompt(prompt=prompt)
         path = cache_path(cache_dir, prompt)
-        tmp = path.with_suffix(".tmp")
+        tmp = path.with_suffix(f".{os.getpid()}.tmp")
         torch.save(prompt_embeds.cpu(), tmp)
         os.replace(tmp, path)
         print(f"🎨 cached {tuple(prompt_embeds.shape)} embeddings for {prompt!r}")
-    fingerprint_file.write_text(fingerprint)
+    tmp = fingerprint_file.with_suffix(f".{os.getpid()}.tmp")
+    tmp.write_text(fingerprint)
+    os.replace(tmp, fingerprint_file)
 
 
 def load_cached(cache_dir: Path, prompt: str):
