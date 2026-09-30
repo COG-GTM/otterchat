@@ -73,8 +73,8 @@ def session(session_id: str) -> None:
         app=app,
         image=image,
         cpu=8,
-        memory=65536,
-        gpu="H100",
+        memory=196608,
+        gpu="H200",
         secrets=[huggingface_secret, wandb_secret],
         volumes={MODEL_DIR: model_volume},
     )
