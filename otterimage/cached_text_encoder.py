@@ -35,7 +35,7 @@ def cache_path(cache_dir: Path, prompt: str) -> Path:
 
 
 def encoder_fingerprint(model_dir: Path) -> str:
-    files = sorted(f for d in ("text_encoder", "tokenizer") for f in (model_dir / d).glob("*") if f.is_file())
+    files = sorted(f for d in ("text_encoder", "tokenizer") for f in (model_dir / d).rglob("*") if f.is_file())
     return hashlib.sha256(
         json.dumps([(str(f.relative_to(model_dir)), f.stat().st_size, f.stat().st_mtime_ns) for f in files]).encode()
     ).hexdigest()
