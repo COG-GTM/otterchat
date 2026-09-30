@@ -133,12 +133,10 @@ def download_models(model_dir: Path) -> None:
 
 def resume_checkpoint(lora_dir: Path, name: str) -> str | None:
     if name == "latest":
-        steps = [
-            int(d.name.removeprefix("checkpoint-"))
-            for d in lora_dir.glob("checkpoint-*")
-            if d.is_dir() and d.name.removeprefix("checkpoint-").isdigit()
+        checkpoints = [
+            d for d in lora_dir.glob("checkpoint-*") if d.is_dir() and d.name.removeprefix("checkpoint-").isdigit()
         ]
-        return f"checkpoint-{max(steps)}" if steps else None
+        return max(checkpoints, key=lambda d: int(d.name.removeprefix("checkpoint-"))).name if checkpoints else None
     checkpoint = Path(name).name
     if not checkpoint.removeprefix("checkpoint-").isdigit() or not (lora_dir / checkpoint).is_dir():
         sys.exit(f"--resume-from-checkpoint: no {lora_dir / checkpoint} directory (pass 'latest' or checkpoint-<step>)")
