@@ -193,6 +193,8 @@ def main() -> None:
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
     validation_prompts = [p.format(instance=instance_phrase) for p in args.validation_prompts]
+    if any("\n" in p for p in [prompt, *validation_prompts]):
+        sys.exit("prompts can't contain newlines: the trainer gets validation prompts joined by newlines")
 
     print("🎨 encoding prompts")
     stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, *validation_prompts])

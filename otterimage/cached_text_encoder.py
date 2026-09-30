@@ -10,7 +10,9 @@ the cache, so the trainer never loads the text encoder next to the transformer.
 
 The trainer takes a single --validation_prompt; `train` treats it as one prompt
 per line, renders --num_validation_images images for each, and saves them under
-<output_dir>/validation/epoch-<N>/.
+<output_dir>/validation/epoch-<N>/ (epoch-<N>-run<K>/ if a resumed run
+repeats that epoch). Embeddings are re-encoded when the text encoder or
+tokenizer files under MODEL_DIR change.
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ import argparse
 import hashlib
 import importlib.util
 import io
+import json
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -30,8 +34,18 @@ def cache_path(cache_dir: Path, prompt: str) -> Path:
     return cache_dir / f"{hashlib.sha256(prompt.encode()).hexdigest()}.pt"
 
 
+def encoder_fingerprint(model_dir: Path) -> str:
+    files = sorted(f for d in ("text_encoder", "tokenizer") for f in (model_dir / d).glob("*") if f.is_file())
+    return hashlib.sha256(
+        json.dumps([(str(f.relative_to(model_dir)), f.stat().st_size, f.stat().st_mtime_ns) for f in files]).encode()
+    ).hexdigest()
+
+
 def encode(model_dir: Path, cache_dir: Path, prompts: list[str]) -> None:
-    missing = [p for p in dict.fromkeys(prompts) if not cache_path(cache_dir, p).exists()]
+    fingerprint_file = cache_dir / "encoder_fingerprint"
+    fingerprint = encoder_fingerprint(model_dir)
+    stale = not fingerprint_file.exists() or fingerprint_file.read_text() != fingerprint
+    missing = [p for p in dict.fromkeys(prompts) if stale or not cache_path(cache_dir, p).exists()]
     if not missing:
         print(f"🎨 all {len(prompts)} prompt embeddings cached in {cache_dir}")
         return
@@ -46,8 +60,12 @@ def encode(model_dir: Path, cache_dir: Path, prompts: list[str]) -> None:
     for prompt in missing:
         with torch.no_grad():
             prompt_embeds, _ = pipe.encode_prompt(prompt=prompt)
-        torch.save(prompt_embeds.cpu(), cache_path(cache_dir, prompt))
+        path = cache_path(cache_dir, prompt)
+        tmp = path.with_suffix(".tmp")
+        torch.save(prompt_embeds.cpu(), tmp)
+        os.replace(tmp, path)
         print(f"🎨 cached {tuple(prompt_embeds.shape)} embeddings for {prompt!r}")
+    fingerprint_file.write_text(fingerprint)
 
 
 def load_cached(cache_dir: Path, prompt: str):
@@ -83,7 +101,11 @@ def train(cache_dir: Path, train_script: Path, trainer_args: list[str]) -> None:
     def log_validation_per_prompt(pipeline, args, accelerator, pipeline_args, epoch, torch_dtype, is_final_validation=False):
         joined = args.validation_prompt
         out_dir = Path(args.output_dir) / "validation" / f"epoch-{epoch}"
-        out_dir.mkdir(parents=True, exist_ok=True)
+        run = 1
+        while out_dir.exists():
+            run += 1
+            out_dir = out_dir.with_name(f"epoch-{epoch}-run{run}")
+        out_dir.mkdir(parents=True)
         images = []
         try:
             for i, prompt in enumerate(joined.split("\n")):
