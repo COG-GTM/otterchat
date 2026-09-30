@@ -109,13 +109,13 @@ def download_models(model_dir: Path) -> None:
 
 
 def resolve_checkpoint(lora_dir: Path, name: str) -> str:
-    checkpoints = sorted(
-        (d for d in lora_dir.glob("checkpoint-*") if d.is_dir()),
-        key=lambda d: int(d.name.split("-")[1]),
-    )
     if name == "latest":
+        checkpoints = sorted(
+            (d for d in lora_dir.glob("checkpoint-*") if d.is_dir() and d.name.split("-", 1)[1].isdigit()),
+            key=lambda d: int(d.name.split("-", 1)[1]),
+        )
         if not checkpoints:
-            sys.exit(f"--resume-from-checkpoint latest: no checkpoint-* in {lora_dir}")
+            sys.exit(f"--resume-from-checkpoint latest: no checkpoint-<step> in {lora_dir}")
         return checkpoints[-1].name
     if not (lora_dir / Path(name).name).is_dir():
         sys.exit(f"--resume-from-checkpoint: {lora_dir / Path(name).name} does not exist")
