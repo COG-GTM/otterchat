@@ -131,18 +131,18 @@ def download_models(model_dir: Path) -> None:
     snapshot_download(MODEL_NAME, local_dir=str(model_dir), allow_patterns=DOWNLOAD_PATTERNS)
 
 
-def resolve_checkpoint(lora_dir: Path, name: str) -> str:
+def resume_checkpoint(lora_dir: Path, name: str) -> str | None:
     if name == "latest":
-        checkpoints = sorted(
-            (d for d in lora_dir.glob("checkpoint-*") if d.is_dir() and d.name.split("-", 1)[1].isdigit()),
-            key=lambda d: int(d.name.split("-", 1)[1]),
-        )
-        if not checkpoints:
-            sys.exit(f"--resume-from-checkpoint latest: no checkpoint-<step> in {lora_dir}")
-        return checkpoints[-1].name
-    if not (lora_dir / Path(name).name).is_dir():
-        sys.exit(f"--resume-from-checkpoint: {lora_dir / Path(name).name} does not exist")
-    return Path(name).name
+        steps = [
+            int(d.name.removeprefix("checkpoint-"))
+            for d in lora_dir.glob("checkpoint-*")
+            if d.is_dir() and d.name.removeprefix("checkpoint-").isdigit()
+        ]
+        return f"checkpoint-{max(steps)}" if steps else None
+    checkpoint = Path(name).name
+    if not checkpoint.removeprefix("checkpoint-").isdigit() or not (lora_dir / checkpoint).is_dir():
+        sys.exit(f"--resume-from-checkpoint: no {lora_dir / checkpoint} directory (pass 'latest' or checkpoint-<step>)")
+    return checkpoint
 
 
 def ensure_train_script(path: Path) -> Path:
@@ -190,15 +190,14 @@ def main() -> None:
         sys.exit("pass --session-id or set DEVIN_OUTPOST_SESSION_ID; each session trains into <model-dir>/otterimage/<session-id>")
     lora_dir = Path(args.output_dir) if args.output_dir else model_dir / "otterimage" / args.session_id
     embeds_dir = model_dir / "prompt_embeds"
+    resume = resume_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
+    if args.resume_from_checkpoint:
+        print(f"🎨 resuming from {lora_dir / resume}" if resume else f"🎨 no checkpoint-<step> in {lora_dir}; starting a new run")
     model_dir.mkdir(parents=True, exist_ok=True)
 
     if not args.skip_download:
         print("🎨 downloading base weights")
         download_models(model_dir)
-
-    resume = resolve_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
-    if resume:
-        print(f"🎨 resuming from {lora_dir / resume}")
 
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
