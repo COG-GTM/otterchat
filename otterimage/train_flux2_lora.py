@@ -131,6 +131,20 @@ def download_models(model_dir: Path) -> None:
     snapshot_download(MODEL_NAME, local_dir=str(model_dir), allow_patterns=DOWNLOAD_PATTERNS)
 
 
+def resume_checkpoint(lora_dir: Path, name: str) -> str | None:
+    if name == "latest":
+        steps = [
+            int(d.name.removeprefix("checkpoint-"))
+            for d in lora_dir.glob("checkpoint-*")
+            if d.is_dir() and d.name.removeprefix("checkpoint-").isdigit()
+        ]
+        return f"checkpoint-{max(steps)}" if steps else None
+    checkpoint = Path(name).name
+    if not checkpoint.removeprefix("checkpoint-").isdigit() or not (lora_dir / checkpoint).is_dir():
+        sys.exit(f"--resume-from-checkpoint: no {lora_dir / checkpoint} directory (pass 'latest' or checkpoint-<step>)")
+    return checkpoint
+
+
 def ensure_train_script(path: Path) -> Path:
     if not path.exists():
         print(f"fetching {TRAIN_SCRIPT_URL}")
@@ -176,6 +190,9 @@ def main() -> None:
         sys.exit("pass --session-id or set DEVIN_OUTPOST_SESSION_ID; each session trains into <model-dir>/otterimage/<session-id>")
     lora_dir = Path(args.output_dir) if args.output_dir else model_dir / "otterimage" / args.session_id
     embeds_dir = model_dir / "prompt_embeds"
+    resume = resume_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
+    if args.resume_from_checkpoint:
+        print(f"🎨 resuming from {lora_dir / resume}" if resume else f"🎨 no checkpoint-<step> in {lora_dir}; starting a new run")
     model_dir.mkdir(parents=True, exist_ok=True)
 
     if not args.skip_download:
@@ -246,7 +263,7 @@ def main() -> None:
             # accelerate has no "none" tracker; the trainer's tensorboard default is
             # skipped because tensorboard isn't installed
             + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
-            + ([f"--resume_from_checkpoint={args.resume_from_checkpoint}"] if args.resume_from_checkpoint else [])
+            + ([f"--resume_from_checkpoint={resume}"] if resume else [])
         )
     finally:
         # outpost sandboxes commit volume writes on sync, so serving containers see the LoRA
