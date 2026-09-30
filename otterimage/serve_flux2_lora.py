@@ -32,9 +32,32 @@ image = (
     .env({"HF_XET_HIGH_PERFORMANCE": "1"})
 )
 
+REMOTE_TEXT_ENCODER_URL = "https://remote-text-encoder-flux-2.huggingface.co/predict"
+
+
+def remote_text_encode(prompt: str):
+    import io
+    import os
+
+    import requests
+    import torch
+
+    response = requests.post(
+        REMOTE_TEXT_ENCODER_URL,
+        json={"prompt": prompt},
+        headers={
+            "Authorization": f"Bearer {os.environ['HF_TOKEN']}",
+            "Content-Type": "application/json",
+        },
+        timeout=120,
+    )
+    response.raise_for_status()
+    return torch.load(io.BytesIO(response.content), weights_only=True)
+
+
 @app.cls(
     image=image,
-    gpu="H200",
+    gpu="H100",
     volumes={MODEL_DIR: volume},
     secrets=[huggingface_secret],
     scaledown_window=300,
@@ -48,7 +71,12 @@ class Model:
 
         volume.reload()
 
-        pipe = Flux2Pipeline.from_pretrained(MODEL_DIR, torch_dtype=torch.bfloat16).to("cuda")
+        pipe = Flux2Pipeline.from_pretrained(
+            MODEL_DIR,
+            text_encoder=None,
+            tokenizer=None,
+            torch_dtype=torch.bfloat16,
+        ).to("cuda")
         pipe.load_lora_weights(LORA_DIR)
         self.pipe = pipe
 
@@ -67,9 +95,10 @@ class Model:
 
         import torch
 
+        prompt_embeds = remote_text_encode(prompt).to("cuda", dtype=torch.bfloat16)
         generator = torch.Generator("cuda").manual_seed(seed) if seed is not None else None
         image = self.pipe(
-            prompt=prompt,
+            prompt_embeds=prompt_embeds,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             height=height,
