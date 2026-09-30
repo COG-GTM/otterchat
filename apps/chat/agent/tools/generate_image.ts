@@ -1,6 +1,7 @@
 import { experimental_generateImage as generateImage, gateway, generateText } from "ai";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { storeGeneratedImage } from "@/lib/generated-images";
 import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
 import { generateOtterimage, OTTERIMAGE_MAX_PROMPT_LENGTH } from "@/lib/otterimage";
 
@@ -14,7 +15,7 @@ export default defineTool({
     prompt: z.string().min(1).describe("Detailed description of the image to generate."),
   }),
   outputSchema: z.object({
-    image: z.string().describe("Generated image as a data URL."),
+    image: z.string().describe("URL of the generated image."),
     model: z.string(),
     prompt: z.string(),
   }),
@@ -39,7 +40,10 @@ export default defineTool({
       });
 
       return {
-        image: `data:${result.image.mediaType ?? "image/png"};base64,${result.image.base64}`,
+        image: await storeGeneratedImage({
+          base64: result.image.base64,
+          mediaType: result.image.mediaType ?? "image/png",
+        }),
         model: model.id,
         prompt,
       };
@@ -58,7 +62,7 @@ export default defineTool({
     }
 
     return {
-      image: `data:${file.mediaType};base64,${file.base64}`,
+      image: await storeGeneratedImage(file),
       model: model.id,
       prompt,
     };

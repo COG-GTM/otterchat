@@ -1,8 +1,10 @@
 """Launcher for the FLUX.2 [dev] DreamBooth LoRA trainer from diffusers.
 
 What to train is in train_config.yaml; any key there is also a CLI flag.
-Needs an H100, ~65 GB disk under --model-dir, HF_TOKEN (gated model + remote
-text encoder) and WANDB_API_KEY unless --report-to none.
+Needs an H200 (the transformer and text encoder share the GPU while prompts
+are encoded), ~110 GB disk under --model-dir, ~100 GB of CPU RAM for the
+offloaded text encoder, HF_TOKEN (gated model) and WANDB_API_KEY unless
+--report-to none.
 
     python otterimage/train_flux2_lora.py
     python otterimage/train_flux2_lora.py --config experiments/rank32.yaml --max-train-steps 800
@@ -25,14 +27,14 @@ TRAIN_SCRIPT_URL = (
     f"{DIFFUSERS_SHA}/examples/dreambooth/train_dreambooth_lora_flux2.py"
 )
 
-# ~65 GB of the 178 GB repo: no BFL checkpoints, no text encoder weights (remote text encoder).
+# ~110 GB of the 178 GB repo: everything but the BFL checkpoints.
 DOWNLOAD_PATTERNS = [
     "model_index.json",
     "scheduler/*",
     "vae/*",
     "transformer/*",
     "tokenizer/*",
-    "text_encoder/*.json",
+    "text_encoder/*",
 ]
 
 
@@ -140,7 +142,7 @@ def stream(cmd: list[str]) -> None:
 def main() -> None:
     args, config = parse_args()
     if not os.environ.get("HF_TOKEN"):
-        sys.exit("HF_TOKEN is not set; the remote text encoder and the gated model both need it")
+        sys.exit("HF_TOKEN is not set; the gated model needs it")
     if args.report_to == "wandb" and not os.environ.get("WANDB_API_KEY"):
         sys.exit("WANDB_API_KEY is not set; pass --report-to none to train without Weights & Biases")
 
@@ -180,7 +182,7 @@ def main() -> None:
             "--mixed_precision=bf16",
             "--do_fp8_training",
             "--gradient_checkpointing",
-            "--remote_text_encoder",
+            "--offload",
             "--cache_latents",
             "--use_8bit_adam",
             "--optimizer=adamW",
