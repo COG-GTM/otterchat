@@ -131,20 +131,6 @@ def download_models(model_dir: Path) -> None:
     snapshot_download(MODEL_NAME, local_dir=str(model_dir), allow_patterns=DOWNLOAD_PATTERNS)
 
 
-def resolve_checkpoint(lora_dir: Path, name: str) -> str:
-    if name == "latest":
-        checkpoints = sorted(
-            (d for d in lora_dir.glob("checkpoint-*") if d.is_dir() and d.name.split("-", 1)[1].isdigit()),
-            key=lambda d: int(d.name.split("-", 1)[1]),
-        )
-        if not checkpoints:
-            sys.exit(f"--resume-from-checkpoint latest: no checkpoint-<step> in {lora_dir}")
-        return checkpoints[-1].name
-    if not (lora_dir / Path(name).name).is_dir():
-        sys.exit(f"--resume-from-checkpoint: {lora_dir / Path(name).name} does not exist")
-    return Path(name).name
-
-
 def ensure_train_script(path: Path) -> Path:
     if not path.exists():
         print(f"fetching {TRAIN_SCRIPT_URL}")
@@ -195,10 +181,6 @@ def main() -> None:
     if not args.skip_download:
         print("🎨 downloading base weights")
         download_models(model_dir)
-
-    resume = resolve_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
-    if resume:
-        print(f"🎨 resuming from {lora_dir / resume}")
 
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
@@ -264,7 +246,7 @@ def main() -> None:
             # accelerate has no "none" tracker; the trainer's tensorboard default is
             # skipped because tensorboard isn't installed
             + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
-            + ([f"--resume_from_checkpoint={resume}"] if resume else [])
+            + ([f"--resume_from_checkpoint={args.resume_from_checkpoint}"] if args.resume_from_checkpoint else [])
         )
     finally:
         # outpost sandboxes commit volume writes on sync, so serving containers see the LoRA
