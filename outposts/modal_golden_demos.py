@@ -43,7 +43,7 @@ controller_image = worker.controller_image()
 
 # otterimage: FLUX.2 [dev] LoRA fine-tuning (otterimage/train_flux2_lora.py).
 # Base weights and trained LoRAs persist on this Volume, mounted in the session
-# sandbox at MODEL_DIR; each demo trains into its own MODEL_DIR/otterimage/<demo>,
+# sandbox at MODEL_DIR; each demo session trains into MODEL_DIR/otterimage/<session-id>,
 # so concurrent sessions never share files. The HF token unlocks the gated model.
 # Prompts are encoded before the transformer loads, so training fits an H100
 # with 192 GB of RAM.
