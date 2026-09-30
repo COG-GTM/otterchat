@@ -43,9 +43,10 @@ controller_image = worker.controller_image()
 
 # otterimage: FLUX.2 [dev] LoRA fine-tuning (otterimage/train_flux2_lora.py).
 # Base weights and trained LoRAs persist on this Volume, mounted in the session
-# sandbox at MODEL_DIR; the HF token unlocks the gated model. Prompts are
-# encoded before the transformer loads, so training fits an H100 with the same
-# 192 GB of RAM as the dedicated trainer (otterimage/train_on_modal.py).
+# sandbox at MODEL_DIR; each demo trains into its own MODEL_DIR/otterimage/<demo>,
+# so concurrent sessions never share files. The HF token unlocks the gated model.
+# Prompts are encoded before the transformer loads, so training fits an H100
+# with 192 GB of RAM.
 huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
 wandb_secret = modal.Secret.from_name('wandb-secret', required_keys=['WANDB_API_KEY'])
 MODEL_DIR = '/model'
