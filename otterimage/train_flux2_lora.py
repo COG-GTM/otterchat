@@ -7,7 +7,8 @@ cache, so an H100 is enough. Needs ~110 GB disk under --model-dir, HF_TOKEN
 (gated model) and WANDB_API_KEY unless --report-to none.
 
     # Train from scratch with train_config.yaml: downloads the base weights,
-    # caches the prompt embeddings, then writes the LoRA to <model-dir>/lora.
+    # caches the prompt embeddings, then writes the LoRA to
+    # <model-dir>/otterimage/<session-id>, which that session's serve app loads.
     python otterimage/train_flux2_lora.py
 
     # Continue an interrupted run from its newest checkpoint-N, reusing the
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -46,6 +48,9 @@ DOWNLOAD_PATTERNS = [
 HERE = Path(__file__).parent
 DEFAULT_CONFIG = HERE / "train_config.yaml"
 CACHED_TEXT_ENCODER = HERE / "cached_text_encoder.py"
+# the serve app's endpoint URL is <workspace>--otterimage-<id>.modal.run, whose
+# subdomain Modal caps at 63 characters
+SESSION_ID = r"devin-[a-z0-9]{1,37}"
 
 
 def load_config(path: Path) -> dict:
@@ -71,7 +76,13 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--model-dir", default=os.environ.get("MODEL_DIR", "/model"), help="base weights + LoRA output root")
     p.add_argument("--train-script", default=str(HERE / "train_dreambooth_lora_flux2.py"))
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
-    p.add_argument("--output-dir", help="LoRA checkpoints and weights; defaults to <model-dir>/lora, which the serve app loads")
+    p.add_argument(
+        "--session-id",
+        type=session_id,
+        default=os.environ.get("DEVIN_OUTPOST_SESSION_ID") or None,
+        help="demo session (devin-<id>, default $DEVIN_OUTPOST_SESSION_ID); each trains into its own <model-dir>/otterimage/<session-id>",
+    )
+    p.add_argument("--output-dir", help="LoRA checkpoints and weights; defaults to <model-dir>/otterimage/<session-id>")
     p.add_argument("--resume-from-checkpoint", help="checkpoint-N under the output dir, or 'latest'; train with the same config")
     p.add_argument("--instance-name")
     p.add_argument("--class-name")
@@ -94,7 +105,7 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--validation-epochs", type=int)
     p.add_argument("--num-validation-images", type=int)
 
-    config_keys = {a.dest for a in p._actions if a.dest not in {"help", "config", "model_dir", "train_script", "skip_download", "output_dir", "resume_from_checkpoint"}}
+    config_keys = {a.dest for a in p._actions if a.dest not in {"help", "config", "model_dir", "train_script", "skip_download", "session_id", "output_dir", "resume_from_checkpoint"}}
     unknown = set(config) - config_keys
     if unknown:
         sys.exit(f"{pre_args.config}: unknown option(s) {sorted(unknown)}; valid: {sorted(config_keys)}")
@@ -106,6 +117,12 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     args = p.parse_args()
     effective = {k: getattr(args, k) for k in sorted(config_keys)}
     return args, effective
+
+
+def session_id(value: str) -> str:
+    if not re.fullmatch(SESSION_ID, value):
+        raise argparse.ArgumentTypeError(f"{value!r}: expected devin-<id> with a lowercase alphanumeric id")
+    return value
 
 
 def download_models(model_dir: Path) -> None:
@@ -169,7 +186,9 @@ def main() -> None:
         sys.exit("WANDB_API_KEY is not set; pass --report-to none to train without Weights & Biases")
 
     model_dir = Path(args.model_dir)
-    lora_dir = Path(args.output_dir) if args.output_dir else model_dir / "lora"
+    if not args.output_dir and not args.session_id:
+        sys.exit("pass --session-id or set DEVIN_OUTPOST_SESSION_ID; each session trains into <model-dir>/otterimage/<session-id>")
+    lora_dir = Path(args.output_dir) if args.output_dir else model_dir / "otterimage" / args.session_id
     embeds_dir = model_dir / "prompt_embeds"
     model_dir.mkdir(parents=True, exist_ok=True)
 
@@ -202,50 +221,55 @@ def main() -> None:
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
     for key, value in config.items():
         print(f"    {key}: {value}")
-    stream(
-        [
-            "accelerate",
-            "launch",
-            str(CACHED_TEXT_ENCODER),
-            "train",
-            str(embeds_dir),
-            str(train_script),
-            f"--pretrained_model_name_or_path={model_dir}",
-            f"--instance_data_dir={img_path}",
-            f"--output_dir={lora_dir}",
-            f"--instance_prompt={prompt}",
-            "--remote_text_encoder",
-            # the final pass loads a second transformer next to the trained one, which
-            # doesn't fit on an H100; the periodic validation passes still run
-            "--skip_final_inference",
-            "--mixed_precision=bf16",
-            "--do_fp8_training",
-            "--gradient_checkpointing",
-            "--offload",
-            "--cache_latents",
-            "--use_8bit_adam",
-            "--optimizer=adamW",
-            "--guidance_scale=1",
-            f"--resolution={args.resolution}",
-            f"--train_batch_size={args.train_batch_size}",
-            f"--rank={args.rank}",
-            f"--lora_alpha={args.lora_alpha}",
-            f"--gradient_accumulation_steps={args.gradient_accumulation_steps}",
-            f"--learning_rate={args.learning_rate}",
-            f"--lr_scheduler={args.lr_scheduler}",
-            f"--lr_warmup_steps={args.lr_warmup_steps}",
-            f"--max_train_steps={args.max_train_steps}",
-            f"--checkpointing_steps={args.checkpointing_steps}",
-            f"--seed={args.seed}",
-            "--validation_prompt=" + "\n".join(validation_prompts),
-            f"--validation_epochs={args.validation_epochs}",
-            f"--num_validation_images={args.num_validation_images}",
-        ]
-        # accelerate has no "none" tracker; the trainer's tensorboard default is
-        # skipped because tensorboard isn't installed
-        + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
-        + ([f"--resume_from_checkpoint={resume}"] if resume else [])
-    )
+    try:
+        stream(
+            [
+                "accelerate",
+                "launch",
+                str(CACHED_TEXT_ENCODER),
+                "train",
+                str(embeds_dir),
+                str(train_script),
+                f"--pretrained_model_name_or_path={model_dir}",
+                f"--instance_data_dir={img_path}",
+                f"--output_dir={lora_dir}",
+                f"--instance_prompt={prompt}",
+                "--remote_text_encoder",
+                # the final pass loads a second transformer next to the trained one, which
+                # doesn't fit on an H100; the periodic validation passes still run
+                "--skip_final_inference",
+                "--mixed_precision=bf16",
+                "--do_fp8_training",
+                "--gradient_checkpointing",
+                "--offload",
+                "--cache_latents",
+                "--use_8bit_adam",
+                "--optimizer=adamW",
+                "--guidance_scale=1",
+                f"--resolution={args.resolution}",
+                f"--train_batch_size={args.train_batch_size}",
+                f"--rank={args.rank}",
+                f"--lora_alpha={args.lora_alpha}",
+                f"--gradient_accumulation_steps={args.gradient_accumulation_steps}",
+                f"--learning_rate={args.learning_rate}",
+                f"--lr_scheduler={args.lr_scheduler}",
+                f"--lr_warmup_steps={args.lr_warmup_steps}",
+                f"--max_train_steps={args.max_train_steps}",
+                f"--checkpointing_steps={args.checkpointing_steps}",
+                f"--seed={args.seed}",
+                "--validation_prompt=" + "\n".join(validation_prompts),
+                f"--validation_epochs={args.validation_epochs}",
+                f"--num_validation_images={args.num_validation_images}",
+            ]
+            # accelerate has no "none" tracker; the trainer's tensorboard default is
+            # skipped because tensorboard isn't installed
+            + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
+            + ([f"--resume_from_checkpoint={resume}"] if resume else [])
+        )
+    finally:
+        # outpost sandboxes commit volume writes on sync, so serving containers see the LoRA
+        # and checkpoints without waiting for the session to end
+        subprocess.run(["sync", str(model_dir)], check=True)
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 
 
