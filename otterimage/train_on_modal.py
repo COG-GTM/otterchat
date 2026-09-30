@@ -1,6 +1,13 @@
 """Run train_flux2_lora.py on a Modal H200.
 
     modal run --detach otterimage/train_on_modal.py --extra-args "--max-train-steps 800"
+
+`modal run --detach` still cancels the run shortly after the local client
+dies. For runs that must outlive the machine that started them, deploy once
+and spawn the training call on the deployed app:
+
+    modal deploy otterimage/train_on_modal.py
+    python otterimage/train_on_modal.py --extra-args "--skip-download --resume-from-checkpoint latest"
 """
 
 from pathlib import Path
@@ -49,3 +56,13 @@ def train(extra_args: str = "") -> None:
 @app.local_entrypoint()
 def main(extra_args: str = "") -> None:
     train.remote(extra_args)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Spawn train() on the deployed app and exit.")
+    parser.add_argument("--extra-args", default="")
+    args = parser.parse_args()
+    call = modal.Function.from_name(app.name, "train").spawn(args.extra_args)
+    print(f"spawned {call.object_id}; follow with: modal app logs {app.name}")

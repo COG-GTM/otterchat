@@ -8,6 +8,7 @@ offloaded text encoder, HF_TOKEN (gated model) and WANDB_API_KEY unless
 
     python otterimage/train_flux2_lora.py
     python otterimage/train_flux2_lora.py --config experiments/rank32.yaml --max-train-steps 800
+    python otterimage/train_flux2_lora.py --skip-download --resume-from-checkpoint latest
 """
 
 from __future__ import annotations
@@ -65,6 +66,7 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--model-dir", default=os.environ.get("MODEL_DIR", "/model"), help="base weights + LoRA output root")
     p.add_argument("--train-script", default=str(HERE / "train_dreambooth_lora_flux2.py"))
     p.add_argument("--skip-download", action="store_true", help="assume base weights are already in --model-dir")
+    p.add_argument("--resume-from-checkpoint", help="checkpoint-N under <model-dir>/lora, or 'latest'; train with the same config")
     p.add_argument("--instance-name")
     p.add_argument("--class-name")
     p.add_argument("--prefix")
@@ -86,7 +88,7 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--validation-epochs", type=int)
     p.add_argument("--num-validation-images", type=int)
 
-    config_keys = {a.dest for a in p._actions if a.dest not in {"help", "config", "model_dir", "train_script", "skip_download"}}
+    config_keys = {a.dest for a in p._actions if a.dest not in {"help", "config", "model_dir", "train_script", "skip_download", "resume_from_checkpoint"}}
     unknown = set(config) - config_keys
     if unknown:
         sys.exit(f"{pre_args.config}: unknown option(s) {sorted(unknown)}; valid: {sorted(config_keys)}")
@@ -104,6 +106,20 @@ def download_models(model_dir: Path) -> None:
     from huggingface_hub import snapshot_download
 
     snapshot_download(MODEL_NAME, local_dir=str(model_dir), allow_patterns=DOWNLOAD_PATTERNS)
+
+
+def resolve_checkpoint(lora_dir: Path, name: str) -> str:
+    checkpoints = sorted(
+        (d for d in lora_dir.glob("checkpoint-*") if d.is_dir()),
+        key=lambda d: int(d.name.split("-")[1]),
+    )
+    if name == "latest":
+        if not checkpoints:
+            sys.exit(f"--resume-from-checkpoint latest: no checkpoint-* in {lora_dir}")
+        return checkpoints[-1].name
+    if not (lora_dir / Path(name).name).is_dir():
+        sys.exit(f"--resume-from-checkpoint: {lora_dir / Path(name).name} does not exist")
+    return Path(name).name
 
 
 def ensure_train_script(path: Path) -> Path:
@@ -153,6 +169,10 @@ def main() -> None:
     if not args.skip_download:
         print("🎨 downloading base weights")
         download_models(model_dir)
+
+    resume = resolve_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
+    if resume:
+        print(f"🎨 resuming from {lora_dir / resume}")
 
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
@@ -205,6 +225,7 @@ def main() -> None:
         # accelerate has no "none" tracker; the trainer's tensorboard default is
         # skipped because tensorboard isn't installed
         + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
+        + ([f"--resume_from_checkpoint={resume}"] if resume else [])
     )
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 
