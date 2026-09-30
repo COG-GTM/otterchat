@@ -12,6 +12,7 @@ from pathlib import Path
 import modal
 
 from modal_devin import OutpostsAPIError, Worker, WorkerSettings
+from modal_devin.images import _DEVIN_BIN
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,35 @@ model_volume = modal.Volume.from_name('otterimage-flux2-finetune', create_if_mis
 base_image = (
     worker.base_image()
     # Add every application-specific build step here.
+    # Computer use also needs a running X server with DISPLAY set for the
+    # worker (ffmpeg and chromium are already in the base image). The session
+    # sandbox entrypoint is modal-devin's `sleep infinity`, so the display can
+    # only come up inside the `devin worker start` process it execs: swap the
+    # CLI for a wrapper that starts Xvfb + openbox first.
+    .apt_install(
+        "dbus-x11",
+        "fonts-liberation",
+        "fonts-noto-color-emoji",
+        "openbox",
+        "wmctrl",
+        "x11-utils",
+        "x11-xserver-utils",
+        "xdotool",
+        "xvfb",
+    )
+    .add_local_file(
+        REPO_ROOT / 'outposts' / 'devin-display-wrapper.sh',
+        f"{_DEVIN_BIN}.wrapper",
+        copy=True,
+    )
+    .run_commands(
+        f"mv {_DEVIN_BIN} {_DEVIN_BIN}.real",
+        f"mv {_DEVIN_BIN}.wrapper {_DEVIN_BIN}",
+        f"chmod 755 {_DEVIN_BIN}",
+        # The CLI contract check in worker.base_image() ran against the real
+        # binary; prove the wrapper still delegates `worker start --help`.
+        f"{_DEVIN_BIN} worker start --help | grep -q -- '--session'",
+    )
     .uv_pip_install(requirements=[str(REPO_ROOT / 'otterimage' / 'requirements.txt')])
     .env({'HF_XET_HIGH_PERFORMANCE': '1', 'MODEL_DIR': MODEL_DIR})
 )
