@@ -2,7 +2,7 @@ import { experimental_generateImage as generateImage, gateway, generateText } fr
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
-import { generateOtterimage } from "@/lib/otterimage";
+import { generateOtterimage, OTTERIMAGE_MAX_PROMPT_LENGTH } from "@/lib/otterimage";
 
 // The runtime tool name comes from the filename, so the model sees this as
 // `generate_image`. The image model is picked in the composer and arrives on
@@ -23,7 +23,13 @@ export default defineTool({
     const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
 
     if (model.kind === "otterimage") {
-      return { image: await generateOtterimage(prompt), model: model.id, prompt };
+      const otterimagePrompt = prompt.slice(0, OTTERIMAGE_MAX_PROMPT_LENGTH);
+
+      return {
+        image: await generateOtterimage(otterimagePrompt),
+        model: model.id,
+        prompt: otterimagePrompt,
+      };
     }
 
     if (model.kind === "image") {

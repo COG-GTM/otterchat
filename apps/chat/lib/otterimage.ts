@@ -2,6 +2,9 @@
  * Client for the otterimage FLUX.2 LoRA `generate` endpoint
  * (otterimage/serve_flux2_lora.py), which sits behind Modal proxy auth.
  */
+// Mirrors the prompt length limit enforced by the Modal endpoint.
+export const OTTERIMAGE_MAX_PROMPT_LENGTH = 1000;
+
 export async function generateOtterimage(prompt: string) {
   const url = process.env.OTTERIMAGE_URL;
   const key = process.env.OTTERIMAGE_MODAL_KEY;
