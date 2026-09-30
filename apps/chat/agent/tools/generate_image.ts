@@ -2,8 +2,12 @@ import { experimental_generateImage as generateImage, gateway, generateText } fr
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
-import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
-import { generateOtterimage, OTTERIMAGE_MAX_PROMPT_LENGTH } from "@/lib/otterimage";
+import { IMAGE_MODEL_ATTRIBUTE, IMAGE_MODELS, resolveImageModel } from "@/lib/models";
+import {
+  generateOtterimage,
+  isOtterimageConfigured,
+  OTTERIMAGE_MAX_PROMPT_LENGTH,
+} from "@/lib/otterimage";
 
 // The runtime tool name comes from the filename, so the model sees this as
 // `generate_image`. The image model is picked in the composer and arrives on
@@ -21,10 +25,17 @@ export default defineTool({
   }),
   async execute({ prompt }, ctx) {
     const selected = ctx.session.auth.current?.attributes?.[IMAGE_MODEL_ATTRIBUTE];
-    const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
+    const resolved = resolveImageModel(typeof selected === "string" ? selected : undefined);
+    // The picker's catalog is client-side and can't see server env; fall back to
+    // the default image model when the Modal endpoint isn't configured here.
+    const model =
+      resolved.kind === "otterimage" && !isOtterimageConfigured() ? IMAGE_MODELS[0]! : resolved;
 
     if (model.kind === "otterimage") {
-      const otterimagePrompt = prompt.slice(0, OTTERIMAGE_MAX_PROMPT_LENGTH);
+      const otterimagePrompt = prompt.trim().slice(0, OTTERIMAGE_MAX_PROMPT_LENGTH);
+      if (!otterimagePrompt) {
+        throw new Error("image prompt is empty.");
+      }
 
       return {
         image: await storeGeneratedImage(await generateOtterimage(otterimagePrompt)),

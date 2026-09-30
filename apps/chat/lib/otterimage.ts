@@ -5,16 +5,23 @@
 // Mirrors the prompt length limit enforced by the Modal endpoint.
 export const OTTERIMAGE_MAX_PROMPT_LENGTH = 1000;
 
-export async function generateOtterimage(prompt: string) {
-  const url = process.env.OTTERIMAGE_URL;
-  const key = process.env.OTTERIMAGE_MODAL_KEY;
-  const secret = process.env.OTTERIMAGE_MODAL_SECRET;
+export function isOtterimageConfigured() {
+  return Boolean(
+    process.env.OTTERIMAGE_URL &&
+      process.env.OTTERIMAGE_MODAL_KEY &&
+      process.env.OTTERIMAGE_MODAL_SECRET,
+  );
+}
 
-  if (!url || !key || !secret) {
+export async function generateOtterimage(prompt: string) {
+  if (!isOtterimageConfigured()) {
     throw new Error(
       "otterimage is not configured: set OTTERIMAGE_URL, OTTERIMAGE_MODAL_KEY and OTTERIMAGE_MODAL_SECRET.",
     );
   }
+  const url = process.env.OTTERIMAGE_URL!;
+  const key = process.env.OTTERIMAGE_MODAL_KEY!;
+  const secret = process.env.OTTERIMAGE_MODAL_SECRET!;
 
   const response = await fetch(url, {
     body: JSON.stringify({ prompt }),
