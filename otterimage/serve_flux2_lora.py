@@ -37,7 +37,7 @@ image = (
     gpu="H200",
     volumes={MODEL_DIR: volume},
     secrets=[huggingface_secret],
-    scaledown_window=300,
+    scaledown_window=60 * 60,
     timeout=600,
 )
 class Model:
