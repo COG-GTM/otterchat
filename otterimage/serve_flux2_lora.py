@@ -1,9 +1,13 @@
-"""Serve the LoRA from otterimage/train_flux2_lora.py as a Modal class + POST /generate endpoint.
+"""Serve a demo session's LoRA from otterimage/train_flux2_lora.py as a Modal class + POST endpoint.
+
+Each session devin-<id> is its own app, otterimage-<id>, serving <model-dir>/otterimage/devin-<id>
+at https://<workspace>--otterimage-<id>.modal.run, so demos never share an endpoint. The session
+ID comes from $DEVIN_OUTPOST_SESSION_ID, which outpost sessions set.
 
     modal deploy otterimage/serve_flux2_lora.py
-    modal run otterimage/serve_flux2_lora.py --prompt "Devin the software engineer as an astronaut"
+    modal run otterimage/serve_flux2_lora.py --prompt "Devin the software engineer on the moon"
 
-    Model = modal.Cls.from_name("otterimage-flux2-lora", "Model")
+    Model = modal.Cls.from_name("otterimage-<id>", "Model")
     png_bytes = Model().inference.remote("a photo of Devin the software engineer")
 
 The endpoint needs Modal proxy auth (https://modal.com/settings/proxy-auth-tokens):
@@ -12,14 +16,22 @@ The endpoint needs Modal proxy auth (https://modal.com/settings/proxy-auth-token
       -H "Content-Type: application/json" -d '{"prompt": "a photo of Devin the software engineer", "seed": 1}' -o out.png
 """
 
+import os
+import sys
 from pathlib import Path
 
 import modal
 
-app = modal.App(name="otterimage-flux2-lora")
+SESSION_ID = os.environ.get("DEVIN_OUTPOST_SESSION_ID") or sys.exit(
+    "set DEVIN_OUTPOST_SESSION_ID to the demo session (devin-<id>) whose LoRA to serve"
+)
+
+NAME = f"otterimage-{SESSION_ID.removeprefix('devin-')}"
+
+app = modal.App(name=NAME)
 
 MODEL_DIR = "/model"
-LORA_DIR = f"{MODEL_DIR}/lora"
+LORA_DIR = f"{MODEL_DIR}/otterimage/{SESSION_ID}"
 volume = modal.Volume.from_name("otterimage-flux2-finetune", create_if_missing=True)
 
 huggingface_secret = modal.Secret.from_name("huggingface-secret", required_keys=["HF_TOKEN"])
@@ -29,7 +41,7 @@ image = (
     .apt_install("git")
     .uv_pip_install(requirements=[str(Path(__file__).parent / "requirements.txt")])
     .uv_pip_install("fastapi[standard]==0.116.1")
-    .env({"HF_XET_HIGH_PERFORMANCE": "1"})
+    .env({"HF_XET_HIGH_PERFORMANCE": "1", "DEVIN_OUTPOST_SESSION_ID": SESSION_ID})
 )
 
 @app.cls(
@@ -80,7 +92,7 @@ class Model:
         image.save(buf, format="PNG")
         return buf.getvalue()
 
-    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True, label=NAME)
     def generate(self, body: dict):
         """POST {"prompt": str, "num_inference_steps"?, "guidance_scale"?, "height"?, "width"?, "seed"?} -> image/png"""
         from fastapi import HTTPException
