@@ -1,29 +1,31 @@
 """Launcher for the FLUX.2 [dev] DreamBooth LoRA trainer from diffusers.
 
 What to train is in train_config.yaml; any key there is also a CLI flag.
-Prompts are encoded first with only the text encoder on the GPU and cached
-under <model-dir>/prompt_embeds, then the transformer trains against that
-cache, so an H100 is enough. Needs ~110 GB disk under --model-dir, HF_TOKEN
-(gated model) and WANDB_API_KEY unless --report-to none.
+Prompts are encoded on the fly by the text encoder the trainer loads next to
+the transformer; the sandbox runs on an H200 so both fit. Needs ~110 GB disk
+under --model-dir, HF_TOKEN (gated model) and WANDB_API_KEY unless
+--report-to none.
 
     # Train from scratch with train_config.yaml: downloads the base weights,
-    # caches the prompt embeddings, then writes the LoRA to
-    # <model-dir>/otterimage/<session-id>, which that session's serve app loads.
+    # then writes the LoRA to <model-dir>/otterimage/<session-id>, which that
+    # session's serve app loads.
     python otterimage/train_flux2_lora.py
 
     # Continue an interrupted run from its newest checkpoint-N, reusing the
-    # downloaded weights and cached embeddings.
+    # downloaded weights and checkpoints.
     python otterimage/train_flux2_lora.py --skip-download --resume-from-checkpoint latest
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -47,7 +49,7 @@ DOWNLOAD_PATTERNS = [
 
 HERE = Path(__file__).parent
 DEFAULT_CONFIG = HERE / "train_config.yaml"
-CACHED_TEXT_ENCODER = HERE / "cached_text_encoder.py"
+TRAINER_SHIM = HERE / "trainer_shim.py"
 # the serve app's endpoint URL is <workspace>--otterimage-<id>.modal.run, whose
 # subdomain Modal caps at 63 characters
 SESSION_ID = r"devin-[a-z0-9]{1,37}"
@@ -150,18 +152,28 @@ def ensure_train_script(path: Path) -> Path:
     return path
 
 
-def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
+def caption_from_filename(name: str) -> str:
+    """The filename is the caption: 'Devin_the_software_engineer_wearing_sunglasses.png'
+    becomes 'Devin the software engineer wearing sunglasses'."""
+    return Path(name).stem.replace("_", " ")
+
+
+def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> tuple[Path, list[str]]:
     import PIL.Image
     from smart_open import open
 
     img_path.mkdir(parents=True, exist_ok=True)
-    for ii, url in enumerate(image_urls):
+    rows = []
+    for url in image_urls:
         if "://" not in url:
             url = str((base_dir / url).resolve())
+        name = Path(urllib.parse.urlsplit(url).path).name
         with open(url, "rb") as f:
-            PIL.Image.open(f).convert("RGB").save(img_path / f"{ii}.png")
-    print(f"{len(image_urls)} images loaded")
-    return img_path
+            PIL.Image.open(f).convert("RGB").save(img_path / name)
+        rows.append({"file_name": name, "text": caption_from_filename(name)})
+    (img_path / "metadata.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    print(f"{len(rows)} images loaded")
+    return img_path, [row["text"] for row in rows]
 
 
 def stream(cmd: list[str]) -> None:
@@ -187,7 +199,6 @@ def main() -> None:
     if not args.output_dir and not args.session_id:
         sys.exit("pass --session-id or set DEVIN_OUTPOST_SESSION_ID; each session trains into <model-dir>/otterimage/<session-id>")
     lora_dir = Path(args.output_dir) if args.output_dir else model_dir / "otterimage" / args.session_id
-    embeds_dir = model_dir / "prompt_embeds"
     resume = resume_checkpoint(lora_dir, args.resume_from_checkpoint) if args.resume_from_checkpoint else None
     if args.resume_from_checkpoint:
         print(f"🎨 resuming from {lora_dir / resume}" if resume else f"🎨 no checkpoint-<step> in {lora_dir}; starting a new run")
@@ -200,7 +211,7 @@ def main() -> None:
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
     urls = [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
-    img_path = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
+    img_path, captions = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
 
@@ -209,11 +220,8 @@ def main() -> None:
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
     validation_prompts = [p.format(instance=instance_phrase) for p in args.validation_prompts]
-    if any("\n" in p for p in [prompt, *validation_prompts]):
+    if any("\n" in p for p in [prompt, *captions, *validation_prompts]):
         sys.exit("prompts can't contain newlines: the trainer gets validation prompts joined by newlines")
-
-    print("🎨 encoding prompts")
-    stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, *validation_prompts])
 
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
     for key, value in config.items():
@@ -223,17 +231,15 @@ def main() -> None:
             [
                 "accelerate",
                 "launch",
-                str(CACHED_TEXT_ENCODER),
-                "train",
-                str(embeds_dir),
+                str(TRAINER_SHIM),
                 str(train_script),
                 f"--pretrained_model_name_or_path={model_dir}",
-                f"--instance_data_dir={img_path}",
+                f"--dataset_name={img_path}",
+                "--caption_column=text",
                 f"--output_dir={lora_dir}",
                 f"--instance_prompt={prompt}",
-                "--remote_text_encoder",
                 # the final pass loads a second transformer next to the trained one, which
-                # doesn't fit on an H100; the periodic validation passes still run
+                # leaves too little headroom; the periodic validation passes still run
                 "--skip_final_inference",
                 "--mixed_precision=bf16",
                 "--do_fp8_training",
