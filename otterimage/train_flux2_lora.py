@@ -158,7 +158,7 @@ def caption_from_filename(name: str) -> str:
     return Path(name).stem.replace("_", " ")
 
 
-def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
+def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> tuple[Path, list[str]]:
     import PIL.Image
     from smart_open import open
 
@@ -173,7 +173,7 @@ def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
         rows.append({"file_name": name, "text": caption_from_filename(name)})
     (img_path / "metadata.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
     print(f"{len(rows)} images loaded")
-    return img_path
+    return img_path, [row["text"] for row in rows]
 
 
 def stream(cmd: list[str]) -> None:
@@ -212,7 +212,7 @@ def main() -> None:
     train_script = ensure_train_script(Path(args.train_script))
     urls_file = Path(args.instance_example_urls_file)
     urls = [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
-    img_path = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
+    img_path, captions = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
 
@@ -221,11 +221,13 @@ def main() -> None:
     instance_phrase = f"{args.instance_name} the {args.class_name}"
     prompt = f"{args.prefix} {instance_phrase} {args.postfix}".strip()
     validation_prompts = [p.format(instance=instance_phrase) for p in args.validation_prompts]
-    if any("\n" in p for p in [prompt, *validation_prompts]):
+    if any("\n" in p for p in [prompt, *captions, *validation_prompts]):
         sys.exit("prompts can't contain newlines: the trainer gets validation prompts joined by newlines")
 
     print("🎨 encoding prompts")
-    stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, *validation_prompts])
+    # per-image captions are requested from the cached encoder mid-training, so they
+    # must be encoded up front alongside the instance and validation prompts
+    stream([sys.executable, str(CACHED_TEXT_ENCODER), "encode", str(model_dir), str(embeds_dir), prompt, *captions, *validation_prompts])
 
     print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
     for key, value in config.items():
