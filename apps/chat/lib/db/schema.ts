@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -44,6 +45,21 @@ export const chatEvent = pgTable(
   (table) => [
     index("idx_chat_event_chat").on(table.chatId),
     uniqueIndex("idx_chat_event_chat_index").on(table.chatId, table.eventIndex),
+  ],
+);
+
+export const chatFavorite = pgTable(
+  "chat_favorite",
+  {
+    userId: text("user_id").notNull(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => chat.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.chatId] }),
+    index("idx_chat_favorite_user_created").on(table.userId, table.createdAt),
   ],
 );
 

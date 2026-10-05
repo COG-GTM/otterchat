@@ -7,12 +7,15 @@ import {
   createChat,
   deleteChatForUser,
   listChatsByUser,
+  listFavoriteChatsByUser,
   markChatPendingMessage,
   saveChatSnapshot,
   saveChatSessionState,
+  setChatFavorite,
   skipChatAuthorization,
 } from "@/lib/db/queries";
 import { assertChatMessageLength } from "@/lib/chat/limits";
+import { favoriteChats } from "@/lib/flags";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
 
@@ -124,6 +127,25 @@ export async function deleteChatAction(chatId: string) {
   await deleteChatForUser(chatId, viewer.id);
 
   return listChatsByUser(viewer.id);
+}
+
+export async function setChatFavoriteAction(input: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+}) {
+  const viewer = await requireViewer();
+
+  if (!(await favoriteChats())) {
+    throw new Error("Favorite chats are not enabled.");
+  }
+
+  await setChatFavorite({
+    chatId: input.chatId,
+    favorite: input.favorite,
+    userId: viewer.id,
+  });
+
+  return listFavoriteChatsByUser(viewer.id);
 }
 
 async function requireViewer() {
