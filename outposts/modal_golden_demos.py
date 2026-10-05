@@ -45,8 +45,9 @@ controller_image = worker.controller_image()
 # Base weights and trained LoRAs persist on this Volume, mounted in the session
 # sandbox at MODEL_DIR; each demo session trains into MODEL_DIR/otterimage/<session-id>,
 # so concurrent sessions never share files. The HF token unlocks the gated model.
-# Prompts are encoded before the transformer loads, so training fits an H100
-# with 192 GB of RAM.
+# Prompts are encoded before the transformer loads, so the text encoder never
+# sits next to the transformer; the sandbox runs on an H200 (141 GB VRAM) with
+# 192 GB of RAM.
 huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
 wandb_secret = modal.Secret.from_name('wandb-secret', required_keys=['WANDB_API_KEY'])
 MODEL_DIR = '/model'
@@ -76,7 +77,7 @@ def session(session_id: str) -> None:
         image=image,
         cpu=8,
         memory=196608,
-        gpu="H100",
+        gpu="H200",
         secrets=[huggingface_secret, wandb_secret],
         volumes={MODEL_DIR: model_volume},
     )
