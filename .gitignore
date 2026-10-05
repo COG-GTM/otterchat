@@ -23,3 +23,7 @@ dist-ssr
 __pycache__/
 *.py[cod]
 .venv
+
+# Downloaded at training time by otterimage/train_flux2_lora.py; do not commit.
+otterimage/train_dreambooth_lora_flux2.py
+wandb/
