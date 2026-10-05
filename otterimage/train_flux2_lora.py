@@ -19,11 +19,13 @@ cache, so an H100 is enough. Needs ~110 GB disk under --model-dir, HF_TOKEN
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -150,17 +152,27 @@ def ensure_train_script(path: Path) -> Path:
     return path
 
 
+def caption_from_filename(name: str) -> str:
+    """The filename is the caption: 'Devin_the_software_engineer_wearing_sunglasses.png'
+    becomes 'Devin the software engineer wearing sunglasses'."""
+    return Path(name).stem.replace("_", " ")
+
+
 def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> Path:
     import PIL.Image
     from smart_open import open
 
     img_path.mkdir(parents=True, exist_ok=True)
-    for ii, url in enumerate(image_urls):
+    rows = []
+    for url in image_urls:
         if "://" not in url:
             url = str((base_dir / url).resolve())
+        name = Path(urllib.parse.urlsplit(url).path).name
         with open(url, "rb") as f:
-            PIL.Image.open(f).convert("RGB").save(img_path / f"{ii}.png")
-    print(f"{len(image_urls)} images loaded")
+            PIL.Image.open(f).convert("RGB").save(img_path / name)
+        rows.append({"file_name": name, "text": caption_from_filename(name)})
+    (img_path / "metadata.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    print(f"{len(rows)} images loaded")
     return img_path
 
 
@@ -228,7 +240,8 @@ def main() -> None:
                 str(embeds_dir),
                 str(train_script),
                 f"--pretrained_model_name_or_path={model_dir}",
-                f"--instance_data_dir={img_path}",
+                f"--dataset_name={img_path}",
+                "--caption_column=text",
                 f"--output_dir={lora_dir}",
                 f"--instance_prompt={prompt}",
                 "--remote_text_encoder",
