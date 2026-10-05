@@ -3,7 +3,7 @@
 What to train is in train_config.yaml; any key there is also a CLI flag.
 Prompts are encoded first with only the text encoder on the GPU and cached
 under <model-dir>/prompt_embeds, then the transformer trains against that
-cache, so an H100 is enough. Needs ~110 GB disk under --model-dir, HF_TOKEN
+cache, so a single GPU is enough. Needs ~110 GB disk under --model-dir, HF_TOKEN
 (gated model) and WANDB_API_KEY unless --report-to none.
 
     # Train from scratch with train_config.yaml: downloads the base weights,
@@ -248,7 +248,7 @@ def main() -> None:
                 f"--instance_prompt={prompt}",
                 "--remote_text_encoder",
                 # the final pass loads a second transformer next to the trained one, which
-                # doesn't fit on an H100; the periodic validation passes still run
+                # leaves too little headroom; the periodic validation passes still run
                 "--skip_final_inference",
                 "--mixed_precision=bf16",
                 "--do_fp8_training",

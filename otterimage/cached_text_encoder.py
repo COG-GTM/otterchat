@@ -4,7 +4,7 @@
     accelerate launch cached_text_encoder.py train CACHE_DIR TRAIN_SCRIPT [trainer args ...]
 
 `encode` loads only the Mistral text encoder (~48 GB in bf16) onto the GPU, so
-it fits on an H100 before the transformer is loaded. `train` runs the diffusers
+it fits on one GPU before the transformer is loaded. `train` runs the diffusers
 trainer with --remote_text_encoder and answers its remote encoder requests from
 the cache, so the trainer never loads the text encoder next to the transformer.
 
