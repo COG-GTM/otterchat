@@ -2,19 +2,14 @@ import { experimental_generateImage as generateImage, gateway, generateText } fr
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
-import { IMAGE_MODEL_ATTRIBUTE, IMAGE_MODELS, resolveImageModel } from "@/lib/models";
-import {
-  generateOtterimage,
-  isOtterimageConfigured,
-  OTTERIMAGE_MAX_PROMPT_LENGTH,
-} from "@/lib/otterimage";
+import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
 
 // The runtime tool name comes from the filename, so the model sees this as
 // `generate_image`. The image model is picked in the composer and arrives on
 // the session auth attributes; unknown ids fall back to the catalog default.
 export default defineTool({
   description:
-    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image. Refer to Devin, the otterchat mascot, as 'Devin the software engineer'.",
+    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
   inputSchema: z.object({
     prompt: z.string().min(1).describe("Detailed description of the image to generate."),
   }),
@@ -25,24 +20,7 @@ export default defineTool({
   }),
   async execute({ prompt }, ctx) {
     const selected = ctx.session.auth.current?.attributes?.[IMAGE_MODEL_ATTRIBUTE];
-    const resolved = resolveImageModel(typeof selected === "string" ? selected : undefined);
-    // The picker's catalog is client-side and can't see server env; fall back to
-    // the default image model when the Modal endpoint isn't configured here.
-    const model =
-      resolved.kind === "otterimage" && !isOtterimageConfigured() ? IMAGE_MODELS[0]! : resolved;
-
-    if (model.kind === "otterimage") {
-      const otterimagePrompt = prompt.trim().slice(0, OTTERIMAGE_MAX_PROMPT_LENGTH);
-      if (!otterimagePrompt) {
-        throw new Error("image prompt is empty.");
-      }
-
-      return {
-        image: await storeGeneratedImage(await generateOtterimage(otterimagePrompt)),
-        model: model.id,
-        prompt: otterimagePrompt,
-      };
-    }
+    const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
 
     if (model.kind === "image") {
       const result = await generateImage({
