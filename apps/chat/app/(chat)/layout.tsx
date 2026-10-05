@@ -34,17 +34,27 @@ async function ResolvedChatBootstrap() {
     viewer && appReady && setupStatus.storageMode === "database"
       ? await listChatsPageByUser(viewer.id)
       : { items: [], nextCursor: null };
-  const favoritesEnabled = appReady && (await favoriteChats());
-  const initialFavoriteChats =
-    favoritesEnabled && viewer && setupStatus.storageMode === "database"
-      ? await listFavoriteChatsByUser(viewer.id)
-      : [];
+  const favorites = appReady && (await favoriteChats()) ? await loadFavorites() : null;
+
+  async function loadFavorites() {
+    if (!viewer || setupStatus.storageMode !== "database") {
+      return [];
+    }
+
+    try {
+      return await listFavoriteChatsByUser(viewer.id);
+    } catch {
+      // Keep the normal history bootstrap working if the chat_favorite
+      // migration has not been applied yet.
+      return null;
+    }
+  }
 
   return (
     <AgentChatBootstrapSync
       chats={initialChatsPage.items}
-      favoriteChats={initialFavoriteChats}
-      favoritesEnabled={favoritesEnabled}
+      favoriteChats={favorites ?? []}
+      favoritesEnabled={favorites !== null}
       nextCursor={initialChatsPage.nextCursor}
       setupStatus={setupStatus}
       viewer={viewer}

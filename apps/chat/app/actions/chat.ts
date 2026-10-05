@@ -7,7 +7,6 @@ import {
   createChat,
   deleteChatForUser,
   listChatsByUser,
-  listFavoriteChatsByUser,
   markChatPendingMessage,
   saveChatSnapshot,
   saveChatSessionState,
@@ -145,7 +144,7 @@ export async function setChatFavoriteAction(input: {
     userId: viewer.id,
   });
 
-  return listFavoriteChatsByUser(viewer.id);
+  return { ok: true };
 }
 
 async function requireViewer() {

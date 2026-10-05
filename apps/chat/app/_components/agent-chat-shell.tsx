@@ -200,21 +200,33 @@ export function AgentChatShell({
         return;
       }
 
-      const previous = favoriteChats;
+      const applyFavorite = (value: boolean) => {
+        setFavoriteChats((items) =>
+          value
+            ? [chat, ...items.filter((item) => item.id !== chat.id)]
+            : items.filter((item) => item.id !== chat.id),
+        );
 
-      setFavoriteChats((items) =>
-        favorite
-          ? [chat, ...items.filter((item) => item.id !== chat.id)]
-          : items.filter((item) => item.id !== chat.id),
-      );
+        if (!value) {
+          setHistory((items) =>
+            items.some((item) => item.id === chat.id)
+              ? items
+              : [...items, chat].sort((left, right) =>
+                  right.updatedAt.localeCompare(left.updatedAt),
+                ),
+          );
+        }
+      };
+
+      applyFavorite(favorite);
 
       try {
-        setFavoriteChats(await setChatFavoriteAction({ chatId: chat.id, favorite }));
+        await setChatFavoriteAction({ chatId: chat.id, favorite });
       } catch {
-        setFavoriteChats(previous);
+        applyFavorite(!favorite);
       }
     },
-    [favoriteChats, viewerState],
+    [viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {
