@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listChatsPageByUser } from "@/lib/db/queries";
+import { favoriteChats } from "@/lib/flags";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
 
@@ -17,7 +18,9 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = await listChatsPageByUser(viewer.id, searchParams.get("cursor"));
+  const page = await listChatsPageByUser(viewer.id, searchParams.get("cursor"), {
+    includeFavorite: await favoriteChats(),
+  });
 
   return NextResponse.json({
     chats: page.items,

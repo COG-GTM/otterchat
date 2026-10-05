@@ -76,6 +76,7 @@ export function AgentChatShell({
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [anonChatId, setAnonChatId] = useState<string | null>(null);
   const cursorRef = useRef(initialNextCursor);
+  const favoriteRequestRef = useRef(new Map<string, number>());
   const activeChatIdRef = useRef(activeChatId);
   const claimStartedRef = useRef(false);
   const setupReady = setupStatusState.appReady;
@@ -190,6 +191,9 @@ export function AgentChatShell({
         return;
       }
 
+      const requestId = (favoriteRequestRef.current.get(chatId) ?? 0) + 1;
+      favoriteRequestRef.current.set(chatId, requestId);
+
       setHistory((items) =>
         items.map((item) => (item.id === chatId ? { ...item, favorite } : item)),
       );
@@ -197,6 +201,10 @@ export function AgentChatShell({
       try {
         await setChatFavoriteAction({ chatId, favorite });
       } catch {
+        if (favoriteRequestRef.current.get(chatId) !== requestId) {
+          return;
+        }
+
         setHistory((items) =>
           items.map((item) =>
             item.id === chatId ? { ...item, favorite: !favorite } : item,

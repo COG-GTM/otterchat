@@ -38,6 +38,7 @@ export async function listChatsByUser(userId: string): Promise<ChatListItem[]> {
 export async function listChatsPageByUser(
   userId: string,
   cursor?: string | null,
+  { includeFavorite = false }: { readonly includeFavorite?: boolean } = {},
 ): Promise<ChatListPage> {
   const cursorValue = cursor?.trim();
   const parsedCursor = cursorValue ? decodeChatCursor(cursorValue) : null;
@@ -45,8 +46,8 @@ export async function listChatsPageByUser(
     .select({
       id: chat.id,
       title: chat.title,
-      favorite: chat.favorite,
       updatedAt: chat.updatedAt,
+      ...(includeFavorite ? { favorite: chat.favorite } : {}),
     })
     .from(chat)
     .where(
@@ -68,7 +69,7 @@ export async function listChatsPageByUser(
   const last = pageRows[pageRows.length - 1];
 
   return {
-    items: pageRows.map((row) => ({
+    items: pageRows.map((row: { favorite?: boolean; id: string; title: string; updatedAt: Date }) => ({
       favorite: row.favorite,
       id: row.id,
       title: row.title,
@@ -452,6 +453,25 @@ export async function saveChatSnapshot({
       updatedAt: new Date(),
     })
     .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
+}
+
+export async function listFavoriteChatsByUser(userId: string): Promise<ChatListItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    })
+    .from(chat)
+    .where(and(eq(chat.userId, userId), eq(chat.favorite, true)))
+    .orderBy(desc(chat.updatedAt), desc(chat.id));
+
+  return rows.map((row) => ({
+    favorite: true,
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
 }
 
 export async function setChatFavoriteForUser({
