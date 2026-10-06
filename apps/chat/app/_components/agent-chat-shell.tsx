@@ -173,8 +173,7 @@ export function AgentChatShell({
           startNewChat();
         }
       } catch {
-        // Deleting a sidebar item is best-effort. Active chat persistence
-        // errors are shown by the chat surface where the user is working.
+        // best-effort; the chat surface shows persistence errors
       }
     },
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],

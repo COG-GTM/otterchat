@@ -11,8 +11,7 @@ export function proxy(request: NextRequest) {
 
   const voterId = crypto.randomUUID();
 
-  // Also set it on the incoming request so this very request's handler reads
-  // the same id it is about to hand back to the browser.
+  // also set on the request so this handler reads the same id
   request.cookies.set(VOTER_COOKIE, voterId);
 
   const response = NextResponse.next({ request });

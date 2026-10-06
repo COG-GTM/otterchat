@@ -8,7 +8,6 @@ class SentryExampleAPIError extends Error {
   }
 }
 
-// A faulty API route to test Sentry's error monitoring
 export async function GET() {
   await connection();
   Sentry.logger.info("Sentry example API called");

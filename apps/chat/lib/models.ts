@@ -1,9 +1,3 @@
-/**
- * Runtime-selectable models. Ids are AI Gateway model ids; the browser only
- * sends an id from this catalog and the eve channel re-validates it before it
- * reaches the agent, so an unknown id always falls back to the defaults.
- */
-
 export type TextModel = {
   readonly description: string;
   readonly id: string;

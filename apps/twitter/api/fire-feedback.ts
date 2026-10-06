@@ -40,10 +40,7 @@ function parsePayload(value: unknown): FeedbackPayload | null {
   return { source, post, feedback: items }
 }
 
-/**
- * Forwards the prototype's feedback payload to the Devin automation, adding the
- * webhook secret server-side so it stays out of the browser bundle.
- */
+/** Adds the webhook secret server-side so it stays out of the browser bundle. */
 export async function POST(request: Request) {
   const secret = process.env.OTTERCHAT_TWITTER_WEBHOOK_SECRET
   if (!secret) {

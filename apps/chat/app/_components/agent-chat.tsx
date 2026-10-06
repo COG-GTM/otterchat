@@ -720,8 +720,7 @@ export function AgentChatSession({
     setMessage: setLocalPendingUserMessage,
   } = usePendingUserMessage();
   const [skippingAuthorizationKey, setSkippingAuthorizationKey] = useState<string | null>(null);
-  // Continuation requests such as input responses carry no picker state, so the
-  // last sent selection is replayed to keep the turn on the chosen models.
+  // continuation requests carry no picker state, so replay the last selection
   const modelHeadersRef = useRef<Record<string, string>>({
     [IMAGE_MODEL_HEADER]: resolveImageModel(undefined).id,
     [TEXT_MODEL_HEADER]: resolveTextModel(undefined).id,
@@ -777,10 +776,7 @@ export function AgentChatSession({
     window.clearTimeout(handle.timer);
   }, []);
 
-  // eve delivers stream deltas in a tight async loop, so rendering every event
-  // keeps React inside one nested update batch until it aborts the turn with
-  // "Maximum update depth exceeded". The ref stays authoritative; renders are
-  // coalesced to one per frame.
+  // render stream deltas once per frame; per-event renders hit "Maximum update depth exceeded"
   const scheduleStreamEventsFlush = useCallback(() => {
     if (streamEventsFlushRef.current) {
       return;

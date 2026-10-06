@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
 
-/** Guards the ingest and export endpoints with a shared bearer token. */
 export function isAuthorizedIngest(request: Request) {
   const expected = process.env.INGEST_TOKEN?.trim();
 

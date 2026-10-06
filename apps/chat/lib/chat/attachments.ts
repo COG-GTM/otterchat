@@ -1,5 +1,4 @@
 export type ChatAttachment = {
-  /** Data URL sent to eve as the file part payload. */
   readonly data: string;
   readonly filename: string;
   readonly id: string;
@@ -58,11 +57,7 @@ export function toEveFileParts(attachments: readonly ChatAttachment[]) {
   }));
 }
 
-/**
- * Attachments picked on the root route before a chat exists. The root page
- * navigates client-side to `/chat/<provisional id>`, so an in-memory handoff
- * keeps multi-megabyte data URLs out of session storage.
- */
+/** In-memory handoff keeps multi-MB data URLs out of session storage before a chat exists. */
 const pendingAttachments = new Map<string, readonly ChatAttachment[]>();
 
 export function writePendingAttachments(

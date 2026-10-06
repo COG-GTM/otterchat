@@ -1,11 +1,9 @@
-# Edit this file to change what the LoRA learns; every key is also a CLI flag.
-
 instance_name: Devin
 class_name: software engineer
 prefix: a photo of
 postfix: ""
 
-instance_example_urls_file: instance_example_urls.txt
+instance_images_prefix: otterimage/instance_images/
 
 resolution: 1024
 train_batch_size: 1
@@ -15,7 +13,7 @@ gradient_accumulation_steps: 4
 learning_rate: 1.0e-4
 lr_scheduler: constant
 lr_warmup_steps: 100
-max_train_steps: 750
+max_train_steps: 600  # step-750 overfit cafe prompts; ckpt-600 was clean
 checkpointing_steps: 100
 seed: 117
 
