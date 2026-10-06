@@ -87,6 +87,10 @@ base_image = (
         f"{_DEVIN_BIN} worker start --help | grep -q -- '--session'",
     )
     .uv_pip_install(requirements=[str(REPO_ROOT / 'otterimage' / 'requirements.txt')])
+    # pillow for ad-hoc session image work (e.g. stitching generated images
+    # into comparison grids); requirements.txt already ships it, but keep it
+    # installed even if the trainer's deps change.
+    .run_commands("pip install pillow")
     .env({'HF_XET_HIGH_PERFORMANCE': '1', 'MODEL_DIR': MODEL_DIR})
 )
 

@@ -32,6 +32,10 @@ NAME = f"otterimage-{SESSION_ID.removeprefix('devin-')}"
 app = modal.App(name=NAME)
 
 MODEL_DIR = "/model"
+# load_lora_weights() reads only the weights file at LORA_DIR's root: it is
+# currently checkpoint-600's pytorch_lora_weights.safetensors. The 750-step
+# run's final weights overfit cafe prompts, so they sit alongside as
+# pytorch_lora_weights_final750.safetensors instead of being served.
 LORA_DIR = f"{MODEL_DIR}/otterimage/{SESSION_ID}"
 volume = modal.Volume.from_name("otterimage-flux2-finetune", create_if_missing=True)
 

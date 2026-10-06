@@ -1,5 +1,12 @@
 # Edit this file to change what the LoRA learns; every key is also a CLI flag.
 
+# 750-step run finding (2026-10, devin-8489e2e302514f8b923589d7384859f0):
+# the final step-750 weights overfit cafe prompts (face/cup fusion artifacts
+# across seeds), traced to the Paris-cafe instance image in
+# instance_example_urls.txt. checkpoint-600 was clean on every tested prompt
+# and is what the live endpoint serves. On retrain: drop or downweight that
+# image and/or stop around step 600.
+
 instance_name: Devin
 class_name: software engineer
 prefix: a photo of
