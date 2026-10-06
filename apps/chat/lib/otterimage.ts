@@ -1,5 +1,14 @@
 // POSTs to the session's Modal serve endpoint (otterimage/serve_flux2_lora.py).
 // Returns null when the endpoint isn't configured so callers can fall back.
+
+// the endpoint 422s prompts longer than 1000 characters (it counts code points)
+const PROMPT_LIMIT = 1000;
+
+function clampPrompt(prompt: string) {
+  const chars = [...prompt];
+  return chars.length <= PROMPT_LIMIT ? prompt : chars.slice(0, PROMPT_LIMIT).join("");
+}
+
 export async function generateOtterImage(prompt: string) {
   const url = process.env.OTTERIMAGE_URL;
   const key = process.env.OTTERIMAGE_MODAL_KEY;
@@ -15,7 +24,7 @@ export async function generateOtterImage(prompt: string) {
       "Modal-Key": key,
       "Modal-Secret": secret,
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt: clampPrompt(prompt) }),
     // a cold serve container takes ~90s to render
     signal: AbortSignal.timeout(180_000),
   });
