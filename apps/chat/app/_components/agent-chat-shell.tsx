@@ -80,6 +80,9 @@ export function AgentChatShell({
   const cursorRef = useRef(initialNextCursor);
   const activeChatIdRef = useRef(activeChatId);
   const claimStartedRef = useRef(false);
+  const favoriteWritesRef = useRef(
+    new Map<string, { readonly generation: number; readonly queue: Promise<void> }>(),
+  );
   const setupReady = setupStatusState.appReady;
   const router = useRouter();
 
@@ -193,14 +196,26 @@ export function AgentChatShell({
       }
 
       const favorite = !favoriteChatIds.has(chatId);
+      const writes = favoriteWritesRef.current;
+      const previous = writes.get(chatId);
+      const generation = (previous?.generation ?? 0) + 1;
 
       setFavoriteChatIds((ids) => withFavorite(ids, chatId, favorite));
 
-      try {
-        await setClientChatFavorite(setupStatusState.storageMode, { chatId, favorite });
-      } catch {
-        setFavoriteChatIds((ids) => withFavorite(ids, chatId, !favorite));
-      }
+      // Serialize writes per chat so the last click is the last write; only the
+      // newest request may roll back the optimistic state.
+      const queue = (previous?.queue ?? Promise.resolve()).then(async () => {
+        try {
+          await setClientChatFavorite(setupStatusState.storageMode, { chatId, favorite });
+        } catch {
+          if (writes.get(chatId)?.generation === generation) {
+            setFavoriteChatIds((ids) => withFavorite(ids, chatId, !favorite));
+          }
+        }
+      });
+
+      writes.set(chatId, { generation, queue });
+      await queue;
     },
     [favoriteChatIds, setupStatusState.storageMode, viewerState],
   );
