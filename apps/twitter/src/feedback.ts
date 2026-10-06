@@ -13,10 +13,6 @@ export type FeedbackPayload = {
   feedback: FeedbackItem[]
 }
 
-/**
- * The payload the prototype sends to the feedback automation: the post under
- * discussion plus every reply, each linked to its anchor on this deployment.
- */
 export function buildFeedbackPayload(origin: string): FeedbackPayload {
   return {
     source: 'otterchat-prototype',

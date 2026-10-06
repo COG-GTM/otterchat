@@ -3,10 +3,6 @@ import { isAuthorizedIngest } from "@/lib/auth";
 import { getDb, isDatabaseConfigured } from "@/lib/db/client";
 import { vote, votePair } from "@/lib/db/schema";
 
-/**
- * Preference pairs for the DPO trainer: one row per decisive vote, already
- * resolved into winner/loser image URLs.
- */
 export async function GET(request: Request) {
   if (!isAuthorizedIngest(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

@@ -18,9 +18,7 @@ logger = logging.getLogger(__name__)
 
 POLL_ATTEMPTS = 3
 POLL_RETRY_BASE_DELAY_SECONDS = 1.0
-# Slower than modal-devin's 3s default: a poll only has to beat the time it
-# takes a sandbox to boot, and every poll is an api.devin.ai round trip that
-# can time out.
+# a poll only has to beat sandbox boot, and each is an api.devin.ai round trip
 SCHEDULER_INTERVAL_SECONDS = int(os.environ.get('MODAL_DEVIN_SCHEDULER_INTERVAL_SECONDS', 10))
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -42,13 +40,6 @@ app = modal.App(
 devin_secret = modal.Secret.from_name('devin-outposts-token')
 controller_image = worker.controller_image()
 
-# otterimage: FLUX.2 [dev] LoRA fine-tuning (otterimage/train_flux2_lora.py).
-# Base weights and trained LoRAs persist on this Volume, mounted in the session
-# sandbox at MODEL_DIR; each demo session trains into MODEL_DIR/otterimage/<session-id>,
-# so concurrent sessions never share files. The HF token unlocks the gated model.
-# Prompts are encoded before the transformer loads, so the text encoder never
-# sits next to the transformer; the sandbox runs on an H200 (141 GB VRAM) with
-# 192 GB of RAM.
 huggingface_secret = modal.Secret.from_name('huggingface-secret', required_keys=['HF_TOKEN'])
 wandb_secret = modal.Secret.from_name('wandb-secret', required_keys=['WANDB_API_KEY'])
 MODEL_DIR = '/model'
@@ -56,12 +47,7 @@ model_volume = modal.Volume.from_name('otterimage-flux2-finetune', create_if_mis
 
 base_image = (
     worker.base_image()
-    # Add every application-specific build step here.
-    # Computer use also needs a running X server with DISPLAY set for the
-    # worker (ffmpeg and chromium are already in the base image). The session
-    # sandbox entrypoint is modal-devin's `sleep infinity`, so the display can
-    # only come up inside the `devin worker start` process it execs: swap the
-    # CLI for a wrapper that starts Xvfb + openbox first.
+    # computer use: swap in a CLI wrapper that starts Xvfb + openbox
     .apt_install(
         "dbus-x11",
         "fonts-liberation",
@@ -82,17 +68,14 @@ base_image = (
         f"mv {_DEVIN_BIN} {_DEVIN_BIN}.real",
         f"mv {_DEVIN_BIN}.wrapper {_DEVIN_BIN}",
         f"chmod 755 {_DEVIN_BIN}",
-        # The CLI contract check in worker.base_image() ran against the real
-        # binary; prove the wrapper still delegates `worker start --help`.
+        # prove the wrapper still delegates to the real CLI
         f"{_DEVIN_BIN} worker start --help | grep -q -- '--session'",
     )
     .uv_pip_install(requirements=[str(REPO_ROOT / 'otterimage' / 'requirements.txt')])
-    # pillow for ad-hoc session image work (e.g. stitching comparison grids)
     .run_commands("pip install pillow")
     .env({'HF_XET_HIGH_PERFORMANCE': '1', 'MODEL_DIR': MODEL_DIR})
 )
 
-# Adds the modal-devin runtime after all user image customization.
 image = worker.prepare_image(base_image)
 
 
@@ -123,9 +106,7 @@ def session(session_id: str) -> None:
     max_containers=1,
 )
 def scheduler() -> None:
-    # Only the pending-sessions poll surfaces as OutpostsAPIError; failures while
-    # dispatching a session come back as an ExceptionGroup and are never retried
-    # here, so a retry cannot double-dispatch.
+    # dispatch failures raise ExceptionGroup, not OutpostsAPIError, so a retry can't double-dispatch
     for attempt in range(1, POLL_ATTEMPTS + 1):
         try:
             worker.dispatch_pending_sessions(session.spawn)

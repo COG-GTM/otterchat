@@ -6,13 +6,10 @@ the transformer; the sandbox runs on an H200 so both fit. Needs ~110 GB disk
 under --model-dir, HF_TOKEN (gated model), BLOB_READ_WRITE_TOKEN (the instance
 set is the blob-store folder) and WANDB_API_KEY unless --report-to none.
 
-    # Train from scratch with train_config.yaml: downloads the base weights,
-    # then writes the LoRA to <model-dir>/otterimage/<session-id>, which that
-    # session's serve app loads.
+    # Train from scratch with train_config.yaml
     python otterimage/train_flux2_lora.py
 
-    # Continue an interrupted run from its newest checkpoint-N, reusing the
-    # downloaded weights and checkpoints.
+    # Resume from the newest checkpoint
     python otterimage/train_flux2_lora.py --skip-download --resume-from-checkpoint latest
 """
 
@@ -38,7 +35,6 @@ TRAIN_SCRIPT_URL = (
 
 BLOB_API = "https://vercel.com/api/blob"
 
-# ~110 GB of the 178 GB repo: everything but the BFL checkpoints.
 DOWNLOAD_PATTERNS = [
     "model_index.json",
     "scheduler/*",
@@ -52,8 +48,7 @@ DOWNLOAD_PATTERNS = [
 HERE = Path(__file__).parent
 DEFAULT_CONFIG = HERE / "train_config.yaml"
 TRAINER_SHIM = HERE / "trainer_shim.py"
-# the serve app's endpoint URL is <workspace>--otterimage-<id>.modal.run, whose
-# subdomain Modal caps at 63 characters
+# Modal caps the endpoint subdomain (<workspace>--otterimage-<id>) at 63 chars
 SESSION_ID = r"devin-[a-z0-9]{1,37}"
 
 
@@ -161,7 +156,7 @@ def list_blob_images(prefix: str) -> list[str]:
     """Every image under the blob-store folder prefix. The store id is embedded in
     BLOB_READ_WRITE_TOKEN ('vercel_blob_rw_<store>_<secret>')."""
     token = os.environ.get("BLOB_READ_WRITE_TOKEN")
-    if not token:  # apps/chat/.env.local (vercel env pull) carries it
+    if not token:
         env_file = HERE.parent / "apps" / "chat" / ".env.local"
         if env_file.exists():
             for line in env_file.read_text().splitlines():
@@ -263,8 +258,7 @@ def main() -> None:
                 "--caption_column=text",
                 f"--output_dir={lora_dir}",
                 f"--instance_prompt={prompt}",
-                # the final pass loads a second transformer next to the trained one, which
-                # leaves too little headroom; the periodic validation passes still run
+                # the final pass loads a second transformer and runs out of memory
                 "--skip_final_inference",
                 "--mixed_precision=bf16",
                 "--do_fp8_training",
@@ -289,14 +283,11 @@ def main() -> None:
                 f"--validation_epochs={args.validation_epochs}",
                 f"--num_validation_images={args.num_validation_images}",
             ]
-            # accelerate has no "none" tracker; the trainer's tensorboard default is
-            # skipped because tensorboard isn't installed
             + ([] if args.report_to == "none" else [f"--report_to={args.report_to}"])
             + ([f"--resume_from_checkpoint={resume}"] if resume else [])
         )
     finally:
-        # outpost sandboxes commit volume writes on sync, so serving containers see the LoRA
-        # and checkpoints without waiting for the session to end
+        # outpost sandboxes commit volume writes on sync, so serving sees the LoRA
         subprocess.run(["sync", str(model_dir)], check=True)
     print(f"🎨 training finished; LoRA weights in {lora_dir}")
 

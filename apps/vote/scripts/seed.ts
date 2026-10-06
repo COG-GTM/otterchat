@@ -2,10 +2,6 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { votePair } from "../lib/db/schema.ts";
 
-/**
- * Sample pairs so the app is usable before the FLUX.2 LoRA has ever generated
- * anything. Real pairs arrive through POST /api/pairs.
- */
 const IMAGES = [
   "https://modal-public-assets.s3.amazonaws.com/example-dreambooth-app/fkRYgv6.png",
   "https://modal-public-assets.s3.amazonaws.com/example-dreambooth-app/98k9yDg.jpg",

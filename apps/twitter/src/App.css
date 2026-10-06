@@ -7,8 +7,6 @@
   max-width: 1265px;
 }
 
-/* ---------- Left navigation ---------- */
-
 .left-nav {
   position: sticky;
   top: 0;
@@ -146,8 +144,6 @@
   color: var(--color-muted);
 }
 
-/* ---------- Center timeline ---------- */
-
 .timeline {
   width: 600px;
   flex: 0 0 600px;
@@ -198,8 +194,6 @@
 .icon-button--muted {
   color: var(--color-muted);
 }
-
-/* ---------- Post ---------- */
 
 .post {
   padding: 0 16px;
@@ -355,8 +349,6 @@
   color: var(--color-accent);
 }
 
-/* ---------- Reply composer ---------- */
-
 .composer {
   display: flex;
   align-items: center;
@@ -381,8 +373,6 @@
   font-weight: 700;
   cursor: default;
 }
-
-/* ---------- Replies ---------- */
 
 .reply {
   display: flex;
@@ -461,8 +451,6 @@
 .reply__actions-end .action {
   width: auto;
 }
-
-/* ---------- Right rail ---------- */
 
 .right-rail {
   width: 350px;
@@ -633,8 +621,6 @@
   white-space: nowrap;
 }
 
-/* ---------- Prototype toolbar (non-diegetic) ---------- */
-
 .prototype-dock {
   position: fixed;
   left: 50%;
@@ -717,8 +703,6 @@
   color: #f4212e;
 }
 
-/* ---------- Floating actions ---------- */
-
 .floating-actions {
   position: fixed;
   right: 20px;
@@ -743,8 +727,6 @@
 .floating-actions__button:hover {
   background-color: var(--color-border);
 }
-
-/* ---------- Avatars ---------- */
 
 .avatar {
   display: block;

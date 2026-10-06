@@ -1,12 +1,5 @@
 #!/bin/sh
-# Devin computer use on Linux outposts needs DISPLAY in the worker's
-# environment pointing at a running X server (Xvfb plus a window manager):
-# https://docs.devin.ai/work-with-devin/computer-use
-#
-# modal-devin owns the session sandbox entrypoint (`sleep infinity`), so the
-# only place a display can start is inside the `devin worker start` process it
-# execs. The image swaps this wrapper in for the real devin CLI (installed as
-# devin.real next to it): bring Xvfb and openbox up, then hand off.
+# Starts Xvfb + openbox before `devin worker start` so computer use gets a DISPLAY.
 
 # The worker execs this with a minimal env; make sure the tools below resolve.
 PATH="/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
@@ -17,13 +10,11 @@ REAL="$0.real"
 
 if [ "$1" = "worker" ] && [ "$2" = "start" ]; then
   case " $* " in
-    # The image's CLI contract check runs `worker start --help` during the
-    # build; keep it a pure pass-through.
+    # keep the build's `worker start --help` contract check a pass-through
     *" --help "*) exec "$REAL" "$@" ;;
   esac
   if ! xdpyinfo -display :0 >/dev/null 2>&1; then
-    # A sandbox resumed from a filesystem snapshot can carry a stale X lock
-    # file with no live server behind it.
+    # snapshot-resumed sandboxes can carry a stale X lock
     rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
     Xvfb :0 -screen 0 1024x768x24 >/tmp/xvfb.log 2>&1 &
     i=0

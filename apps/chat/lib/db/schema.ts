@@ -10,8 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 
-// Users are managed by Neon Auth and live in the neon_auth schema, so chat rows
-// reference them by id without a foreign key constraint.
+// no FK: users live in Neon Auth's neon_auth schema
 export const chat = pgTable(
   "chat",
   {

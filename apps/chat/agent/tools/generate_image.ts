@@ -4,9 +4,6 @@ import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
 import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
 
-// The runtime tool name comes from the filename, so the model sees this as
-// `generate_image`. The image model is picked in the composer and arrives on
-// the session auth attributes; unknown ids fall back to the catalog default.
 export default defineTool({
   description:
     "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
@@ -38,8 +35,7 @@ export default defineTool({
       };
     }
 
-    // Gemini image models are language models in the gateway: they return the
-    // generated image as a file on an ordinary text generation.
+    // Gemini image models return the image as a file on a text generation
     const result = await generateText({
       model: gateway(model.id),
       prompt,

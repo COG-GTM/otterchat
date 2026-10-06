@@ -16,7 +16,6 @@ export type Account = {
   avatarTo: string
   initials: string
   imageSrc?: string
-  /** Square affiliation badge shown after the name, as on X. */
   affiliateSrc?: string
   squareAvatar?: boolean
   verified?: 'blue' | 'gold'
@@ -33,10 +32,8 @@ export type Media = {
 
 export type Reply = {
   id: string
-  /** Prototype flow step (0-based) at which this reply first appears. */
   step: number
   account: Account
-  /** Permalink to the reply on the prototype. */
   url: string
   time: string
   text: string
@@ -47,10 +44,6 @@ export type Reply = {
   views?: string
 }
 
-/**
- * Permalink to a post on the fictional network this prototype mimics, on the
- * prototype's own deployment rather than the real site it imitates.
- */
 function statusUrl(handle: string, statusId: string) {
   return `https://twitter-otterchat.vercel.app/${handle.replace(/^@/, '')}/status/${statusId}`
 }
@@ -99,11 +92,9 @@ export const post = {
 
 export type FlowStep = {
   label: string
-  /** Optional eyebrow link shown above the toolbar on this step. */
   link?: { text: string; href: string }
 }
 
-/** Description shown in the prototype toolbar for each flow step. */
 export const flowSteps: FlowStep[] = [
   { label: 'Post on social media' },
   { label: 'People comment with feedback' },
@@ -240,19 +231,11 @@ export const replies: Reply[] = [
   },
 ]
 
-/**
- * Flow step at which the status a permalink points to is visible, so opening a
- * reply's permalink shows that reply rather than the pre-reply post.
- */
 export function stepForPath(pathname: string) {
   const reply = replies.find((candidate) => new URL(candidate.url).pathname === pathname)
   return reply ? reply.step : 0
 }
 
-/**
- * Flow step at which the reply anchored by `hash` is rendered, so the links in
- * the feedback payload land on the reply they point at.
- */
 export function stepForHash(hash: string) {
   const reply = replies.find((candidate) => candidate.id === hash.replace(/^#/, ''))
   return reply ? reply.step : 0

@@ -11,11 +11,6 @@ import {
 const IMAGE_MODEL_STORAGE_KEY = "otterchat-image-model";
 const TEXT_MODEL_STORAGE_KEY = "otterchat-text-model";
 
-/**
- * Model choice is a client preference shared by the root and session
- * composers, so it is read from local storage after hydration rather than
- * rendered into the static shell.
- */
 export function useModelSelection() {
   const [imageModelId, setImageModelIdState] = useState(DEFAULT_IMAGE_MODEL_ID);
   const [textModelId, setTextModelIdState] = useState(DEFAULT_TEXT_MODEL_ID);

@@ -57,7 +57,6 @@ function parsePair(raw: unknown) {
   };
 }
 
-/** Ingest endpoint for the generation job: `{ pairs: [...] }`. */
 export async function POST(request: Request) {
   if (!isAuthorizedIngest(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

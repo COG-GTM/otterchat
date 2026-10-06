@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
 
-// Generated images are stored in Vercel Blob so chat events carry a short URL
-// instead of a multi-megabyte data URL. Without a Blob token (local
-// development) the data URL is returned as-is.
+// without a Blob token (local dev) the data URL is returned as-is
 export async function storeGeneratedImage(image: {
   readonly base64: string;
   readonly mediaType: string;
