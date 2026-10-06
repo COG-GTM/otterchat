@@ -86,6 +86,14 @@ base_image = (
         # binary; prove the wrapper still delegates `worker start --help`.
         f"{_DEVIN_BIN} worker start --help | grep -q -- '--session'",
     )
+    # Node 24 + pnpm 10 for apps/ work (chat app typecheck/lint/dev, vercel CLI
+    # via npx). The repo blueprint's nvm path only applies to Devin-hosted VMs,
+    # not this outpost image, so install the tarball directly.
+    .run_commands(
+        "curl -fsSL https://nodejs.org/dist/v24.9.0/node-v24.9.0-linux-x64.tar.xz | tar -xJ -C /opt",
+        "ln -sf /opt/node-v24.9.0-linux-x64/bin/node /opt/node-v24.9.0-linux-x64/bin/npm /opt/node-v24.9.0-linux-x64/bin/npx /usr/local/bin/",
+        "corepack enable && corepack prepare pnpm@10.12.4 --activate && ln -sf /opt/node-v24.9.0-linux-x64/bin/pnpm /usr/local/bin/pnpm",
+    )
     .uv_pip_install(requirements=[str(REPO_ROOT / 'otterimage' / 'requirements.txt')])
     .env({'HF_XET_HIGH_PERFORMANCE': '1', 'MODEL_DIR': MODEL_DIR})
 )
