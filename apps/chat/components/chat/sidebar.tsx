@@ -288,7 +288,7 @@ function ChatHistoryRow({
           aria-pressed={favorite}
           className={cn(
             "absolute top-1/2 right-7 -translate-y-1/2 rounded-full transition-opacity hover:bg-muted group-hover/session:opacity-100 focus-visible:opacity-100",
-            favorite ? "text-amber-500 opacity-100 hover:text-amber-500" : "opacity-0",
+            favorite ? "text-amber-500 opacity-100 hover:text-amber-500" : "opacity-0 pointer-coarse:opacity-100",
           )}
           onClick={() => void onToggleFavorite(chat.id)}
           size="icon-xs"
