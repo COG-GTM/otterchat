@@ -8,6 +8,7 @@ export const exampleFlag = launchDarklyFlag({
 
 export const favoriteChats = launchDarklyFlag({
   key: "favorite-chats",
+  defaultValue: true,
   description: "Star chats and pin them in a Favorites section above Recents in the sidebar.",
   identify: async () => {
     const viewer = await getServerViewer();
