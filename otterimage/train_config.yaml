@@ -1,16 +1,16 @@
 # Edit this file to change what the LoRA learns; every key is also a CLI flag.
 
 # 750-step run: step-750 overfit cafe prompts (traced to the cafe instance
-# image in instance_example_urls.txt); ckpt-600 was clean on every tested
-# prompt — hence the 600 cap and what's served. On retrain also downweight
-# that image.
+# image); ckpt-600 was clean on every tested prompt — hence the 600 cap and
+# what's served. On retrain also downweight that image.
 
 instance_name: Devin
 class_name: software engineer
 prefix: a photo of
 postfix: ""
 
-instance_example_urls_file: instance_example_urls.txt
+# the instance set is every image under this blob-store prefix; filename = caption
+instance_images_prefix: otterimage/instance_images/
 
 resolution: 1024
 train_batch_size: 1

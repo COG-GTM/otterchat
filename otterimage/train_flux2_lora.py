@@ -3,8 +3,8 @@
 What to train is in train_config.yaml; any key there is also a CLI flag.
 Prompts are encoded on the fly by the text encoder the trainer loads next to
 the transformer; the sandbox runs on an H200 so both fit. Needs ~110 GB disk
-under --model-dir, HF_TOKEN (gated model) and WANDB_API_KEY unless
---report-to none.
+under --model-dir, HF_TOKEN (gated model), BLOB_READ_WRITE_TOKEN (the instance
+set is the blob-store folder) and WANDB_API_KEY unless --report-to none.
 
     # Train from scratch with train_config.yaml: downloads the base weights,
     # then writes the LoRA to <model-dir>/otterimage/<session-id>, which that
@@ -36,6 +36,8 @@ TRAIN_SCRIPT_URL = (
     f"{DIFFUSERS_SHA}/examples/dreambooth/train_dreambooth_lora_flux2.py"
 )
 
+BLOB_API = "https://vercel.com/api/blob"
+
 # ~110 GB of the 178 GB repo: everything but the BFL checkpoints.
 DOWNLOAD_PATTERNS = [
     "model_index.json",
@@ -61,9 +63,6 @@ def load_config(path: Path) -> dict:
     config = yaml.safe_load(path.read_text()) or {}
     if not isinstance(config, dict):
         sys.exit(f"{path}: expected a mapping of option: value")
-    for key in ("instance_example_urls_file",):
-        if key in config and "://" not in config[key]:
-            config[key] = str((path.parent / config[key]).resolve())
     return config
 
 
@@ -90,7 +89,7 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--class-name")
     p.add_argument("--prefix")
     p.add_argument("--postfix")
-    p.add_argument("--instance-example-urls-file", help="one image URL or path (relative to the file) per line")
+    p.add_argument("--instance-images-prefix", help="blob-store folder prefix to enumerate as the instance set")
     p.add_argument("--resolution", type=int)
     p.add_argument("--train-batch-size", type=int)
     p.add_argument("--rank", type=int)
@@ -158,15 +157,36 @@ def caption_from_filename(name: str) -> str:
     return Path(name).stem.replace("_", " ")
 
 
-def load_images(image_urls: list[str], base_dir: Path, img_path: Path) -> tuple[Path, list[str]]:
+def list_blob_images(prefix: str) -> list[str]:
+    """Every image under the blob-store folder prefix. The store id is embedded in
+    BLOB_READ_WRITE_TOKEN ('vercel_blob_rw_<store>_<secret>')."""
+    token = os.environ.get("BLOB_READ_WRITE_TOKEN")
+    if not token:
+        sys.exit("BLOB_READ_WRITE_TOKEN is not set; needed to list the instance-images blob folder")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "x-api-version": "12",
+        "x-vercel-blob-store-id": token.removeprefix("vercel_blob_rw_").split("_")[0],
+    }
+    urls, cursor = [], None
+    while True:
+        params = {"prefix": prefix, "limit": "100", **({"cursor": cursor} if cursor else {})}
+        request = urllib.request.Request(f"{BLOB_API}?{urllib.parse.urlencode(params)}", headers=headers)
+        with urllib.request.urlopen(request) as response:
+            page = json.load(response)
+        urls.extend(blob["url"] for blob in page["blobs"])
+        if not page.get("hasMore"):
+            return urls
+        cursor = page["cursor"]
+
+
+def load_images(image_urls: list[str], img_path: Path) -> tuple[Path, list[str]]:
     import PIL.Image
     from smart_open import open
 
     img_path.mkdir(parents=True, exist_ok=True)
     rows = []
     for url in image_urls:
-        if "://" not in url:
-            url = str((base_dir / url).resolve())
         name = Path(urllib.parse.urlsplit(url).path).name
         with open(url, "rb") as f:
             PIL.Image.open(f).convert("RGB").save(img_path / name)
@@ -209,9 +229,8 @@ def main() -> None:
         download_models(model_dir)
 
     train_script = ensure_train_script(Path(args.train_script))
-    urls_file = Path(args.instance_example_urls_file)
-    urls = [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
-    img_path, captions = load_images(urls, urls_file.parent, Path(tempfile.mkdtemp(prefix="instance_images_")))
+    urls = list_blob_images(args.instance_images_prefix)
+    img_path, captions = load_images(urls, Path(tempfile.mkdtemp(prefix="instance_images_")))
 
     from accelerate.utils import write_basic_config
 
