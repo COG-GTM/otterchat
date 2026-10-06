@@ -208,13 +208,20 @@ export function AgentChatShell({
         );
 
         if (!value) {
-          setHistory((items) =>
-            items.some((item) => item.id === chat.id)
-              ? items
-              : [...items, chat].sort((left, right) =>
-                  right.updatedAt.localeCompare(left.updatedAt),
-                ),
-          );
+          setHistory((items) => {
+            const oldest = items.at(-1);
+
+            if (
+              items.some((item) => item.id === chat.id) ||
+              (cursorRef.current && oldest && chat.updatedAt < oldest.updatedAt)
+            ) {
+              return items;
+            }
+
+            return [...items, chat].sort((left, right) =>
+              right.updatedAt.localeCompare(left.updatedAt),
+            );
+          });
         }
       };
 
