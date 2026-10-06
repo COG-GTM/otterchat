@@ -161,6 +161,12 @@ def list_blob_images(prefix: str) -> list[str]:
     """Every image under the blob-store folder prefix. The store id is embedded in
     BLOB_READ_WRITE_TOKEN ('vercel_blob_rw_<store>_<secret>')."""
     token = os.environ.get("BLOB_READ_WRITE_TOKEN")
+    if not token:  # apps/chat/.env.local (vercel env pull) carries it
+        env_file = HERE.parent / "apps" / "chat" / ".env.local"
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith("BLOB_READ_WRITE_TOKEN="):
+                    token = line.split("=", 1)[1].strip().strip('"')
     if not token:
         sys.exit("BLOB_READ_WRITE_TOKEN is not set; needed to list the instance-images blob folder")
     headers = {
