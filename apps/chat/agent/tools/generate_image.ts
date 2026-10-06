@@ -2,7 +2,8 @@ import { experimental_generateImage as generateImage, gateway, generateText } fr
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
-import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
+import { IMAGE_MODEL_ATTRIBUTE, IMAGE_MODELS, resolveImageModel } from "@/lib/models";
+import { generateOtterImage } from "@/lib/otterimage";
 
 export default defineTool({
   description:
@@ -17,7 +18,20 @@ export default defineTool({
   }),
   async execute({ prompt }, ctx) {
     const selected = ctx.session.auth.current?.attributes?.[IMAGE_MODEL_ATTRIBUTE];
-    const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
+    let model = resolveImageModel(typeof selected === "string" ? selected : undefined);
+
+    if (model.kind === "otterimage") {
+      const image = await generateOtterImage(prompt);
+      if (image) {
+        return {
+          image: await storeGeneratedImage(image),
+          model: model.id,
+          prompt,
+        };
+      }
+      // endpoint not configured — fall back to the default image model
+      model = IMAGE_MODELS[0]!;
+    }
 
     if (model.kind === "image") {
       const result = await generateImage({
