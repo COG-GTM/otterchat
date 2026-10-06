@@ -4,8 +4,8 @@
 # the final step-750 weights overfit cafe prompts (face/cup fusion artifacts
 # across seeds), traced to the Paris-cafe instance image in
 # instance_example_urls.txt. checkpoint-600 was clean on every tested prompt
-# and is what the live endpoint serves. On retrain: drop or downweight that
-# image and/or stop around step 600.
+# and is what the live endpoint serves; max_train_steps is capped at 600 for
+# that reason. On retrain: also drop or downweight that image.
 
 instance_name: Devin
 class_name: software engineer
@@ -22,7 +22,7 @@ gradient_accumulation_steps: 4
 learning_rate: 1.0e-4
 lr_scheduler: constant
 lr_warmup_steps: 100
-max_train_steps: 750
+max_train_steps: 600
 checkpointing_steps: 100
 seed: 117
 
