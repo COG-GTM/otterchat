@@ -1,0 +1,1 @@
+ALTER TABLE "chat" ADD COLUMN "favorited_at" timestamp;

@@ -10,6 +10,7 @@ import {
   markChatPendingMessage,
   saveChatSnapshot,
   saveChatSessionState,
+  setChatFavorite,
   skipChatAuthorization,
 } from "@/lib/db/queries";
 import { assertChatMessageLength } from "@/lib/chat/limits";
@@ -112,6 +113,21 @@ export async function saveChatSessionStateAction(input: {
   await saveChatSessionState({
     chatId: input.chatId,
     session: input.session,
+    userId: viewer.id,
+  });
+
+  return { ok: true };
+}
+
+export async function setChatFavoriteAction(input: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+}) {
+  const viewer = await requireViewer();
+
+  await setChatFavorite({
+    chatId: input.chatId,
+    favorite: input.favorite,
     userId: viewer.id,
   });
 

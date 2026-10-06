@@ -9,6 +9,7 @@ const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
 
 type StoredChat = ActiveChat & {
+  readonly favorite?: boolean;
   readonly updatedAt: string;
 };
 
@@ -19,6 +20,16 @@ type StoredChatState = {
 
 export function listLocalChats(): ChatListItem[] {
   return readState().chats.map(toListItem);
+}
+
+export function listLocalFavoriteChatIds(): string[] {
+  return readState()
+    .chats.filter((chat) => chat.favorite)
+    .map((chat) => chat.id);
+}
+
+export function setLocalChatFavorite(chatId: string, favorite: boolean) {
+  updateChat(chatId, (chat) => ({ ...chat, favorite }));
 }
 
 export function getLocalChat(chatId: string): ActiveChat | null {

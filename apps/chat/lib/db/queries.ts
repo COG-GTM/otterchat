@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, gte, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lt, or, sql } from "drizzle-orm";
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import type { ActiveChat, ChatListItem, ChatListPage } from "@/lib/chat/types";
@@ -74,6 +74,44 @@ export async function listChatsPageByUser(
     })),
     nextCursor: hasMore && last ? encodeChatCursor(last.updatedAt, last.id) : null,
   };
+}
+
+export async function listFavoriteChatsByUser(userId: string): Promise<ChatListItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    })
+    .from(chat)
+    .where(and(eq(chat.userId, userId), isNotNull(chat.favoritedAt)))
+    .orderBy(desc(chat.updatedAt), desc(chat.id));
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
+export async function setChatFavorite({
+  chatId,
+  favorite,
+  userId,
+}: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+  readonly userId: string;
+}) {
+  const [row] = await db
+    .update(chat)
+    .set({ favoritedAt: favorite ? new Date() : null })
+    .where(and(eq(chat.id, chatId), eq(chat.userId, userId)))
+    .returning({ id: chat.id });
+
+  if (!row) {
+    throw new Error("Chat not found.");
+  }
 }
 
 export async function createChat(
