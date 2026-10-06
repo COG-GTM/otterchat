@@ -22,7 +22,7 @@ seed: 117
 report_to: wandb
 validation_prompts:
   - "{instance} on the moon"
-  - "{instance} typing on a laptop in a coffee shop"
+  - "{instance} at a coffee shop"
   - "a watercolor painting of {instance} surfing a wave"
 validation_epochs: 50
 num_validation_images: 1
