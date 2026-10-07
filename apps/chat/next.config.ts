@@ -19,7 +19,7 @@ export default withSentryConfig(withEve(withVercelToolbar(nextConfig)), {
   project: "otterchat",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  tunnelRoute: "/monitoring",
+  tunnelRoute: true,
   webpack: {
     automaticVercelMonitors: true,
     treeshake: {
