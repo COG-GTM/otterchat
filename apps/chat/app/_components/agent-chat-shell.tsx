@@ -191,7 +191,6 @@ export function AgentChatShell({
   const handleToggleFavorite = useCallback(
     async (chatId: string) => {
       if (!viewerState) {
-        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
         return;
       }
 
@@ -407,6 +406,8 @@ export function AgentChatShell({
     ],
   );
 
+  const favoritesAvailable = favoritesEnabled && Boolean(viewerState);
+
   const newSessionDisabledReason =
     !historyLoading && !viewerState && anonChatId
       ? ANON_LIMIT_REACHED_REASON
@@ -416,7 +417,7 @@ export function AgentChatShell({
     <ChatSidebar
       activeChatId={activeChatId}
       chats={history}
-      favoriteChatIds={favoritesEnabled ? favoriteChatIds : undefined}
+      favoriteChatIds={favoritesAvailable ? favoriteChatIds : undefined}
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
@@ -426,7 +427,7 @@ export function AgentChatShell({
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
       onSignIn={() => requestSignIn()}
-      onToggleFavorite={favoritesEnabled ? handleToggleFavorite : undefined}
+      onToggleFavorite={favoritesAvailable ? handleToggleFavorite : undefined}
       onToggleSidebar={() => setDesktopSidebarOpenPersisted(false)}
       setupStatus={setupStatusState}
       viewer={viewerState}
@@ -510,7 +511,7 @@ export function AgentChatShell({
               activeChatId={activeChatId}
               chats={history}
               className="w-[84vw] max-w-80"
-              favoriteChatIds={favoritesEnabled ? favoriteChatIds : undefined}
+              favoriteChatIds={favoritesAvailable ? favoriteChatIds : undefined}
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
@@ -520,7 +521,7 @@ export function AgentChatShell({
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}
               onSignIn={() => requestSignIn()}
-              onToggleFavorite={favoritesEnabled ? handleToggleFavorite : undefined}
+              onToggleFavorite={favoritesAvailable ? handleToggleFavorite : undefined}
               setupStatus={setupStatusState}
               viewer={viewerState}
             />
