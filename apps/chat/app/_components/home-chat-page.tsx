@@ -46,6 +46,9 @@ export function HomeChatPage() {
   const submittingRef = useRef(false);
   const setupReady = setupStatus.appReady;
   const pathname = usePathname();
+  // Next serves this page for `/index` too; treating it as home keeps the
+  // client tree identical to the prerendered shell during PPR resume.
+  const isHomeRoute = pathname === "/" || pathname === "/index";
   const router = useRouter();
   const toastError = clientError && dismissedError !== clientError ? clientError : null;
 
@@ -54,11 +57,11 @@ export function HomeChatPage() {
   }, [setActiveChatId]);
 
   useEffect(() => {
-    if (pathname === "/") {
+    if (isHomeRoute) {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [pathname]);
+  }, [isHomeRoute]);
 
   useEffect(() => {
     if (!viewer) {
@@ -182,7 +185,7 @@ export function HomeChatPage() {
     submitting,
   });
 
-  if (pathname !== "/") {
+  if (!isHomeRoute) {
     return null;
   }
 
