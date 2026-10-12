@@ -71,69 +71,109 @@ function isChatListItem(value: unknown): value is ChatListItem {
   );
 }
 
-function readFavoriteChats(viewerId: string | null): ChatListItem[] {
-  if (!viewerId || typeof window === "undefined") {
-    return [];
+const EMPTY_FAVORITE_CHATS: readonly ChatListItem[] = [];
+const favoriteChatsCache = new Map<string, readonly ChatListItem[]>();
+const favoriteChatsListeners = new Set<() => void>();
+
+function notifyFavoriteChats() {
+  favoriteChatsListeners.forEach((listener) => listener());
+}
+
+function handleFavoriteChatsStorage(event: StorageEvent) {
+  if (event.key === null || event.key.startsWith(FAVORITE_CHATS_STORAGE_PREFIX)) {
+    favoriteChatsCache.clear();
+    notifyFavoriteChats();
   }
+}
+
+function subscribeFavoriteChats(listener: () => void) {
+  if (!favoriteChatsListeners.size) {
+    window.addEventListener("storage", handleFavoriteChatsStorage);
+  }
+
+  favoriteChatsListeners.add(listener);
+  return () => {
+    favoriteChatsListeners.delete(listener);
+
+    if (!favoriteChatsListeners.size) {
+      window.removeEventListener("storage", handleFavoriteChatsStorage);
+    }
+  };
+}
+
+function readFavoriteChats(viewerId: string | null): readonly ChatListItem[] {
+  if (!viewerId || typeof window === "undefined") {
+    return EMPTY_FAVORITE_CHATS;
+  }
+
+  const cached = favoriteChatsCache.get(viewerId);
+
+  if (cached) {
+    return cached;
+  }
+
+  let favorites: readonly ChatListItem[] = EMPTY_FAVORITE_CHATS;
 
   try {
     const raw = window.localStorage.getItem(FAVORITE_CHATS_STORAGE_PREFIX + viewerId);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter(isChatListItem) : [];
-  } catch {
-    return [];
-  }
+    favorites = Array.isArray(parsed) ? parsed.filter(isChatListItem) : EMPTY_FAVORITE_CHATS;
+  } catch {}
+
+  favoriteChatsCache.set(viewerId, favorites);
+  return favorites;
+}
+
+function updateFavoriteChats(
+  viewerId: string,
+  update: (current: readonly ChatListItem[]) => readonly ChatListItem[],
+) {
+  const favorites = update(readFavoriteChats(viewerId));
+  favoriteChatsCache.set(viewerId, favorites);
+
+  try {
+    window.localStorage.setItem(FAVORITE_CHATS_STORAGE_PREFIX + viewerId, JSON.stringify(favorites));
+  } catch {}
+
+  notifyFavoriteChats();
 }
 
 function useFavoriteChats(viewerId: string | null) {
-  const [state, setState] = useState<{
-    readonly favorites: readonly ChatListItem[];
-    readonly viewerId: string | null;
-  }>({ favorites: [], viewerId: null });
+  const favorites = useSyncExternalStore(
+    subscribeFavoriteChats,
+    () => readFavoriteChats(viewerId),
+    () => EMPTY_FAVORITE_CHATS,
+  );
 
-  if (state.viewerId !== viewerId) {
-    setState({ favorites: readFavoriteChats(viewerId), viewerId });
-  }
-
-  const updateFavorites = useCallback(
-    (update: (current: readonly ChatListItem[]) => readonly ChatListItem[]) => {
+  const toggleFavorite = useCallback(
+    (chat: ChatListItem) => {
       if (!viewerId) {
         return;
       }
 
-      setState((current) => {
-        const favorites = update(current.favorites);
-
-        try {
-          window.localStorage.setItem(
-            FAVORITE_CHATS_STORAGE_PREFIX + viewerId,
-            JSON.stringify(favorites),
-          );
-        } catch {}
-
-        return { favorites, viewerId };
-      });
+      updateFavoriteChats(viewerId, (current) =>
+        current.some((favorite) => favorite.id === chat.id)
+          ? current.filter((favorite) => favorite.id !== chat.id)
+          : [chat, ...current],
+      );
     },
     [viewerId],
   );
 
-  const toggleFavorite = useCallback(
-    (chat: ChatListItem) =>
-      updateFavorites((current) =>
-        current.some((favorite) => favorite.id === chat.id)
-          ? current.filter((favorite) => favorite.id !== chat.id)
-          : [chat, ...current],
-      ),
-    [updateFavorites],
-  );
-
   const removeFavorite = useCallback(
-    (chatId: string) =>
-      updateFavorites((current) => current.filter((favorite) => favorite.id !== chatId)),
-    [updateFavorites],
+    (chatId: string) => {
+      if (!viewerId) {
+        return;
+      }
+
+      updateFavoriteChats(viewerId, (current) =>
+        current.filter((favorite) => favorite.id !== chatId),
+      );
+    },
+    [viewerId],
   );
 
-  return { favorites: state.favorites, removeFavorite, toggleFavorite };
+  return { favorites, removeFavorite, toggleFavorite };
 }
 
 export function ChatSidebar({
@@ -174,6 +214,7 @@ export function ChatSidebar({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const favoritesEnabled = useFavoriteChatsEnabled();
   const { favorites, removeFavorite, toggleFavorite } = useFavoriteChats(viewer?.id ?? null);
+  const [deletedChatId, setDeletedChatId] = useState<string | null>(null);
   const chatsById = new Map(chats.map((chat) => [chat.id, chat]));
   const favoriteChats = favoritesEnabled
     ? favorites.map((favorite) => chatsById.get(favorite.id) ?? favorite)
@@ -192,8 +233,14 @@ export function ChatSidebar({
 
   const handleDeleteChat = async (chatId: string) => {
     await onDeleteChat(chatId);
-    removeFavorite(chatId);
+    setDeletedChatId(chatId);
   };
+
+  useEffect(() => {
+    if (deletedChatId && !chats.some((chat) => chat.id === deletedChatId)) {
+      removeFavorite(deletedChatId);
+    }
+  }, [chats, deletedChatId, removeFavorite]);
 
   const renderChatRow = (chat: ChatListItem) => {
     const active = activeChatId === chat.id;
