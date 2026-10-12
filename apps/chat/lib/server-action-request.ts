@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const NEXT_ACTION_HEADER = "next-action";
-const SERVER_ACTION_ID_PATTERN = /^[0-9a-f]{42}$/i;
+const SERVER_ACTION_ID_PATTERN = /^[0-9a-f]{42}$/;
 
 export type ServerActionIds = ReadonlySet<string> | null;
 
@@ -33,7 +33,8 @@ export function loadServerActionIds(
  * resuming the page's postponed state with the not-found tree, which throws
  * "Couldn't find all resumable slots" on every such request (OTTERCHAT-3).
  * Requests whose action id is malformed, or absent from this build, are
- * detected here so they can be rejected before rendering starts.
+ * detected here so they can be rejected before rendering starts. Ids are
+ * compared exactly, as Next.js looks them up without normalizing.
  */
 export function isUnresolvableServerActionRequest(
   request: Request,
@@ -43,7 +44,7 @@ export function isUnresolvableServerActionRequest(
     return false;
   }
 
-  const actionId = request.headers.get(NEXT_ACTION_HEADER)?.trim();
+  const actionId = request.headers.get(NEXT_ACTION_HEADER) ?? undefined;
 
   if (actionId === undefined) {
     return false;
@@ -53,5 +54,5 @@ export function isUnresolvableServerActionRequest(
     return true;
   }
 
-  return knownIds !== null && !knownIds.has(actionId.toLowerCase());
+  return knownIds !== null && !knownIds.has(actionId);
 }

@@ -30,10 +30,9 @@ function actionRequest(actionId: string | null, method = "POST") {
 describe("isServerActionId", () => {
   it("accepts ids in the format Next.js emits", () => {
     expect(isServerActionId(KNOWN_ID)).toBe(true);
-    expect(isServerActionId(KNOWN_ID.toUpperCase())).toBe(true);
   });
 
-  it.each(["", "x", "deadbeef", `${KNOWN_ID}0`, KNOWN_ID.slice(1), `${KNOWN_ID.slice(0, 41)}g`])(
+  it.each(["", "x", "deadbeef", KNOWN_ID.toUpperCase(), ` ${KNOWN_ID}`, `${KNOWN_ID}0`, KNOWN_ID.slice(1), `${KNOWN_ID.slice(0, 41)}g`])(
     "rejects %j",
     (id) => {
       expect(isServerActionId(id)).toBe(false);
@@ -57,9 +56,15 @@ describe("isUnresolvableServerActionRequest", () => {
 
   it("lets this build's server actions through", () => {
     expect(isUnresolvableServerActionRequest(actionRequest(KNOWN_ID), KNOWN_IDS)).toBe(false);
+  });
+
+  it("flags noncanonical spellings of known ids, which Next.js can't resolve", () => {
     expect(
       isUnresolvableServerActionRequest(actionRequest(KNOWN_ID.toUpperCase()), KNOWN_IDS),
-    ).toBe(false);
+    ).toBe(true);
+    expect(isUnresolvableServerActionRequest(actionRequest(KNOWN_ID.toUpperCase()), null)).toBe(
+      true,
+    );
   });
 
   it("falls back to format-only checks when the manifest is unavailable", () => {
