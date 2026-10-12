@@ -132,7 +132,7 @@ export function HomeChatPage() {
             error instanceof Error ? error.message : "Failed to start chat.";
         }
 
-        if (startError) {
+        if (startError !== null) {
           submittingRef.current = false;
           setSubmitting(false);
           setDraft(message);

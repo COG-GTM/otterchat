@@ -135,4 +135,13 @@ describe("startAnonymousChatAction", () => {
     await expect(startAnonymousChatAction()).resolves.toEqual({ ok: true });
     expect(anonStartTypedResult).not.toHaveBeenCalled();
   });
+
+  it("falls back to the flag-off behavior when flag evaluation rejects", async () => {
+    anonStartTypedResult.mockRejectedValue(new Error("LaunchDarkly init failed"));
+    getSetupStatus.mockResolvedValue(
+      setupStatus({ appReady: false, authMode: "local-dev", storageMode: "browser" }),
+    );
+
+    await expect(startAnonymousChatAction()).rejects.toThrow("Sign in to continue.");
+  });
 });

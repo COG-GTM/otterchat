@@ -26,7 +26,7 @@ export async function startAnonymousChatAction(): Promise<StartAnonymousChatResu
   // Returning (not throwing) keeps this expected refusal out of Sentry and
   // preserves the message in production builds.
   if (!setupStatus.appReady || setupStatus.authMode !== "neon") {
-    if (await anonStartTypedResult()) {
+    if (await anonStartTypedResult().catch(() => false)) {
       return { ok: false as const, error: SIGN_IN_REQUIRED };
     }
 
