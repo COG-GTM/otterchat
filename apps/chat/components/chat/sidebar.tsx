@@ -15,6 +15,7 @@ import {
   AuthDisplayLoggedOut,
 } from "@/components/auth/auth-display";
 import { UserMenu } from "@/components/auth/user-menu";
+import { handleFavoriteClick } from "@/components/chat/favorite-click";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -222,14 +223,14 @@ export function ChatSidebar({
   const favoriteIds = new Set(favoriteChats.map((chat) => chat.id));
   const recentChats = favoriteIds.size ? chats.filter((chat) => !favoriteIds.has(chat.id)) : chats;
 
-  const handleToggleFavorite = (chat: ChatListItem) => {
-    if (!viewer) {
-      // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
-      return;
-    }
-
-    toggleFavorite(chat);
-  };
+  const handleToggleFavorite = (chat: ChatListItem) =>
+    handleFavoriteClick({
+      chat,
+      isSignedIn: Boolean(viewer),
+      onNavigate: () => onNavigate?.(),
+      onSignIn,
+      toggleFavorite,
+    });
 
   const handleDeleteChat = async (chatId: string) => {
     await onDeleteChat(chatId);
