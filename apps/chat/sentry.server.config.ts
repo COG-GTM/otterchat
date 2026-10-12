@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://0019f258831250b367748eead361b491@o4511860101414912.ingest.us.sentry.io/4511860118519808",
+  dsn: "https://9df79a8913b18cd5ddb5231815c36993@o4511033686687744.ingest.us.sentry.io/4512243762528256",
   environment: process.env.VERCEL_ENV ?? "development",
   tracesSampleRate: 1,
   enableLogs: true,
