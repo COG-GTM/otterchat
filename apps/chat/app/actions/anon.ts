@@ -9,16 +9,28 @@ import {
   verifyAnonSessionToken,
 } from "@/lib/anon-session";
 import { importChat } from "@/lib/db/queries";
+import { anonStartTypedResult } from "@/lib/flags";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
 
 const CLAIM_MAX_EVENTS = 2_000;
+const SIGN_IN_REQUIRED = "Sign in to continue.";
 
-export async function startAnonymousChatAction() {
+export type StartAnonymousChatResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly error: string };
+
+export async function startAnonymousChatAction(): Promise<StartAnonymousChatResult> {
   const setupStatus = await getSetupStatus();
 
+  // Returning (not throwing) keeps this expected refusal out of Sentry and
+  // preserves the message in production builds.
   if (!setupStatus.appReady || setupStatus.authMode !== "neon") {
-    throw new Error("Sign in to continue.");
+    if (await anonStartTypedResult()) {
+      return { ok: false as const, error: SIGN_IN_REQUIRED };
+    }
+
+    throw new Error(SIGN_IN_REQUIRED);
   }
 
   const viewer = await getServerViewer(setupStatus);

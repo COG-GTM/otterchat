@@ -119,15 +119,24 @@ export function HomeChatPage() {
       setDraft("");
 
       if (!viewer) {
+        let startError: string | null = null;
+
         try {
-          await startAnonymousChatAction();
+          const result = await startAnonymousChatAction();
+
+          if (!result.ok) {
+            startError = result.error;
+          }
         } catch (error) {
+          startError =
+            error instanceof Error ? error.message : "Failed to start chat.";
+        }
+
+        if (startError) {
           submittingRef.current = false;
           setSubmitting(false);
           setDraft(message);
-          setClientError(
-            error instanceof Error ? error.message : "Failed to start chat.",
-          );
+          setClientError(startError);
           return;
         }
       }
