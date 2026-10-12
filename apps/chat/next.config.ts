@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
 const withVercelToolbar = createWithVercelToolbar();
 
 export default withSentryConfig(withEve(withVercelToolbar(nextConfig)), {
-  org: "cognition-gtm",
+  org: "devin-gtm",
   project: "otterchat",
   silent: !process.env.CI,
   widenClientFileUpload: true,
