@@ -15,6 +15,7 @@ import {
   AuthDisplayLoggedOut,
 } from "@/components/auth/auth-display";
 import { UserMenu } from "@/components/auth/user-menu";
+import { shouldShowFavoriteToggle } from "@/components/chat/favorite-toggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -69,6 +70,7 @@ export function ChatSidebar({
   readonly viewer: Viewer | null;
 }) {
   const favoriteIds = new Set(favorites.map((chat) => chat.id));
+  const showFavorites = shouldShowFavoriteToggle({ favoritesEnabled, viewer });
   const renderChatRow = (chat: ChatListItem) => (
     <ChatRow
       active={activeChatId === chat.id}
@@ -77,7 +79,7 @@ export function ChatSidebar({
       key={chat.id}
       onDeleteChat={onDeleteChat}
       onNavigate={onNavigate}
-      onToggleFavorite={favoritesEnabled ? onToggleFavorite : undefined}
+      onToggleFavorite={showFavorites ? onToggleFavorite : undefined}
     />
   );
   const authDisabled = !setupStatus.appReady;
@@ -178,7 +180,7 @@ export function ChatSidebar({
         )}
       </div>
 
-      {favoritesEnabled && favorites.length ? (
+      {showFavorites && favorites.length ? (
         <div className="max-h-[40%] shrink-0 overflow-y-auto border-b border-border px-2 py-2">
           <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-muted-foreground/80">
             Favorites
