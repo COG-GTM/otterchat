@@ -8,7 +8,8 @@ export function isOtterimageConfigured() {
 
 export async function generateOtterimage(prompt: string) {
   const response = await fetch(process.env.OTTERIMAGE_URL!, {
-    body: JSON.stringify({ prompt }),
+    // serve_flux2_lora.py rejects prompts over 1000 chars
+    body: JSON.stringify({ prompt: prompt.slice(0, 1000) }),
     headers: {
       "Content-Type": "application/json",
       "Modal-Key": process.env.OTTERIMAGE_MODAL_KEY!,
