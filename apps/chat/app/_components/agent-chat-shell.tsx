@@ -134,6 +134,13 @@ export function AgentChatShell({
         ...items.filter((item) => item.id !== chat.id),
       ];
     });
+    setFavorites((items) =>
+      items.map((item) =>
+        item.id === chat.id
+          ? { ...item, title: chat.title || item.title, updatedAt: chat.updatedAt }
+          : item,
+      ),
+    );
   }, []);
 
   const updateChatTitle = useCallback((chatId: string, title: string) => {
@@ -194,14 +201,14 @@ export function AgentChatShell({
         return;
       }
 
-      const previous = favorites;
-      const favorited = !previous.some((item) => item.id === chat.id);
+      const favorited = !favorites.some((item) => item.id === chat.id);
+      const apply = (nextFavorited: boolean) =>
+        setFavorites((items) => {
+          const rest = items.filter((item) => item.id !== chat.id);
+          return nextFavorited ? [chat, ...rest] : rest;
+        });
 
-      setFavorites(
-        favorited
-          ? [chat, ...previous.filter((item) => item.id !== chat.id)]
-          : previous.filter((item) => item.id !== chat.id),
-      );
+      apply(favorited);
 
       try {
         await setClientChatFavorite(setupStatusState.storageMode, {
@@ -209,7 +216,7 @@ export function AgentChatShell({
           favorited,
         });
       } catch {
-        setFavorites(previous);
+        apply(!favorited);
       }
     },
     [favorites, setupStatusState.storageMode, viewerState],
