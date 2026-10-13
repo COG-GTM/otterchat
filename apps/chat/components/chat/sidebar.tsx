@@ -5,6 +5,7 @@ import {
   EllipsisIcon,
   PanelLeftIcon,
   PlusIcon,
+  StarIcon,
   Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
@@ -32,6 +33,8 @@ export function ChatSidebar({
   activeChatId,
   className,
   chats,
+  favorites = [],
+  favoritesEnabled = false,
   hasMoreChats = false,
   isLoadingChats = false,
   isLoadingMore = false,
@@ -41,6 +44,7 @@ export function ChatSidebar({
   onNavigate,
   onNewChat,
   onSignIn,
+  onToggleFavorite,
   onToggleSidebar,
   setupStatus,
   viewer,
@@ -48,6 +52,8 @@ export function ChatSidebar({
   readonly activeChatId: string | null;
   readonly className?: string;
   readonly chats: readonly ChatListItem[];
+  readonly favorites?: readonly ChatListItem[];
+  readonly favoritesEnabled?: boolean;
   readonly hasMoreChats?: boolean;
   readonly isLoadingChats?: boolean;
   readonly isLoadingMore?: boolean;
@@ -57,10 +63,23 @@ export function ChatSidebar({
   readonly onNavigate?: (chatId?: string | null) => void;
   readonly onNewChat: () => void;
   readonly onSignIn?: () => void;
+  readonly onToggleFavorite?: (chat: ChatListItem) => void | Promise<void>;
   readonly onToggleSidebar?: () => void;
   readonly setupStatus: SetupStatus;
   readonly viewer: Viewer | null;
 }) {
+  const favoriteIds = new Set(favorites.map((chat) => chat.id));
+  const renderChatRow = (chat: ChatListItem) => (
+    <ChatRow
+      active={activeChatId === chat.id}
+      chat={chat}
+      favorited={favoriteIds.has(chat.id)}
+      key={chat.id}
+      onDeleteChat={onDeleteChat}
+      onNavigate={onNavigate}
+      onToggleFavorite={favoritesEnabled ? onToggleFavorite : undefined}
+    />
+  );
   const authDisabled = !setupStatus.appReady;
   const newSessionActive = activeChatId === null;
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -159,59 +178,22 @@ export function ChatSidebar({
         )}
       </div>
 
+      {favoritesEnabled && favorites.length ? (
+        <div className="max-h-[40%] shrink-0 overflow-y-auto border-b border-border px-2 py-2">
+          <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-muted-foreground/80">
+            Favorites
+          </p>
+          {favorites.map(renderChatRow)}
+        </div>
+      ) : null}
+
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {chats.length ? (
           <div>
             <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-muted-foreground/80">
               Recents
             </p>
-            {chats.map((chat) => {
-              const active = activeChatId === chat.id;
-
-              return (
-                <div
-                  className={cn(
-                    "group/session relative mb-0.5 rounded-[8px] transition-colors",
-                    active ? activeRowClass : inactiveRowClass,
-                  )}
-                  key={chat.id}
-                >
-                  <Link
-                    className="flex h-8 min-w-0 items-center px-2 pr-8 text-xs"
-                    href={`/chat/${chat.id}`}
-                    onClick={() => onNavigate?.(chat.id)}
-                  >
-                    <span className="block truncate">{chat.title}</span>
-                    <span className="sr-only">Updated {formatHistoryTime(chat.updatedAt)}</span>
-                  </Link>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        aria-label="Chat actions"
-                        className="absolute top-1/2 right-1 -translate-y-1/2 rounded-full border border-border/60 bg-background opacity-0 shadow-xs transition-opacity hover:bg-muted group-hover/session:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-                        size="icon-xs"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <EllipsisIcon className="size-3.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" sideOffset={2}>
-                      <DropdownMenuItem
-                        onSelect={(event) => {
-                          event.preventDefault();
-                          void onDeleteChat(chat.id);
-                        }}
-                        variant="destructive"
-                      >
-                        <Trash2Icon className="size-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              );
-            })}
+            {chats.map(renderChatRow)}
           </div>
         ) : null}
         {hasMoreChats ? (
@@ -256,6 +238,84 @@ export function ChatSidebar({
         )}
       </div>
     </aside>
+  );
+}
+
+function ChatRow({
+  active,
+  chat,
+  favorited,
+  onDeleteChat,
+  onNavigate,
+  onToggleFavorite,
+}: {
+  readonly active: boolean;
+  readonly chat: ChatListItem;
+  readonly favorited: boolean;
+  readonly onDeleteChat: (chatId: string) => void | Promise<void>;
+  readonly onNavigate?: (chatId?: string | null) => void;
+  readonly onToggleFavorite?: (chat: ChatListItem) => void | Promise<void>;
+}) {
+  return (
+    <div
+      className={cn(
+        "group/session relative mb-0.5 rounded-[8px] transition-colors",
+        active ? activeRowClass : inactiveRowClass,
+      )}
+    >
+      <Link
+        className={cn(
+          "flex h-8 min-w-0 items-center px-2 text-xs",
+          onToggleFavorite ? "pr-14" : "pr-8",
+        )}
+        href={`/chat/${chat.id}`}
+        onClick={() => onNavigate?.(chat.id)}
+      >
+        <span className="block truncate">{chat.title}</span>
+        <span className="sr-only">Updated {formatHistoryTime(chat.updatedAt)}</span>
+      </Link>
+      {onToggleFavorite ? (
+        <Button
+          aria-label={favorited ? "Unfavorite chat" : "Favorite chat"}
+          aria-pressed={favorited}
+          className={cn(
+            "absolute top-1/2 right-7 -translate-y-1/2 rounded-full text-muted-foreground transition-opacity hover:text-foreground focus-visible:opacity-100",
+            favorited ? "opacity-100" : "opacity-0 group-hover/session:opacity-100",
+          )}
+          onClick={() => void onToggleFavorite(chat)}
+          size="icon-xs"
+          type="button"
+          variant="ghost"
+        >
+          <StarIcon className={cn("size-3.5", favorited && "fill-amber-400 text-amber-400")} />
+        </Button>
+      ) : null}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label="Chat actions"
+            className="absolute top-1/2 right-1 -translate-y-1/2 rounded-full border border-border/60 bg-background opacity-0 shadow-xs transition-opacity hover:bg-muted group-hover/session:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            <EllipsisIcon className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" sideOffset={2}>
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault();
+              void onDeleteChat(chat.id);
+            }}
+            variant="destructive"
+          >
+            <Trash2Icon className="size-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
