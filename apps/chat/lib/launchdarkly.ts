@@ -1,4 +1,10 @@
-import { init, type LDClient, type LDContext } from "@launchdarkly/node-server-sdk";
+import {
+  init,
+  type LDClient,
+  type LDContext,
+  type LDMultiKindContext,
+  type LDSingleKindContext,
+} from "@launchdarkly/node-server-sdk";
 
 let clientPromise: Promise<LDClient> | null = null;
 
@@ -24,6 +30,25 @@ const anonymousContext: LDContext = {
   anonymous: true,
 };
 
+// Preview, production, and development share one SDK key, so flags target
+// Vercel preview deployments through this context kind instead of an environment.
+const deploymentContext = {
+  key: process.env.VERCEL_ENV ?? "development",
+};
+
+function withDeployment(context: LDContext): LDContext {
+  if ("kind" in context && context.kind === "multi") {
+    return { ...context, deployment: deploymentContext };
+  }
+
+  const { kind = "user", ...single } = context as LDSingleKindContext;
+  return {
+    kind: "multi",
+    [kind]: single,
+    deployment: deploymentContext,
+  } as LDMultiKindContext;
+}
+
 export async function boolVariation(
   flagKey: string,
   defaultValue: boolean,
@@ -36,7 +61,7 @@ export async function boolVariation(
   }
 
   try {
-    return await client.boolVariation(flagKey, context, defaultValue);
+    return await client.boolVariation(flagKey, withDeployment(context), defaultValue);
   } catch {
     return defaultValue;
   }
