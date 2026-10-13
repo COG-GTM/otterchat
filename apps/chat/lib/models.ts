@@ -7,8 +7,8 @@ export type TextModel = {
 export type ImageModel = {
   readonly description: string;
   readonly id: string;
-  /** `image` uses the image generation API; `language` returns image files from a text turn. */
-  readonly kind: "image" | "language";
+  /** `image` uses the image generation API; `language` returns image files from a text turn; `otterimage` calls the Modal endpoint. */
+  readonly kind: "image" | "language" | "otterimage";
   readonly label: string;
 };
 
@@ -42,6 +42,12 @@ export const IMAGE_MODELS: readonly ImageModel[] = [
     id: "google/gemini-3.1-flash-image",
     kind: "language",
     label: "Gemini Flash Image",
+  },
+  {
+    description: "FLUX.2 LoRA fine-tuned on Devin the software engineer",
+    id: "otterimage/1.0",
+    kind: "otterimage",
+    label: "otterimage 1.0",
   },
 ];
 
