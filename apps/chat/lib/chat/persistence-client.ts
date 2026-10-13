@@ -9,6 +9,7 @@ import {
   markChatPendingMessageAction,
   saveChatSessionStateAction,
   saveChatSnapshotAction,
+  setChatFavoriteAction,
   skipChatAuthorizationAction,
 } from "@/app/actions/chat";
 import {
@@ -18,15 +19,33 @@ import {
   deleteLocalChat,
   getLocalChat,
   listLocalChats,
+  listLocalFavoriteChatIds,
   markLocalChatPendingMessage,
   saveLocalChatSession,
   saveLocalChatSnapshot,
+  setLocalChatFavorite,
   skipLocalChatAuthorization,
 } from "@/lib/chat/local-store";
 import type { StorageMode } from "@/lib/chat/types";
 
 export function listClientChats(storageMode: StorageMode) {
   return storageMode === "browser" ? listLocalChats() : [];
+}
+
+export function listClientFavoriteChatIds(storageMode: StorageMode) {
+  return storageMode === "browser" ? listLocalFavoriteChatIds() : [];
+}
+
+export async function setClientChatFavorite(
+  storageMode: StorageMode,
+  input: { readonly chatId: string; readonly favorite: boolean },
+) {
+  if (storageMode === "browser") {
+    setLocalChatFavorite(input.chatId, input.favorite);
+    return;
+  }
+
+  await setChatFavoriteAction(input);
 }
 
 export async function getClientChat(storageMode: StorageMode, chatId: string) {

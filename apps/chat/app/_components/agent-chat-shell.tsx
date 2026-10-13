@@ -43,6 +43,8 @@ import {
   deleteClientChat,
   getClientChat,
   listClientChats,
+  listClientFavoriteChatIds,
+  setClientChatFavorite,
 } from "@/lib/chat/persistence-client";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
@@ -73,9 +75,14 @@ export function AgentChatShell({
   const [setupStatusState, setSetupStatusState] = useState(setupStatus);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [anonChatId, setAnonChatId] = useState<string | null>(null);
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
+  const [favoriteChatIds, setFavoriteChatIds] = useState<ReadonlySet<string>>(() => new Set());
   const cursorRef = useRef(initialNextCursor);
   const activeChatIdRef = useRef(activeChatId);
   const claimStartedRef = useRef(false);
+  const favoriteWritesRef = useRef(
+    new Map<string, { readonly generation: number; readonly queue: Promise<void> }>(),
+  );
   const setupReady = setupStatusState.appReady;
   const router = useRouter();
 
@@ -140,6 +147,7 @@ export function AgentChatShell({
 
   const removeChat = useCallback((chatId: string) => {
     setHistory((items) => items.filter((item) => item.id !== chatId));
+    setFavoriteChatIds((ids) => withFavorite(ids, chatId, false));
   }, []);
 
   const startNewChat = useCallback(() => {
@@ -177,6 +185,38 @@ export function AgentChatShell({
       }
     },
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
+  );
+
+  const handleToggleFavorite = useCallback(
+    async (chatId: string) => {
+      if (!viewerState) {
+        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
+        return;
+      }
+
+      const favorite = !favoriteChatIds.has(chatId);
+      const writes = favoriteWritesRef.current;
+      const previous = writes.get(chatId);
+      const generation = (previous?.generation ?? 0) + 1;
+
+      setFavoriteChatIds((ids) => withFavorite(ids, chatId, favorite));
+
+      // Serialize writes per chat so the last click is the last write; only the
+      // newest request may roll back the optimistic state.
+      const queue = (previous?.queue ?? Promise.resolve()).then(async () => {
+        try {
+          await setClientChatFavorite(setupStatusState.storageMode, { chatId, favorite });
+        } catch {
+          if (writes.get(chatId)?.generation === generation) {
+            setFavoriteChatIds((ids) => withFavorite(ids, chatId, !favorite));
+          }
+        }
+      });
+
+      writes.set(chatId, { generation, queue });
+      await queue;
+    },
+    [favoriteChatIds, setupStatusState.storageMode, viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {
@@ -218,22 +258,30 @@ export function AgentChatShell({
   const setBootstrapData = useCallback(
     ({
       chats,
+      favoriteChats,
+      favoritesEnabled: incomingFavoritesEnabled,
       nextCursor: incomingNextCursor,
       setupStatus: incomingSetupStatus,
       viewer: incomingViewer,
-    }: {
-      readonly chats: readonly ChatListItem[];
-      readonly nextCursor: string | null;
-      readonly setupStatus: SetupStatus;
-      readonly viewer: Viewer | null;
-    }) => {
+    }: ChatBootstrapSyncDetail) => {
       setSetupStatusState(incomingSetupStatus);
       setViewerState(incomingViewer);
+      setFavoritesEnabled(incomingFavoritesEnabled);
       const usesBrowserStorage = incomingSetupStatus.storageMode === "browser";
       const nextChats =
         incomingViewer && usesBrowserStorage
           ? listClientChats(incomingSetupStatus.storageMode)
-          : chats;
+          : [...chats, ...favoriteChats.filter((item) => !chats.some((chat) => chat.id === item.id))];
+
+      setFavoriteChatIds(
+        new Set(
+          !incomingFavoritesEnabled || !incomingViewer
+            ? []
+            : usesBrowserStorage
+              ? listClientFavoriteChatIds(incomingSetupStatus.storageMode)
+              : favoriteChats.map((item) => item.id),
+        ),
+      );
 
       setHistory((items) => {
         if (incomingViewer) {
@@ -367,6 +415,7 @@ export function AgentChatShell({
     <ChatSidebar
       activeChatId={activeChatId}
       chats={history}
+      favoriteChatIds={favoritesEnabled ? favoriteChatIds : undefined}
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
@@ -376,6 +425,7 @@ export function AgentChatShell({
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
       onSignIn={() => requestSignIn()}
+      onToggleFavorite={favoritesEnabled ? handleToggleFavorite : undefined}
       onToggleSidebar={() => setDesktopSidebarOpenPersisted(false)}
       setupStatus={setupStatusState}
       viewer={viewerState}
@@ -459,6 +509,7 @@ export function AgentChatShell({
               activeChatId={activeChatId}
               chats={history}
               className="w-[84vw] max-w-80"
+              favoriteChatIds={favoritesEnabled ? favoriteChatIds : undefined}
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
@@ -468,6 +519,7 @@ export function AgentChatShell({
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}
               onSignIn={() => requestSignIn()}
+              onToggleFavorite={favoritesEnabled ? handleToggleFavorite : undefined}
               setupStatus={setupStatusState}
               viewer={viewerState}
             />
@@ -613,4 +665,20 @@ function mergeChatHistory(
   const freshIncoming = incoming.filter((item) => !currentIds.has(item.id));
 
   return [...freshIncoming, ...current.map((item) => incomingById.get(item.id) ?? item)];
+}
+
+function withFavorite(ids: ReadonlySet<string>, chatId: string, favorite: boolean) {
+  if (ids.has(chatId) === favorite) {
+    return ids;
+  }
+
+  const next = new Set(ids);
+
+  if (favorite) {
+    next.add(chatId);
+  } else {
+    next.delete(chatId);
+  }
+
+  return next;
 }
