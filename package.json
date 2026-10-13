@@ -28,6 +28,7 @@
     "ios:open": "pnpm --filter otterchat ios:open",
     "android": "pnpm --filter otterchat android",
     "android:sync": "pnpm --filter otterchat android:sync",
-    "android:open": "pnpm --filter otterchat android:open"
+    "android:open": "pnpm --filter otterchat android:open",
+    "test": "pnpm --filter otterchat test"
   }
 }

@@ -46,6 +46,7 @@ import {
   listClientFavoriteChats,
   setClientChatFavorite,
 } from "@/lib/chat/persistence-client";
+import { handleFavoriteClick } from "@/components/chat/favorite-click";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
 
@@ -194,13 +195,8 @@ export function AgentChatShell({
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
   );
 
-  const handleToggleFavorite = useCallback(
+  const toggleFavorite = useCallback(
     async (chat: ChatListItem) => {
-      if (!viewerState) {
-        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
-        return;
-      }
-
       const favorited = !favorites.some((item) => item.id === chat.id);
       const apply = (nextFavorited: boolean) =>
         setFavorites((items) => {
@@ -219,7 +215,21 @@ export function AgentChatShell({
         apply(!favorited);
       }
     },
-    [favorites, setupStatusState.storageMode, viewerState],
+    [favorites, setupStatusState.storageMode],
+  );
+
+  const handleToggleFavorite = useCallback(
+    (chat: ChatListItem) =>
+      handleFavoriteClick({
+        chat,
+        isSignedIn: Boolean(viewerState),
+        onSignIn: () => {
+          setMobileSidebarOpen(false);
+          requestSignIn();
+        },
+        toggleFavorite,
+      }),
+    [requestSignIn, toggleFavorite, viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {

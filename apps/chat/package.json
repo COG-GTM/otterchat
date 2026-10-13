@@ -25,7 +25,8 @@
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
-    "start:eve": "eve start"
+    "start:eve": "eve start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@capacitor/core": "8.5.0",
@@ -76,6 +77,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260523.1",
     "drizzle-kit": "0.31.9",
     "microsandbox": "^0.5.7",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.11"
   }
 }
