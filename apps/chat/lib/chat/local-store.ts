@@ -9,6 +9,7 @@ const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
 
 type StoredChat = ActiveChat & {
+  readonly favoritedAt?: string | null;
   readonly updatedAt: string;
 };
 
@@ -19,6 +20,22 @@ type StoredChatState = {
 
 export function listLocalChats(): ChatListItem[] {
   return readState().chats.map(toListItem);
+}
+
+export function listLocalFavoriteChats(): ChatListItem[] {
+  return readState()
+    .chats.filter((chat) => chat.favoritedAt)
+    .sort((a, b) => (b.favoritedAt ?? "").localeCompare(a.favoritedAt ?? ""))
+    .map(toListItem);
+}
+
+export function setLocalChatFavorite(chatId: string, favorited: boolean) {
+  return toListItem(
+    updateChat(chatId, (chat) => ({
+      ...chat,
+      favoritedAt: favorited ? new Date().toISOString() : null,
+    })),
+  );
 }
 
 export function getLocalChat(chatId: string): ActiveChat | null {
