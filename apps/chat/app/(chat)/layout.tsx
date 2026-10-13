@@ -34,10 +34,18 @@ async function ResolvedChatBootstrap() {
     viewer && appReady && setupStatus.storageMode === "database"
       ? await listChatsPageByUser(viewer.id)
       : { items: [], nextCursor: null };
-  const favoritesEnabled =
+  let favoritesEnabled =
     appReady && setupStatus.storageMode === "database" && (await favoriteChats());
-  const favorites =
-    favoritesEnabled && viewer ? await listFavoriteChatsByUser(viewer.id) : [];
+  let favorites: Awaited<ReturnType<typeof listFavoriteChatsByUser>> = [];
+
+  if (favoritesEnabled && viewer) {
+    try {
+      favorites = await listFavoriteChatsByUser(viewer.id);
+    } catch {
+      // chat_favorite missing (migration 0003 not applied): keep the existing sidebar working.
+      favoritesEnabled = false;
+    }
+  }
 
   return (
     <AgentChatBootstrapSync

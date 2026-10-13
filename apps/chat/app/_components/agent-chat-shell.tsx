@@ -77,6 +77,7 @@ export function AgentChatShell({
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [anonChatId, setAnonChatId] = useState<string | null>(null);
   const cursorRef = useRef(initialNextCursor);
+  const pendingFavoriteIdsRef = useRef(new Set<string>());
   const activeChatIdRef = useRef(activeChatId);
   const claimStartedRef = useRef(false);
   const setupReady = setupStatusState.appReady;
@@ -133,6 +134,13 @@ export function AgentChatShell({
         ...items.filter((item) => item.id !== chat.id),
       ];
     });
+    setFavorites((items) =>
+      items.map((item) =>
+        item.id === chat.id
+          ? { ...item, title: chat.title || item.title, updatedAt: chat.updatedAt }
+          : item,
+      ),
+    );
   }, []);
 
   const updateChatTitle = useCallback((chatId: string, title: string) => {
@@ -151,7 +159,14 @@ export function AgentChatShell({
 
   const handleToggleFavorite = useCallback(
     async (chat: ChatListItem) => {
+      const pending = pendingFavoriteIdsRef.current;
+
+      if (pending.has(chat.id)) {
+        return;
+      }
+
       const favorite = !favorites.some((item) => item.id === chat.id);
+      pending.add(chat.id);
 
       setFavorites((items) =>
         favorite ? [chat, ...items] : items.filter((item) => item.id !== chat.id),
@@ -163,6 +178,8 @@ export function AgentChatShell({
         setFavorites((items) =>
           favorite ? items.filter((item) => item.id !== chat.id) : [chat, ...items],
         );
+      } finally {
+        pending.delete(chat.id);
       }
     },
     [favorites],
