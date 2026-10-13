@@ -1,7 +1,8 @@
 import { Suspense, type ReactNode } from "react";
 import { AgentChatBootstrapSync } from "@/app/_components/agent-chat-bootstrap-sync";
 import { AgentChatShell } from "@/app/_components/agent-chat-shell";
-import { listChatsPageByUser } from "@/lib/db/queries";
+import { listChatsPageByUser, listFavoriteChatsByUser } from "@/lib/db/queries";
+import { favoriteChats } from "@/lib/flags";
 import { getServerViewer } from "@/lib/session";
 import { getInitialSetupStatus, getSetupStatus } from "@/lib/setup";
 
@@ -33,10 +34,16 @@ async function ResolvedChatBootstrap() {
     viewer && appReady && setupStatus.storageMode === "database"
       ? await listChatsPageByUser(viewer.id)
       : { items: [], nextCursor: null };
+  const favoritesEnabled =
+    appReady && setupStatus.storageMode === "database" && (await favoriteChats());
+  const favorites =
+    favoritesEnabled && viewer ? await listFavoriteChatsByUser(viewer.id) : [];
 
   return (
     <AgentChatBootstrapSync
       chats={initialChatsPage.items}
+      favorites={favorites}
+      favoritesEnabled={favoritesEnabled}
       nextCursor={initialChatsPage.nextCursor}
       setupStatus={setupStatus}
       viewer={viewer}
