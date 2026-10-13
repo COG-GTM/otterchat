@@ -5,6 +5,7 @@ export const CHAT_ROUTE_SYNC_EVENT = "eve-chat:route-sync";
 
 export type ChatBootstrapSyncDetail = {
   readonly chats: readonly ChatListItem[];
+  readonly favoritesEnabled: boolean;
   readonly nextCursor: string | null;
   readonly setupStatus: SetupStatus;
   readonly viewer: Viewer | null;
