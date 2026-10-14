@@ -16,7 +16,7 @@ export async function generateOtterimage(prompt: string) {
       "Modal-Key": process.env.OTTERIMAGE_MODAL_KEY!,
       "Modal-Secret": process.env.OTTERIMAGE_MODAL_SECRET!,
     },
-    body: JSON.stringify({ prompt: Array.from(prompt).slice(0, MAX_PROMPT_CHARS).join("") }),
+    body: JSON.stringify({ prompt: Array.from(prompt.trim()).slice(0, MAX_PROMPT_CHARS).join("") }),
     signal: AbortSignal.timeout(300_000),
   });
 
