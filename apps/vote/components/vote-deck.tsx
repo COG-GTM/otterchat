@@ -6,8 +6,6 @@ import { Button } from "@otterchat/ui/components/button";
 import { Separator } from "@otterchat/ui/components/separator";
 import type { VoteChoice } from "@/lib/db/schema";
 import type { PairForVoter, VoteProgress } from "@/lib/pairs";
-import { PromptComposer } from "@/components/prompt-composer";
-import type { OtterimageModel } from "@/lib/otterimage";
 
 const REFILL_THRESHOLD = 3;
 const REFILL_SIZE = 10;
@@ -15,10 +13,9 @@ const REFILL_SIZE = 10;
 type VoteDeckProps = {
   readonly initialPairs: readonly PairForVoter[];
   readonly initialProgress: VoteProgress;
-  readonly models: readonly OtterimageModel[];
 };
 
-export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProps) {
+export function VoteDeck({ initialPairs, initialProgress }: VoteDeckProps) {
   const [queue, setQueue] = useState<readonly PairForVoter[]>(initialPairs);
   const [progress, setProgress] = useState(initialProgress);
   const [pending, setPending] = useState(false);
@@ -110,21 +107,6 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
     [current],
   );
 
-  const addOwnPair = useCallback((pair: PairForVoter) => {
-    const alreadyCounted = queueIds.current.has(pair.id);
-    queueIds.current.add(pair.id);
-    setQueue((previous) => [pair, ...previous.filter((queued) => queued.id !== pair.id)]);
-    if (!alreadyCounted) {
-      setProgress((previous) => ({
-        ...previous,
-        remaining: previous.remaining + 1,
-        total: previous.total + 1,
-      }));
-    }
-  }, []);
-
-  const composer = models.length > 0 ? <PromptComposer models={models} onPair={addOwnPair} /> : null;
-
   useEffect(() => {
     if (queue.length <= REFILL_THRESHOLD && !drained) {
       void refill();
@@ -154,8 +136,6 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
 
   if (!current) {
     return (
-      <>
-      {composer}
       <section className="border-border bg-card flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border p-12 text-center">
         <p className="text-lg font-medium">No pairs left to judge</p>
         <p className="text-muted-foreground text-sm">
@@ -171,13 +151,11 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
           Check for new pairs
         </Button>
       </section>
-      </>
     );
   }
 
   return (
     <section className="flex flex-1 flex-col gap-5">
-      {composer}
       <div className="border-border bg-card rounded-xl border p-4">
         <p className="text-muted-foreground text-xs uppercase tracking-wide">prompt</p>
         <p className="font-mono text-sm">{current.prompt}</p>
