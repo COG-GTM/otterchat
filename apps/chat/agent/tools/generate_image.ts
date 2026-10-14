@@ -22,8 +22,9 @@ export default defineTool({
     const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
     const timeout = AbortSignal.timeout(IMAGE_TIMEOUT_MS);
 
+    let image: GeneratedImage | undefined;
     try {
-      return await generate(model, prompt, AbortSignal.any([ctx.abortSignal, timeout]));
+      image = await requestImage(model, prompt, AbortSignal.any([ctx.abortSignal, timeout]));
     } catch (error) {
       if (timeout.aborted && !ctx.abortSignal.aborted) {
         throw new Error(`${model.label} timed out after ${IMAGE_TIMEOUT_MS / 1000}s.`, {
@@ -32,6 +33,12 @@ export default defineTool({
       }
       throw error;
     }
+
+    if (!image) {
+      throw new Error(`${model.label} did not return an image.`);
+    }
+
+    return { image: await storeGeneratedImage(image), model: model.id, prompt };
   },
   toModelOutput: (output) => ({
     type: "text",
@@ -39,39 +46,26 @@ export default defineTool({
   }),
 });
 
-async function generate(model: ImageModel, prompt: string, abortSignal: AbortSignal) {
+type GeneratedImage = { base64: string; mediaType: string };
+
+async function requestImage(
+  model: ImageModel,
+  prompt: string,
+  abortSignal: AbortSignal,
+): Promise<GeneratedImage | undefined> {
   if (model.kind === "image") {
     const result = await generateImage({
       model: gateway.imageModel(model.id),
       prompt,
       abortSignal,
     });
-
-    return {
-      image: await storeGeneratedImage({
-        base64: result.image.base64,
-        mediaType: result.image.mediaType ?? "image/png",
-      }),
-      model: model.id,
-      prompt,
-    };
+    return { base64: result.image.base64, mediaType: result.image.mediaType ?? "image/png" };
   }
 
-  // Gemini image models return the image as a file on a text generation
   const result = await generateText({
     model: gateway(model.id),
     prompt,
     abortSignal,
   });
-  const file = result.files.find((candidate) => candidate.mediaType.startsWith("image/"));
-
-  if (!file) {
-    throw new Error(`${model.label} did not return an image.`);
-  }
-
-  return {
-    image: await storeGeneratedImage(file),
-    model: model.id,
-    prompt,
-  };
+  return result.files.find((candidate) => candidate.mediaType.startsWith("image/"));
 }
