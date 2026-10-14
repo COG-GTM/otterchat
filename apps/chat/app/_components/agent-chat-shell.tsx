@@ -159,7 +159,6 @@ export function AgentChatShell({
   const handleToggleFavorite = useCallback(
     async (chat: ChatListItem) => {
       if (!viewerState) {
-        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
         return;
       }
 
