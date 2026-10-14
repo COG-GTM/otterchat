@@ -21,7 +21,7 @@ const oneFlagModule = `import { launchDarklyFlag } from "@/lib/launchdarkly-flag
 
 export const regressionFlag = launchDarklyFlag({
   key: "otterchat-flags-explorer-regression",
-  description: "Declared only by tests/flags-explorer-build.test.ts.",
+  description: "Declared only by tests/flags-explorer-build.e2e.ts.",
 });
 `;
 
