@@ -111,13 +111,16 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
   );
 
   const addOwnPair = useCallback((pair: PairForVoter) => {
+    const alreadyCounted = queueIds.current.has(pair.id);
     queueIds.current.add(pair.id);
     setQueue((previous) => [pair, ...previous.filter((queued) => queued.id !== pair.id)]);
-    setProgress((previous) => ({
-      ...previous,
-      remaining: previous.remaining + 1,
-      total: previous.total + 1,
-    }));
+    if (!alreadyCounted) {
+      setProgress((previous) => ({
+        ...previous,
+        remaining: previous.remaining + 1,
+        total: previous.total + 1,
+      }));
+    }
   }, []);
 
   const composer = models.length > 0 ? <PromptComposer models={models} onPair={addOwnPair} /> : null;

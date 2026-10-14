@@ -15,6 +15,7 @@ export type RenderedImage = {
 
 const NUM_INFERENCE_STEPS = 28;
 const GUIDANCE_SCALE = 4;
+const PAIR_TIMEOUT_MS = 280_000;
 
 export function availableModels(): OtterimageModel[] {
   if (!process.env.OTTERIMAGE_MODAL_KEY || !process.env.OTTERIMAGE_MODAL_SECRET || !process.env.BLOB_READ_WRITE_TOKEN) {
@@ -29,7 +30,7 @@ function modelUrl(modelId: string) {
   return model ? process.env[model.urlEnv] : undefined;
 }
 
-async function renderImage(url: string, prompt: string, seed: number): Promise<RenderedImage> {
+async function renderImage(url: string, prompt: string, seed: number, signal: AbortSignal): Promise<RenderedImage> {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -43,7 +44,7 @@ async function renderImage(url: string, prompt: string, seed: number): Promise<R
       num_inference_steps: NUM_INFERENCE_STEPS,
       guidance_scale: GUIDANCE_SCALE,
     }),
-    signal: AbortSignal.timeout(300_000),
+    signal,
   });
 
   if (!response.ok) {
@@ -66,9 +67,10 @@ export async function renderPair(prompt: string, modelId: string) {
     throw new Error(`Unknown or unconfigured otterimage model: ${modelId}`);
   }
 
+  const signal = AbortSignal.timeout(PAIR_TIMEOUT_MS);
   const seedA = Math.floor(Math.random() * 2 ** 31);
-  const a = await renderImage(url, prompt, seedA);
-  const b = await renderImage(url, prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31);
+  const a = await renderImage(url, prompt, seedA, signal);
+  const b = await renderImage(url, prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31, signal);
 
   return {
     prompt,
