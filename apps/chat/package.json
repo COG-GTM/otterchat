@@ -22,11 +22,11 @@
     "android": "adb reverse tcp:3000 tcp:3000 && cap run android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
+    "test": "node --test \"tests/**/*.test.ts\" && vitest run",
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
-    "start:eve": "eve start",
-    "test": "vitest run"
+    "start:eve": "eve start"
   },
   "dependencies": {
     "@capacitor/core": "8.5.0",
