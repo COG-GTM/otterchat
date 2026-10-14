@@ -25,7 +25,9 @@
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
-    "start:eve": "eve start"
+    "start:eve": "eve start",
+    "test": "node --import ./tests/register.mjs --test tests/flags-discovery-endpoint.test.ts",
+    "test:build": "node --test tests/flags-explorer-build.test.ts"
   },
   "dependencies": {
     "@capacitor/core": "8.5.0",
