@@ -164,12 +164,13 @@ export function AgentChatShell({
       }
 
       const favorite = !favorites.some((item) => item.id === chat.id);
-      const previous = favorites;
+      const applyFavorite = (value: boolean) =>
+        setFavorites((items) => [
+          ...(value ? [chat] : []),
+          ...items.filter((item) => item.id !== chat.id),
+        ]);
 
-      setFavorites((items) => [
-        ...(favorite ? [chat] : []),
-        ...items.filter((item) => item.id !== chat.id),
-      ]);
+      applyFavorite(favorite);
 
       try {
         await setClientChatFavorite(setupStatusState.storageMode, {
@@ -177,7 +178,7 @@ export function AgentChatShell({
           favorite,
         });
       } catch {
-        setFavorites(previous);
+        applyFavorite(!favorite);
       }
     },
     [favorites, setupStatusState.storageMode, viewerState],

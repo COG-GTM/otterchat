@@ -34,11 +34,17 @@ async function ResolvedChatBootstrap() {
     viewer && appReady && setupStatus.storageMode === "database"
       ? await listChatsPageByUser(viewer.id)
       : { items: [], nextCursor: null };
-  const favoritesEnabled = await favoriteChats();
-  const favorites =
-    favoritesEnabled && viewer && appReady && setupStatus.storageMode === "database"
-      ? await listFavoriteChatsByUser(viewer.id).catch(() => [])
-      : [];
+  let favoritesEnabled = await favoriteChats();
+  let favorites: Awaited<ReturnType<typeof listFavoriteChatsByUser>> = [];
+
+  if (favoritesEnabled && viewer && appReady && setupStatus.storageMode === "database") {
+    try {
+      favorites = await listFavoriteChatsByUser(viewer.id);
+    } catch (error) {
+      console.error("Favorites unavailable; hiding favorites UI.", error);
+      favoritesEnabled = false;
+    }
+  }
 
   return (
     <AgentChatBootstrapSync
