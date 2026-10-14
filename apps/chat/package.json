@@ -22,8 +22,8 @@
     "android": "adb reverse tcp:3000 tcp:3000 && cap run android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
+    "test": "node --test \"tests/**/*.test.ts\" && vitest run lib",
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
-    "test": "vitest run",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
     "start:eve": "eve start"
