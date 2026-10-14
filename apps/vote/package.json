@@ -9,6 +9,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
+    "pairs:generate": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/generate-pairs.ts",
     "dev": "next dev --port 3100",
     "start": "next start --port 3100",
     "typecheck": "next typegen && tsc --noEmit -p tsconfig.json"
@@ -17,6 +18,8 @@
     "@neondatabase/serverless": "1.0.2",
     "@otterchat/ui": "workspace:*",
     "@tailwindcss/postcss": "4.3.0",
+    "@vercel/blob": "2.8.0",
+    "ai": "7.0.0-canary.171",
     "drizzle-orm": "0.45.1",
     "lucide-react": "1.16.0",
     "next": "16.3.0",
