@@ -9,6 +9,22 @@ const SENTRY_HELPERS_FRAME = {
   in_app: false,
 };
 
+const VERCEL_LIVE_RAW_FRAME = {
+  filename: "https://vercel.live/_next-live/feedback/instrument.600610faf04c903a39ee.js",
+  function: "<anonymous>",
+  lineno: 2,
+  colno: 1751776,
+};
+
+const FIRST_PARTY_FRAME = {
+  filename: "app:///_next/static/chunks/app/chat/%5Bid%5D/page-0a1b2c3d.js",
+  abs_path: "app:///_next/static/chunks/app/chat/%5Bid%5D/page-0a1b2c3d.js",
+  function: "readTheme",
+  lineno: 1,
+  colno: 4242,
+  in_app: true,
+};
+
 function getItemTypeError(frames: Array<Record<string, unknown>>): ErrorEvent {
   return {
     type: undefined,
@@ -48,29 +64,34 @@ describe("sentry beforeSend", () => {
 
   test("drops the same TypeError when the frame has the raw vercel.live script URL", () => {
     const event = getItemTypeError([
-      {
-        filename: "https://vercel.live/_next-live/feedback/instrument.600610faf04c903a39ee.js",
-        function: "<anonymous>",
-        lineno: 2,
-        colno: 1751776,
-      },
       SENTRY_HELPERS_FRAME,
+      VERCEL_LIVE_RAW_FRAME,
     ]);
     assert.equal(beforeSend(event), null);
   });
 
   test("keeps an identical getItem TypeError thrown from first-party otterchat chunks", () => {
+    const event = getItemTypeError([SENTRY_HELPERS_FRAME, FIRST_PARTY_FRAME]);
+    assert.equal(beforeSend(event), event);
+  });
+
+  test("drops the Vercel Live error when the Sentry wrapper frame is an unsymbolicated first-party chunk", () => {
     const event = getItemTypeError([
-      SENTRY_HELPERS_FRAME,
-      {
-        filename: "app:///_next/static/chunks/app/chat/%5Bid%5D/page-0a1b2c3d.js",
-        abs_path: "app:///_next/static/chunks/app/chat/%5Bid%5D/page-0a1b2c3d.js",
-        function: "readTheme",
-        lineno: 1,
-        colno: 4242,
-        in_app: true,
-      },
+      { filename: "app:///_next/static/chunks/main-app-9f8e7d6c.js", function: "sentryWrapped" },
+      VERCEL_LIVE_RAW_FRAME,
     ]);
+    assert.equal(beforeSend(event), null);
+  });
+
+  test("keeps a first-party error thrown from otterchat code called by the Vercel Live script", () => {
+    const event = getItemTypeError([SENTRY_HELPERS_FRAME, VERCEL_LIVE_RAW_FRAME, FIRST_PARTY_FRAME]);
+    assert.equal(beforeSend(event), event);
+  });
+
+  test("keeps an event whose linked first-party exception sits alongside a Vercel Live exception", () => {
+    const vercelLive = getItemTypeError([SENTRY_HELPERS_FRAME, VERCEL_LIVE_RAW_FRAME]).exception!.values![0]!;
+    const firstParty = getItemTypeError([SENTRY_HELPERS_FRAME, FIRST_PARTY_FRAME]).exception!.values![0]!;
+    const event: ErrorEvent = { type: undefined, exception: { values: [vercelLive, firstParty] } };
     assert.equal(beforeSend(event), event);
   });
 
