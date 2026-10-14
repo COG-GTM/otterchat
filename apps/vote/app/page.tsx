@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { getProgress, getUnvotedPairs } from "@/lib/pairs";
+import { availableModels } from "@/lib/otterimage";
 import { getVoterId } from "@/lib/voter";
 import { SetupNotice } from "@/components/setup-notice";
 import { VoteDeck } from "@/components/vote-deck";
@@ -24,14 +25,14 @@ export default async function VotePage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">ottervote</h1>
           <p className="text-muted-foreground text-sm">
-            Which image looks more like the pet, and follows the prompt better?
+            Which image looks more like Devin, and follows the prompt better?
           </p>
         </div>
         <Link className="text-muted-foreground text-sm underline-offset-4 hover:underline" href="/stats">
           stats
         </Link>
       </header>
-      <VoteDeck initialPairs={pairs} initialProgress={progress} />
+      <VoteDeck models={availableModels()} initialPairs={pairs} initialProgress={progress} />
     </main>
   );
 }
