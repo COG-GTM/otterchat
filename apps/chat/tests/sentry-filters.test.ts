@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { ErrorEvent } from "@sentry/nextjs";
-import { beforeSend } from "./sentry-filters.ts";
+import { beforeSend } from "../lib/sentry-filters.ts";
 
 const SENTRY_HELPERS_FRAME = {
   filename: "../node_modules/@sentry/browser/src/helpers.ts",
