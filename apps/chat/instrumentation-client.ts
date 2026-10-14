@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { beforeSend } from "@/lib/sentry-filters";
 
 Sentry.init({
   dsn: "https://9df79a8913b18cd5ddb5231815c36993@o4511033686687744.ingest.us.sentry.io/4512243762528256",
@@ -9,6 +10,7 @@ Sentry.init({
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 1.0,
   dataCollection: {},
+  beforeSend,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
