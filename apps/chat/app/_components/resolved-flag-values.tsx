@@ -4,11 +4,11 @@ import { FlagValues } from "flags/react";
 import * as flags from "@/lib/flags";
 
 export async function ResolvedFlagValues() {
-  if (!process.env.FLAGS_SECRET) {
+  const declarations = Object.values<Flag<boolean>>(flags);
+  if (!process.env.FLAGS_SECRET || declarations.length === 0) {
     return null;
   }
 
-  const declarations = Object.values<Flag<boolean>>(flags);
   const values = await evaluate(declarations);
   const resolved = Object.fromEntries(
     declarations.map((declaration, index) => [declaration.key, values[index]]),
