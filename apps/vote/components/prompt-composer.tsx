@@ -74,8 +74,7 @@ export function PromptComposer({ models, onPair }: PromptComposerProps) {
             className="min-w-0 flex-1 bg-transparent py-2 outline-none"
             disabled={pending}
             id="prompt-suffix"
-            maxLength={MAX_SUFFIX_CHARS}
-            onChange={(event) => setSuffix(event.target.value)}
+            onChange={(event) => setSuffix(Array.from(event.target.value).slice(0, MAX_SUFFIX_CHARS).join(""))}
             onKeyDown={(event) => event.stopPropagation()}
             placeholder="presenting at a conference"
             value={suffix}

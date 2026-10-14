@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 
 export type OtterimageModel = { readonly id: string; readonly label: string };
 
@@ -70,7 +70,14 @@ export async function renderPair(prompt: string, modelId: string) {
   const signal = AbortSignal.timeout(PAIR_TIMEOUT_MS);
   const seedA = Math.floor(Math.random() * 2 ** 31);
   const a = await renderImage(url, prompt, seedA, signal);
-  const b = await renderImage(url, prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31, signal);
+  let b: RenderedImage;
+
+  try {
+    b = await renderImage(url, prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31, signal);
+  } catch (error) {
+    await discardImages([a.url]);
+    throw error;
+  }
 
   return {
     prompt,
@@ -80,4 +87,8 @@ export async function renderPair(prompt: string, modelId: string) {
     imageAMeta: a.meta,
     imageBMeta: b.meta,
   };
+}
+
+export async function discardImages(urls: readonly string[]) {
+  await del([...urls]).catch((error: unknown) => console.error("failed to delete orphaned pair images", error));
 }

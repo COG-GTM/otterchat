@@ -1,7 +1,7 @@
 import { and, count, eq, gt, like } from "drizzle-orm";
 import { getDb, isDatabaseConfigured } from "@/lib/db/client";
 import { votePair } from "@/lib/db/schema";
-import { availableModels, renderPair } from "@/lib/otterimage";
+import { availableModels, discardImages, renderPair } from "@/lib/otterimage";
 import { buildPrompt, MAX_SUFFIX_CHARS } from "@/lib/prompt-prefix";
 import { getVoterId } from "@/lib/voter";
 
@@ -60,6 +60,10 @@ export async function POST(request: Request) {
       loraVersion: votePair.loraVersion,
       imageAUrl: votePair.imageAUrl,
       imageBUrl: votePair.imageBUrl,
+    })
+    .catch(async (error: unknown) => {
+      await discardImages([pair.imageAUrl, pair.imageBUrl]);
+      throw error;
     });
 
   return Response.json({ pair: row });

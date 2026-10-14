@@ -27,6 +27,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
   const refilling = useRef(false);
   const submitting = useRef(false);
   const queueIds = useRef(new Set(initialPairs.map((pair) => pair.id)));
+  const progressEpoch = useRef(0);
   const current = queue[0];
 
   const refill = useCallback(async () => {
@@ -35,6 +36,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
     }
 
     refilling.current = true;
+    const epoch = progressEpoch.current;
 
     try {
       const response = await fetch(`/api/next-pair?limit=${REFILL_SIZE}`, { cache: "no-store" });
@@ -50,7 +52,9 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
         progress: VoteProgress;
       };
 
-      setProgress(latest);
+      if (epoch === progressEpoch.current) {
+        setProgress(latest);
+      }
 
       const fresh = pairs.filter((pair) => !queueIds.current.has(pair.id));
 
@@ -94,6 +98,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
         }
 
         queueIds.current.delete(pair.id);
+        progressEpoch.current += 1;
         setQueue((previous) => previous.filter((queued) => queued.id !== pair.id));
         setProgress((previous) => ({
           ...previous,
@@ -115,6 +120,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
     queueIds.current.add(pair.id);
     setQueue((previous) => [pair, ...previous.filter((queued) => queued.id !== pair.id)]);
     if (!alreadyCounted) {
+      progressEpoch.current += 1;
       setProgress((previous) => ({
         ...previous,
         remaining: previous.remaining + 1,
