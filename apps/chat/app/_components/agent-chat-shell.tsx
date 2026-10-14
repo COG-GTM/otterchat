@@ -39,10 +39,12 @@ import {
   getStoredAnonChatId,
   storeAnonChatId,
 } from "@/lib/chat/anon-client";
+import { listLocalFavoriteChatIds } from "@/lib/chat/local-store";
 import {
   deleteClientChat,
   getClientChat,
   listClientChats,
+  setClientChatFavorite,
 } from "@/lib/chat/persistence-client";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
@@ -63,6 +65,8 @@ export function AgentChatShell({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [history, setHistory] = useState<ChatListItem[]>([...initialChats]);
+  const [favorites, setFavorites] = useState<ChatListItem[]>([]);
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -130,17 +134,54 @@ export function AgentChatShell({
         ...items.filter((item) => item.id !== chat.id),
       ];
     });
+    setFavorites((items) =>
+      items.map((item) =>
+        item.id === chat.id
+          ? { ...item, title: chat.title || item.title, updatedAt: chat.updatedAt }
+          : item,
+      ),
+    );
   }, []);
 
   const updateChatTitle = useCallback((chatId: string, title: string) => {
-    setHistory((items) =>
-      items.map((item) => (item.id === chatId ? { ...item, title } : item)),
-    );
+    const rename = (items: ChatListItem[]) =>
+      items.map((item) => (item.id === chatId ? { ...item, title } : item));
+
+    setHistory(rename);
+    setFavorites(rename);
   }, []);
 
   const removeChat = useCallback((chatId: string) => {
     setHistory((items) => items.filter((item) => item.id !== chatId));
+    setFavorites((items) => items.filter((item) => item.id !== chatId));
   }, []);
+
+  const handleToggleFavorite = useCallback(
+    async (chat: ChatListItem) => {
+      if (!viewerState) {
+        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
+        return;
+      }
+
+      const favorite = !favorites.some((item) => item.id === chat.id);
+      const previous = favorites;
+
+      setFavorites((items) => [
+        ...(favorite ? [chat] : []),
+        ...items.filter((item) => item.id !== chat.id),
+      ]);
+
+      try {
+        await setClientChatFavorite(setupStatusState.storageMode, {
+          chatId: chat.id,
+          favorite,
+        });
+      } catch {
+        setFavorites(previous);
+      }
+    },
+    [favorites, setupStatusState.storageMode, viewerState],
+  );
 
   const startNewChat = useCallback(() => {
     activeChatIdRef.current = null;
@@ -218,11 +259,15 @@ export function AgentChatShell({
   const setBootstrapData = useCallback(
     ({
       chats,
+      favorites: incomingFavorites = [],
+      favoritesEnabled: incomingFavoritesEnabled = false,
       nextCursor: incomingNextCursor,
       setupStatus: incomingSetupStatus,
       viewer: incomingViewer,
     }: {
       readonly chats: readonly ChatListItem[];
+      readonly favorites?: readonly ChatListItem[];
+      readonly favoritesEnabled?: boolean;
       readonly nextCursor: string | null;
       readonly setupStatus: SetupStatus;
       readonly viewer: Viewer | null;
@@ -234,6 +279,22 @@ export function AgentChatShell({
         incomingViewer && usesBrowserStorage
           ? listClientChats(incomingSetupStatus.storageMode)
           : chats;
+
+      setFavoritesEnabled(incomingFavoritesEnabled);
+      if (!incomingFavoritesEnabled || !incomingViewer) {
+        setFavorites([]);
+      } else if (usesBrowserStorage) {
+        const chatsById = new Map(nextChats.map((item) => [item.id, item]));
+
+        setFavorites(
+          listLocalFavoriteChatIds().flatMap((id) => {
+            const item = chatsById.get(id);
+            return item ? [item] : [];
+          }),
+        );
+      } else {
+        setFavorites([...incomingFavorites]);
+      }
 
       setHistory((items) => {
         if (incomingViewer) {
@@ -367,11 +428,14 @@ export function AgentChatShell({
     <ChatSidebar
       activeChatId={activeChatId}
       chats={history}
+      favorites={favorites}
+      favoritesEnabled={favoritesEnabled}
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
       newSessionDisabledReason={newSessionDisabledReason}
       onDeleteChat={handleDeleteChat}
+      onToggleFavorite={handleToggleFavorite}
       onLoadMoreChats={loadMoreChats}
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
@@ -459,11 +523,14 @@ export function AgentChatShell({
               activeChatId={activeChatId}
               chats={history}
               className="w-[84vw] max-w-80"
+              favorites={favorites}
+              favoritesEnabled={favoritesEnabled}
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
               newSessionDisabledReason={newSessionDisabledReason}
               onDeleteChat={handleDeleteChat}
+              onToggleFavorite={handleToggleFavorite}
               onLoadMoreChats={loadMoreChats}
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}

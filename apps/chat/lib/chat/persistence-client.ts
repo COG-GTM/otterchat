@@ -9,6 +9,7 @@ import {
   markChatPendingMessageAction,
   saveChatSessionStateAction,
   saveChatSnapshotAction,
+  setChatFavoriteAction,
   skipChatAuthorizationAction,
 } from "@/app/actions/chat";
 import {
@@ -21,6 +22,7 @@ import {
   markLocalChatPendingMessage,
   saveLocalChatSession,
   saveLocalChatSnapshot,
+  setLocalChatFavorite,
   skipLocalChatAuthorization,
 } from "@/lib/chat/local-store";
 import type { StorageMode } from "@/lib/chat/types";
@@ -141,4 +143,16 @@ export async function skipClientChatAuthorization(
   return storageMode === "browser"
     ? skipLocalChatAuthorization(input)
     : skipChatAuthorizationAction(input);
+}
+
+export async function setClientChatFavorite(
+  storageMode: StorageMode,
+  input: { readonly chatId: string; readonly favorite: boolean },
+) {
+  if (storageMode === "browser") {
+    setLocalChatFavorite(input.chatId, input.favorite);
+    return;
+  }
+
+  await setChatFavoriteAction(input);
 }
