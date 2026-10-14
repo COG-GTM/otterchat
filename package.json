@@ -18,6 +18,7 @@
     "start:eve": "pnpm --filter otterchat start:eve",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter otterchat test",
     "db:generate": "pnpm --filter otterchat db:generate",
     "db:migrate": "pnpm --filter otterchat db:migrate",
     "db:migrate:production": "pnpm --filter otterchat db:migrate:production",
