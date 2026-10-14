@@ -14,16 +14,18 @@ function throwSite(frames: StackFrame[]): StackFrame | undefined {
 // True only when every exception in the event was thrown from the Vercel Live script,
 // so first-party errors (including ones linked to or called from the script) are kept.
 export function isVercelLiveToolbarEvent(event: Event): boolean {
-  const throwSites = (event.exception?.values ?? [])
-    .map((exception) => throwSite(exception.stacktrace?.frames ?? []))
-    .filter((frame) => frame !== undefined);
+  const exceptions = event.exception?.values ?? [];
   return (
-    throwSites.length > 0 &&
-    throwSites.every((frame) =>
-      [frame.filename, frame.abs_path].some(
-        (path) => typeof path === "string" && VERCEL_LIVE_FRAME.test(path),
-      ),
-    )
+    exceptions.length > 0 &&
+    exceptions.every((exception) => {
+      const frame = throwSite(exception.stacktrace?.frames ?? []);
+      return (
+        frame !== undefined &&
+        [frame.filename, frame.abs_path].some(
+          (path) => typeof path === "string" && VERCEL_LIVE_FRAME.test(path),
+        )
+      );
+    })
   );
 }
 

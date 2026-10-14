@@ -95,6 +95,15 @@ describe("sentry beforeSend", () => {
     assert.equal(beforeSend(event), event);
   });
 
+  test("keeps an event whose linked stackless exception sits alongside a Vercel Live exception", () => {
+    const vercelLive = getItemTypeError([SENTRY_HELPERS_FRAME, VERCEL_LIVE_RAW_FRAME]).exception!.values![0]!;
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: { values: [vercelLive, { type: "Error", value: "first-party failure" }] },
+    };
+    assert.equal(beforeSend(event), event);
+  });
+
   test("keeps events without a stacktrace", () => {
     const event: ErrorEvent = {
       type: undefined,
