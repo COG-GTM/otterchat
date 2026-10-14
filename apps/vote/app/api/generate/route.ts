@@ -51,9 +51,10 @@ export async function POST(request: Request) {
   }
 
   const pair = await renderPair(prompt, model.id);
+  const id = crypto.randomUUID();
   const [row] = await db
     .insert(votePair)
-    .values({ id: crypto.randomUUID(), source, ...pair })
+    .values({ id, source, ...pair })
     .returning({
       id: votePair.id,
       prompt: votePair.prompt,
@@ -62,7 +63,17 @@ export async function POST(request: Request) {
       imageBUrl: votePair.imageBUrl,
     })
     .catch(async (error: unknown) => {
-      await discardImages([pair.imageAUrl, pair.imageBUrl]);
+      const saved = await db
+        .select({ id: votePair.id })
+        .from(votePair)
+        .where(eq(votePair.id, id))
+        .then((rows) => rows.length > 0)
+        .catch(() => true);
+
+      if (!saved) {
+        await discardImages([pair.imageAUrl, pair.imageBUrl]);
+      }
+
       throw error;
     });
 
