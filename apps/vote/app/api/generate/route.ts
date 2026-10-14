@@ -1,7 +1,7 @@
 import { and, count, eq, gt, like } from "drizzle-orm";
 import { getDb, isDatabaseConfigured } from "@/lib/db/client";
 import { votePair } from "@/lib/db/schema";
-import { otterimageConfigured, renderPair } from "@/lib/otterimage";
+import { availableModels, renderPair } from "@/lib/otterimage";
 import { buildPrompt, MAX_SUFFIX_CHARS } from "@/lib/prompt-prefix";
 import { getVoterId } from "@/lib/voter";
 
@@ -12,12 +12,19 @@ const ALL_VOTERS_PER_DAY = 200;
 const HOUR_MS = 60 * 60 * 1000;
 
 export async function POST(request: Request) {
-  if (!isDatabaseConfigured() || !otterimageConfigured()) {
+  const models = availableModels();
+
+  if (!isDatabaseConfigured() || models.length === 0) {
     return Response.json({ error: "Prompt generation is not configured" }, { status: 503 });
   }
 
-  const body = (await request.json().catch(() => null)) as { suffix?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { suffix?: unknown; model?: unknown } | null;
   const prompt = typeof body?.suffix === "string" ? buildPrompt(body.suffix) : null;
+  const model = models.find((candidate) => candidate.id === body?.model) ?? (body?.model == null ? models[0] : null);
+
+  if (!model) {
+    return Response.json({ error: "Unknown model" }, { status: 400 });
+  }
 
   if (!prompt) {
     return Response.json(
@@ -43,7 +50,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Prompt limit reached, try again later" }, { status: 429 });
   }
 
-  const pair = await renderPair(prompt);
+  const pair = await renderPair(prompt, model.id);
   const [row] = await db
     .insert(votePair)
     .values({ id: crypto.randomUUID(), source, ...pair })

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
 
-export const OTTERIMAGE_LORA_VERSION = "otterimage-1.0";
+export type OtterimageModel = { readonly id: string; readonly label: string };
+
+const MODELS = [
+  { id: "otterimage-1.0", label: "otterimage 1.0", urlEnv: "OTTERIMAGE_URL" },
+  { id: "otterimage-previous", label: "otterimage (previous)", urlEnv: "OTTERIMAGE_PREVIOUS_URL" },
+] as const;
 
 export type RenderedImage = {
   readonly url: string;
@@ -11,17 +16,21 @@ export type RenderedImage = {
 const NUM_INFERENCE_STEPS = 28;
 const GUIDANCE_SCALE = 4;
 
-export function otterimageConfigured() {
-  return Boolean(
-    process.env.OTTERIMAGE_URL &&
-      process.env.OTTERIMAGE_MODAL_KEY &&
-      process.env.OTTERIMAGE_MODAL_SECRET &&
-      process.env.BLOB_READ_WRITE_TOKEN,
-  );
+export function availableModels(): OtterimageModel[] {
+  if (!process.env.OTTERIMAGE_MODAL_KEY || !process.env.OTTERIMAGE_MODAL_SECRET || !process.env.BLOB_READ_WRITE_TOKEN) {
+    return [];
+  }
+
+  return MODELS.filter((model) => process.env[model.urlEnv]).map(({ id, label }) => ({ id, label }));
 }
 
-async function renderImage(prompt: string, seed: number): Promise<RenderedImage> {
-  const response = await fetch(process.env.OTTERIMAGE_URL!, {
+function modelUrl(modelId: string) {
+  const model = MODELS.find((candidate) => candidate.id === modelId);
+  return model ? process.env[model.urlEnv] : undefined;
+}
+
+async function renderImage(url: string, prompt: string, seed: number): Promise<RenderedImage> {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -50,14 +59,20 @@ async function renderImage(prompt: string, seed: number): Promise<RenderedImage>
 }
 
 /** Two samples of the same prompt with different seeds; sequential so a single warm container serves both. */
-export async function renderPair(prompt: string) {
+export async function renderPair(prompt: string, modelId: string) {
+  const url = modelUrl(modelId);
+
+  if (!url) {
+    throw new Error(`Unknown or unconfigured otterimage model: ${modelId}`);
+  }
+
   const seedA = Math.floor(Math.random() * 2 ** 31);
-  const a = await renderImage(prompt, seedA);
-  const b = await renderImage(prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31);
+  const a = await renderImage(url, prompt, seedA);
+  const b = await renderImage(url, prompt, (seedA + 1 + Math.floor(Math.random() * 2 ** 30)) % 2 ** 31);
 
   return {
     prompt,
-    loraVersion: OTTERIMAGE_LORA_VERSION,
+    loraVersion: modelId,
     imageAUrl: a.url,
     imageBUrl: b.url,
     imageAMeta: a.meta,
