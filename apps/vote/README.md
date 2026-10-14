@@ -33,7 +33,7 @@ otterchat's.
 | `/stats` | public | Win rate per LoRA version, votes per day, decisive-pair count. |
 | `GET /api/next-pair?limit=` | voter cookie | Pairs this voter has not judged. |
 | `POST /api/vote` | voter cookie | `{ pairId, choice }`, one vote per voter per pair. |
-| `POST /api/generate` | voter cookie | `{ suffix }` → renders 2 otterimage seeds for "Devin the software engineer {suffix}" and queues the pair. 5/hour per voter, 200/day total. |
+| `POST /api/generate` | voter cookie | `{ suffix, model }` → renders 2 seeds from the chosen otterimage model for "Devin the software engineer {suffix}" and queues the pair. 5/hour per voter, 200/day total. |
 | `POST /api/pairs` | `Bearer $INGEST_TOKEN` | `{ pairs: [{ prompt, loraVersion, imageAUrl, imageBUrl, ... }] }`. |
 | `GET /api/export?loraVersion=` | `Bearer $INGEST_TOKEN` | Winner/loser pairs for the DPO trainer. |
 
@@ -46,6 +46,7 @@ one ending per line), renders two seeds per prompt and posts them to `/api/pairs
 ```bash
 pnpm --filter ottervote pairs:generate --count 50 --vote-url https://<ottervote-host>
 pnpm --filter ottervote pairs:generate --count 10 --dry-run   # print the prompts only
+pnpm --filter ottervote pairs:generate --count 20 --model otterimage-previous   # render with OTTERIMAGE_PREVIOUS_URL
 ```
 
 `otterimage/train_flux2_dpo.py` post-trains the SFT LoRA on `/api/export` (majority winner

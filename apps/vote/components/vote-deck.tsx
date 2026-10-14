@@ -7,6 +7,7 @@ import { Separator } from "@otterchat/ui/components/separator";
 import type { VoteChoice } from "@/lib/db/schema";
 import type { PairForVoter, VoteProgress } from "@/lib/pairs";
 import { PromptComposer } from "@/components/prompt-composer";
+import type { OtterimageModel } from "@/lib/otterimage";
 
 const REFILL_THRESHOLD = 3;
 const REFILL_SIZE = 10;
@@ -14,10 +15,10 @@ const REFILL_SIZE = 10;
 type VoteDeckProps = {
   readonly initialPairs: readonly PairForVoter[];
   readonly initialProgress: VoteProgress;
-  readonly canGenerate: boolean;
+  readonly models: readonly OtterimageModel[];
 };
 
-export function VoteDeck({ initialPairs, initialProgress, canGenerate }: VoteDeckProps) {
+export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProps) {
   const [queue, setQueue] = useState<readonly PairForVoter[]>(initialPairs);
   const [progress, setProgress] = useState(initialProgress);
   const [pending, setPending] = useState(false);
@@ -119,7 +120,7 @@ export function VoteDeck({ initialPairs, initialProgress, canGenerate }: VoteDec
     }));
   }, []);
 
-  const composer = canGenerate ? <PromptComposer onPair={addOwnPair} /> : null;
+  const composer = models.length > 0 ? <PromptComposer models={models} onPair={addOwnPair} /> : null;
 
   useEffect(() => {
     if (queue.length <= REFILL_THRESHOLD && !drained) {

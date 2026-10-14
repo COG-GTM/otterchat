@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { getProgress, getUnvotedPairs } from "@/lib/pairs";
-import { otterimageConfigured } from "@/lib/otterimage";
+import { availableModels } from "@/lib/otterimage";
 import { getVoterId } from "@/lib/voter";
 import { SetupNotice } from "@/components/setup-notice";
 import { VoteDeck } from "@/components/vote-deck";
@@ -32,7 +32,7 @@ export default async function VotePage() {
           stats
         </Link>
       </header>
-      <VoteDeck canGenerate={otterimageConfigured()} initialPairs={pairs} initialProgress={progress} />
+      <VoteDeck models={availableModels()} initialPairs={pairs} initialProgress={progress} />
     </main>
   );
 }
