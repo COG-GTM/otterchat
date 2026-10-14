@@ -39,6 +39,7 @@ import {
   getStoredAnonChatId,
   storeAnonChatId,
 } from "@/lib/chat/anon-client";
+import { shouldShowFavorites } from "@/lib/chat/favorites";
 import { listLocalFavoriteChatIds } from "@/lib/chat/local-store";
 import {
   deleteClientChat,
@@ -158,11 +159,6 @@ export function AgentChatShell({
 
   const handleToggleFavorite = useCallback(
     async (chat: ChatListItem) => {
-      if (!viewerState) {
-        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
-        return;
-      }
-
       const favorite = !favorites.some((item) => item.id === chat.id);
       const applyFavorite = (value: boolean) =>
         setFavorites((items) => [
@@ -181,7 +177,7 @@ export function AgentChatShell({
         applyFavorite(!favorite);
       }
     },
-    [favorites, setupStatusState.storageMode, viewerState],
+    [favorites, setupStatusState.storageMode],
   );
 
   const startNewChat = useCallback(() => {
@@ -281,7 +277,7 @@ export function AgentChatShell({
           ? listClientChats(incomingSetupStatus.storageMode)
           : chats;
 
-      setFavoritesEnabled(incomingFavoritesEnabled);
+      setFavoritesEnabled(shouldShowFavorites(incomingFavoritesEnabled, incomingViewer));
       if (!incomingFavoritesEnabled || !incomingViewer) {
         setFavorites([]);
       } else if (usesBrowserStorage) {
