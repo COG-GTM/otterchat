@@ -198,6 +198,12 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.3.0
         version: 4.3.0
+      '@vercel/blob':
+        specifier: 2.8.0
+        version: 2.8.0
+      ai:
+        specifier: 7.0.0-canary.171
+        version: 7.0.0-canary.171(zod@4.4.3)
       drizzle-orm:
         specifier: 0.45.1
         version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(@upstash/redis@1.38.0)(kysely@0.28.17)
