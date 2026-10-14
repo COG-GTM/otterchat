@@ -1,7 +1,7 @@
 import { and, count, eq, gt, like } from "drizzle-orm";
 import { getDb, isDatabaseConfigured } from "@/lib/db/client";
 import { votePair } from "@/lib/db/schema";
-import { availableModels, discardImages, renderPair } from "@/lib/otterimage";
+import { availableModels, renderPair } from "@/lib/otterimage";
 import { buildPrompt, MAX_SUFFIX_CHARS } from "@/lib/prompt-prefix";
 import { getVoterId } from "@/lib/voter";
 
@@ -51,30 +51,15 @@ export async function POST(request: Request) {
   }
 
   const pair = await renderPair(prompt, model.id);
-  const id = crypto.randomUUID();
   const [row] = await db
     .insert(votePair)
-    .values({ id, source, ...pair })
+    .values({ id: crypto.randomUUID(), source, ...pair })
     .returning({
       id: votePair.id,
       prompt: votePair.prompt,
       loraVersion: votePair.loraVersion,
       imageAUrl: votePair.imageAUrl,
       imageBUrl: votePair.imageBUrl,
-    })
-    .catch(async (error: unknown) => {
-      const saved = await db
-        .select({ id: votePair.id })
-        .from(votePair)
-        .where(eq(votePair.id, id))
-        .then((rows) => rows.length > 0)
-        .catch(() => true);
-
-      if (!saved) {
-        await discardImages([pair.imageAUrl, pair.imageBUrl]);
-      }
-
-      throw error;
     });
 
   return Response.json({ pair: row });
