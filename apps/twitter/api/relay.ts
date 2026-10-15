@@ -33,7 +33,7 @@ type XaaEvent = {
   includes?: { users?: { id?: string; username?: string }[] }
 }
 
-const XAA_REPLY_EVENTS = new Set(['post.reply.create', 'post.mention.create'])
+const XAA_EVENTS = new Set(['post.create', 'post.reply.create', 'post.mention.create'])
 
 function isXaaPost(value: unknown): value is XaaPost {
   if (typeof value !== 'object' || value === null) return false
@@ -77,7 +77,6 @@ function accountActivityFeedback(activity: XActivity): FeedbackItem[] {
   const events: unknown = activity.tweet_create_events
   return (Array.isArray(events) ? events : [])
     .filter(isTweet)
-    .filter((tweet) => tweet.user.id_str !== activity.for_user_id)
     .map((tweet) => ({
       handle: `@${tweet.user.screen_name}`,
       text: tweet.extended_tweet?.full_text ?? tweet.text,
@@ -92,8 +91,7 @@ function accountActivityFeedback(activity: XActivity): FeedbackItem[] {
 
 function xActivityFeedback(event: XaaEvent): FeedbackItem[] {
   const post = event.payload
-  if (!XAA_REPLY_EVENTS.has(event.event_type ?? '') || !isXaaPost(post)) return []
-  if (post.author_id === event.filter?.user_id) return []
+  if (!XAA_EVENTS.has(event.event_type ?? '') || !isXaaPost(post)) return []
   const users = Array.isArray(event.includes?.users) ? event.includes.users : []
   const username = (id?: string) => users.find((user) => user?.id === id)?.username
   const author = username(post.author_id)
@@ -146,7 +144,7 @@ export async function POST(request: Request) {
   const posts = new Set(feedback.map((item) => item.inReplyTo))
   const response = await forwardToDevin({
     source: xaa ? 'x-activity' : 'x-account-activity',
-    post: posts.size === 1 ? ([...posts][0] ?? '') : '',
+    post: posts.size === 1 ? [...posts][0] || (feedback.length === 1 ? feedback[0]!.link : '') : '',
     feedback,
   })
   if (!response.ok) return response
