@@ -3,18 +3,10 @@ import { del, put } from "@vercel/blob";
 
 export type OtterimageModel = { readonly id: string; readonly label: string };
 
-const MODELS = [
-  {
-    id: "otterimage-1.0",
-    label: "otterimage 1.0",
-    endpoint: "https://cognition-gtm--otterimage-ef15dbaa17ce47a1882f8db5603fedf1.us-east.modal.run",
-  },
-  {
-    id: "otterimage-previous",
-    label: "otterimage (previous)",
-    endpoint: "https://cognition-gtm--otterimage-eb43903921284b49b4e1f6e331c93428.us-east.modal.run",
-  },
-] as const;
+const MODELS: readonly (OtterimageModel & { readonly endpoint: string })[] = [
+  { id: "otterimage-1.0", label: "otterimage 1.0", endpoint: "" },
+  { id: "otterimage-previous", label: "otterimage (previous)", endpoint: "" },
+];
 
 export type RenderedImage = {
   readonly url: string;
@@ -30,11 +22,11 @@ export function availableModels(): OtterimageModel[] {
     return [];
   }
 
-  return MODELS.map(({ id, label }) => ({ id, label }));
+  return MODELS.filter((model) => model.endpoint).map(({ id, label }) => ({ id, label }));
 }
 
 function modelUrl(modelId: string) {
-  return MODELS.find((candidate) => candidate.id === modelId)?.endpoint;
+  return MODELS.find((candidate) => candidate.id === modelId)?.endpoint || undefined;
 }
 
 async function renderImage(url: string, prompt: string, seed: number, signal: AbortSignal): Promise<RenderedImage> {
