@@ -33,8 +33,6 @@ type XaaEvent = {
   includes?: { users?: { id?: string; username?: string }[] }
 }
 
-const XAA_EVENTS = new Set(['post.create', 'post.reply.create', 'post.mention.create'])
-
 function isXaaPost(value: unknown): value is XaaPost {
   if (typeof value !== 'object' || value === null) return false
   const { id, text, author_id } = value as Record<string, unknown>
@@ -102,7 +100,7 @@ function accountActivityFeedback(activity: XActivity): Forward[] {
 
 function xActivityFeedback(event: XaaEvent): Forward[] {
   const post = event.payload
-  if (!XAA_EVENTS.has(event.event_type ?? '') || !isXaaPost(post)) return []
+  if (!isXaaPost(post)) return []
   const users = Array.isArray(event.includes?.users) ? event.includes.users : []
   const username = (id?: string) => users.find((user) => user?.id === id)?.username
   const author = username(post.author_id)
