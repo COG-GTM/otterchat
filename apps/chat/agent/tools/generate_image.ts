@@ -9,7 +9,7 @@ export default defineTool({
   description:
     "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
   inputSchema: z.object({
-    prompt: z.string().min(1).describe("Detailed description of the image to generate."),
+    prompt: z.string().trim().min(1).describe("Detailed description of the image to generate."),
   }),
   outputSchema: z.object({
     image: z.string().describe("URL of the generated image."),
