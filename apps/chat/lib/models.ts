@@ -10,6 +10,7 @@ export type ImageModel = {
   /** `image` uses the image generation API; `language` returns image files from a text turn; `otterimage` calls the FLUX.2 LoRA endpoint. */
   readonly kind: "image" | "language" | "otterimage";
   readonly label: string;
+  readonly endpoint?: string;
 };
 
 export const TEXT_MODELS: readonly TextModel[] = [
@@ -45,6 +46,7 @@ export const IMAGE_MODELS: readonly ImageModel[] = [
   },
   {
     description: "FLUX.2 fine-tuned on Devin the software engineer",
+    endpoint: "https://cognition-gtm--otterimage-90a021b9cf8d4daf916c3fa7c1876b82.us-east.modal.run",
     id: "otterimage/1.0",
     kind: "otterimage",
     label: "otterimage 1.0",

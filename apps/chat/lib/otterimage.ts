@@ -2,17 +2,15 @@ const MAX_PROMPT_CHARS = 1000;
 
 export function isOtterimageConfigured() {
   return Boolean(
-    process.env.OTTERIMAGE_URL &&
-      process.env.OTTERIMAGE_MODAL_KEY &&
+    process.env.OTTERIMAGE_MODAL_KEY &&
       process.env.OTTERIMAGE_MODAL_SECRET,
   );
 }
 
-export async function generateOtterimage(prompt: string) {
-  const url = process.env.OTTERIMAGE_URL;
+export async function generateOtterimage(url: string, prompt: string) {
   const key = process.env.OTTERIMAGE_MODAL_KEY;
   const secret = process.env.OTTERIMAGE_MODAL_SECRET;
-  if (!url || !key || !secret) {
+  if (!key || !secret) {
     throw new Error("otterimage is not configured.");
   }
 

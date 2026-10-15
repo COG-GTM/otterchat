@@ -20,11 +20,13 @@ export default defineTool({
     const selected = ctx.session.auth.current?.attributes?.[IMAGE_MODEL_ATTRIBUTE];
     const resolved = resolveImageModel(typeof selected === "string" ? selected : undefined);
     const model =
-      resolved.kind === "otterimage" && !isOtterimageConfigured() ? IMAGE_MODELS[0]! : resolved;
+      resolved.kind === "otterimage" && (!resolved.endpoint || !isOtterimageConfigured())
+        ? IMAGE_MODELS[0]!
+        : resolved;
 
-    if (model.kind === "otterimage") {
+    if (model.kind === "otterimage" && model.endpoint) {
       return {
-        image: await storeGeneratedImage(await generateOtterimage(prompt)),
+        image: await storeGeneratedImage(await generateOtterimage(model.endpoint, prompt)),
         model: model.id,
         prompt,
       };
