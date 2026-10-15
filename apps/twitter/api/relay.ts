@@ -75,27 +75,23 @@ export async function POST(request: Request) {
     .filter((tweet) => tweet.user.id_str !== forUserId)
   if (tweets.length === 0) return json({ ok: true, forwarded: 0 }, 200)
 
-  const byPost = new Map<string, XTweet[]>()
-  for (const tweet of tweets) {
-    const post =
+  const feedback = tweets.map((tweet) => ({
+    handle: `@${tweet.user.screen_name}`,
+    text: tweet.extended_tweet?.full_text ?? tweet.text,
+    likes: String(tweet.favorite_count ?? 0),
+    link: statusUrl(tweet.user.screen_name, tweet.id_str),
+    inReplyTo:
       tweet.in_reply_to_screen_name && tweet.in_reply_to_status_id_str
         ? statusUrl(tweet.in_reply_to_screen_name, tweet.in_reply_to_status_id_str)
-        : ''
-    byPost.set(post, [...(byPost.get(post) ?? []), tweet])
-  }
+        : '',
+  }))
+  const posts = new Set(feedback.map((item) => item.inReplyTo))
 
-  for (const [post, group] of byPost) {
-    const response = await forwardToDevin({
-      source: 'x-account-activity',
-      post,
-      feedback: group.map((tweet) => ({
-        handle: `@${tweet.user.screen_name}`,
-        text: tweet.extended_tweet?.full_text ?? tweet.text,
-        likes: String(tweet.favorite_count ?? 0),
-        link: statusUrl(tweet.user.screen_name, tweet.id_str),
-      })),
-    })
-    if (!response.ok) return response
-  }
+  const response = await forwardToDevin({
+    source: 'x-account-activity',
+    post: posts.size === 1 ? [...posts][0] : '',
+    feedback,
+  })
+  if (!response.ok) return response
   return json({ ok: true, forwarded: tweets.length }, 202)
 }

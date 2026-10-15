@@ -6,6 +6,7 @@ export type FeedbackItem = {
   text: string
   likes?: string
   link: string
+  inReplyTo?: string
 }
 
 export type FeedbackPayload = {
