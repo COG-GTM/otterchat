@@ -16,6 +16,15 @@ type XActivity = {
   tweet_create_events?: XTweet[]
 }
 
+function isTweet(value: unknown): value is XTweet {
+  if (typeof value !== 'object' || value === null) return false
+  const { id_str, text, user } = value as Record<string, unknown>
+  if (typeof id_str !== 'string' || typeof text !== 'string') return false
+  if (typeof user !== 'object' || user === null) return false
+  const { id_str: userId, screen_name } = user as Record<string, unknown>
+  return typeof userId === 'string' && typeof screen_name === 'string'
+}
+
 function sign(secret: string, data: string) {
   return `sha256=${createHmac('sha256', secret).update(data).digest('base64')}`
 }
@@ -52,30 +61,41 @@ export async function POST(request: Request) {
     return json({ error: 'Invalid signature' }, 401)
   }
 
-  let activity: XActivity
+  let activity: XActivity | null
   try {
-    activity = JSON.parse(body) as XActivity
+    activity = JSON.parse(body) as XActivity | null
   } catch {
     return json({ error: 'Expected a JSON body' }, 400)
   }
 
-  const tweets = (activity.tweet_create_events ?? []).filter(
-    (tweet) => tweet.user.id_str !== activity.for_user_id,
-  )
+  const events: unknown = activity?.tweet_create_events
+  const forUserId = activity?.for_user_id
+  const tweets = (Array.isArray(events) ? events : [])
+    .filter(isTweet)
+    .filter((tweet) => tweet.user.id_str !== forUserId)
   if (tweets.length === 0) return json({ ok: true, forwarded: 0 }, 200)
 
-  const [first] = tweets
-  return forwardToDevin({
-    source: 'x-account-activity',
-    post:
-      first.in_reply_to_screen_name && first.in_reply_to_status_id_str
-        ? statusUrl(first.in_reply_to_screen_name, first.in_reply_to_status_id_str)
-        : '',
-    feedback: tweets.map((tweet) => ({
-      handle: `@${tweet.user.screen_name}`,
-      text: tweet.extended_tweet?.full_text ?? tweet.text,
-      likes: String(tweet.favorite_count ?? 0),
-      link: statusUrl(tweet.user.screen_name, tweet.id_str),
-    })),
-  })
+  const byPost = new Map<string, XTweet[]>()
+  for (const tweet of tweets) {
+    const post =
+      tweet.in_reply_to_screen_name && tweet.in_reply_to_status_id_str
+        ? statusUrl(tweet.in_reply_to_screen_name, tweet.in_reply_to_status_id_str)
+        : ''
+    byPost.set(post, [...(byPost.get(post) ?? []), tweet])
+  }
+
+  for (const [post, group] of byPost) {
+    const response = await forwardToDevin({
+      source: 'x-account-activity',
+      post,
+      feedback: group.map((tweet) => ({
+        handle: `@${tweet.user.screen_name}`,
+        text: tweet.extended_tweet?.full_text ?? tweet.text,
+        likes: String(tweet.favorite_count ?? 0),
+        link: statusUrl(tweet.user.screen_name, tweet.id_str),
+      })),
+    })
+    if (!response.ok) return response
+  }
+  return json({ ok: true, forwarded: tweets.length }, 202)
 }
