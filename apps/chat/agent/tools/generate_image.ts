@@ -3,7 +3,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
 import { IMAGE_MODEL_ATTRIBUTE, IMAGE_MODELS, resolveImageModel } from "@/lib/models";
-import { generateOtterimage, isOtterimageConfigured } from "@/lib/otterimage";
+import { generateOtterimage, isOtterimageConfigured, toOtterimagePrompt } from "@/lib/otterimage";
 
 export default defineTool({
   description:
@@ -25,10 +25,11 @@ export default defineTool({
         : resolved;
 
     if (model.kind === "otterimage" && model.endpoint) {
+      const submitted = toOtterimagePrompt(prompt);
       return {
-        image: await storeGeneratedImage(await generateOtterimage(model.endpoint, prompt)),
+        image: await storeGeneratedImage(await generateOtterimage(model.endpoint, submitted)),
         model: model.id,
-        prompt,
+        prompt: submitted,
       };
     }
 

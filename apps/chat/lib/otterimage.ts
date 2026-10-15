@@ -1,5 +1,9 @@
 const MAX_PROMPT_CHARS = 1000;
 
+export function toOtterimagePrompt(prompt: string) {
+  return Array.from(prompt.trim()).slice(0, MAX_PROMPT_CHARS).join("");
+}
+
 export function isOtterimageConfigured() {
   return Boolean(
     process.env.OTTERIMAGE_MODAL_KEY &&
@@ -15,7 +19,7 @@ export async function generateOtterimage(url: string, prompt: string) {
   }
 
   const response = await fetch(url, {
-    body: JSON.stringify({ prompt: Array.from(prompt).slice(0, MAX_PROMPT_CHARS).join("") }),
+    body: JSON.stringify({ prompt }),
     headers: {
       "Content-Type": "application/json",
       "Modal-Key": key,
