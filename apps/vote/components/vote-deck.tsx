@@ -26,7 +26,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
   const [drained, setDrained] = useState(false);
   const refilling = useRef(false);
   const submitting = useRef(false);
-  const queueIds = useRef(new Set(initialPairs.map((pair) => pair.id)));
+  const seenIds = useRef(new Set(initialPairs.map((pair) => pair.id)));
   const progressEpoch = useRef(0);
   const current = queue[0];
 
@@ -56,7 +56,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
         setProgress(latest);
       }
 
-      const fresh = pairs.filter((pair) => !queueIds.current.has(pair.id));
+      const fresh = pairs.filter((pair) => !seenIds.current.has(pair.id));
 
       if (fresh.length === 0) {
         setDrained(true);
@@ -65,7 +65,7 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
       }
 
       for (const pair of fresh) {
-        queueIds.current.add(pair.id);
+        seenIds.current.add(pair.id);
       }
 
       setQueue((previous) => [...previous, ...fresh]);
@@ -97,7 +97,6 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
           throw new Error(`vote failed: ${response.status}`);
         }
 
-        queueIds.current.delete(pair.id);
         progressEpoch.current += 1;
         setQueue((previous) => previous.filter((queued) => queued.id !== pair.id));
         setProgress((previous) => ({
@@ -116,8 +115,8 @@ export function VoteDeck({ initialPairs, initialProgress, models }: VoteDeckProp
   );
 
   const addOwnPair = useCallback((pair: PairForVoter) => {
-    const alreadyCounted = queueIds.current.has(pair.id);
-    queueIds.current.add(pair.id);
+    const alreadyCounted = seenIds.current.has(pair.id);
+    seenIds.current.add(pair.id);
     setQueue((previous) => [pair, ...previous.filter((queued) => queued.id !== pair.id)]);
     if (!alreadyCounted) {
       progressEpoch.current += 1;
