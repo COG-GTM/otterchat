@@ -1,29 +1,49 @@
+import type { IncomingHttpHeaders } from 'node:http'
 import { defineConfig, type Plugin, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const API_ROUTE = '/api/fire-feedback'
+const API_ROUTES = new Set(['/api/fire-feedback', '/api/relay'])
 
-/** Serves the Vercel Function at {@link API_ROUTE} during `vite dev`. */
+type Handler = (request: Request) => Response | Promise<Response>
+
+function toHeaders(incoming: IncomingHttpHeaders) {
+  const headers = new Headers()
+  for (const [name, value] of Object.entries(incoming)) {
+    if (typeof value === 'string') headers.set(name, value)
+  }
+  return headers
+}
+
+/** Serves the Vercel Functions in {@link API_ROUTES} during `vite dev`. */
 function vercelFunctionDev(): Plugin {
   return {
     name: 'vercel-function-dev',
     configureServer(server: ViteDevServer) {
-      server.middlewares.use(API_ROUTE, async (req, res, next) => {
-        if (req.method !== 'POST') {
+      server.middlewares.use(async (req, res, next) => {
+        const url = new URL(req.url ?? '/', 'http://localhost')
+        if (!API_ROUTES.has(url.pathname)) {
           next()
           return
         }
-        const chunks: Buffer[] = []
-        for await (const chunk of req) chunks.push(chunk as Buffer)
         try {
-          const { POST } = (await server.ssrLoadModule(`.${API_ROUTE}.ts`)) as {
-            POST: (request: Request) => Promise<Response>
+          const handlers = (await server.ssrLoadModule(`.${url.pathname}.ts`)) as Record<
+            string,
+            Handler | undefined
+          >
+          const method = req.method ?? 'GET'
+          const handler = handlers[method]
+          if (!handler) {
+            res.statusCode = 405
+            res.end()
+            return
           }
-          const response = await POST(
-            new Request(`http://localhost${API_ROUTE}`, {
-              method: 'POST',
-              headers: { 'content-type': req.headers['content-type'] ?? 'application/json' },
-              body: Buffer.concat(chunks),
+          const chunks: Buffer[] = []
+          for await (const chunk of req) chunks.push(chunk as Buffer)
+          const response = await handler(
+            new Request(url, {
+              method,
+              headers: toHeaders(req.headers),
+              body: method === 'GET' || method === 'HEAD' ? undefined : Buffer.concat(chunks),
             }),
           )
           res.statusCode = response.status
