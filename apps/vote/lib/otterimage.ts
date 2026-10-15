@@ -4,8 +4,16 @@ import { del, put } from "@vercel/blob";
 export type OtterimageModel = { readonly id: string; readonly label: string };
 
 const MODELS = [
-  { id: "otterimage-1.0", label: "otterimage 1.0", urlEnv: "OTTERIMAGE_URL" },
-  { id: "otterimage-previous", label: "otterimage (previous)", urlEnv: "OTTERIMAGE_PREVIOUS_URL" },
+  {
+    id: "otterimage-1.0",
+    label: "otterimage 1.0",
+    endpoint: "https://cognition-gtm--otterimage-ef15dbaa17ce47a1882f8db5603fedf1.us-east.modal.run",
+  },
+  {
+    id: "otterimage-previous",
+    label: "otterimage (previous)",
+    endpoint: "https://cognition-gtm--otterimage-eb43903921284b49b4e1f6e331c93428.us-east.modal.run",
+  },
 ] as const;
 
 export type RenderedImage = {
@@ -22,12 +30,11 @@ export function availableModels(): OtterimageModel[] {
     return [];
   }
 
-  return MODELS.filter((model) => process.env[model.urlEnv]).map(({ id, label }) => ({ id, label }));
+  return MODELS.map(({ id, label }) => ({ id, label }));
 }
 
 function modelUrl(modelId: string) {
-  const model = MODELS.find((candidate) => candidate.id === modelId);
-  return model ? process.env[model.urlEnv] : undefined;
+  return MODELS.find((candidate) => candidate.id === modelId)?.endpoint;
 }
 
 async function renderImage(url: string, prompt: string, seed: number, signal: AbortSignal): Promise<RenderedImage> {

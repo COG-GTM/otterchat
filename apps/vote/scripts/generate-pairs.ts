@@ -30,7 +30,7 @@ if (values["dry-run"]) {
 
 if (!availableModels().some((model) => model.id === values.model) || !process.env.INGEST_TOKEN) {
   throw new Error(
-    `Model ${values.model} is not configured. Set its URL (OTTERIMAGE_URL or OTTERIMAGE_PREVIOUS_URL), OTTERIMAGE_MODAL_KEY, OTTERIMAGE_MODAL_SECRET, BLOB_READ_WRITE_TOKEN and INGEST_TOKEN.`,
+    `Model ${values.model} is not configured. Set OTTERIMAGE_MODAL_KEY, OTTERIMAGE_MODAL_SECRET, BLOB_READ_WRITE_TOKEN and INGEST_TOKEN.`,
   );
 }
 
