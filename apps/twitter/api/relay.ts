@@ -22,6 +22,7 @@ type XaaPost = {
   author_id: string
   in_reply_to_tweet_id?: string
   in_reply_to_user_id?: string
+  referenced_tweets?: { type?: string; id?: string }[]
   public_metrics?: { like_count?: number }
 }
 
@@ -96,15 +97,16 @@ function xActivityFeedback(event: XaaEvent): FeedbackItem[] {
   const users = Array.isArray(event.includes?.users) ? event.includes.users : []
   const username = (id?: string) => users.find((user) => user?.id === id)?.username
   const author = username(post.author_id)
+  const parentId =
+    post.in_reply_to_tweet_id ??
+    (Array.isArray(post.referenced_tweets) ? post.referenced_tweets : []).find((ref) => ref?.type === 'replied_to')?.id
   return [
     {
       handle: author ? `@${author}` : post.author_id,
       text: post.text,
       likes: String(post.public_metrics?.like_count ?? 0),
       link: statusUrl(author, post.id),
-      inReplyTo: post.in_reply_to_tweet_id
-        ? statusUrl(username(post.in_reply_to_user_id), post.in_reply_to_tweet_id)
-        : '',
+      inReplyTo: parentId ? statusUrl(username(post.in_reply_to_user_id), parentId) : '',
     },
   ]
 }
