@@ -73,23 +73,34 @@ function verified(body: string, headers: Headers) {
   return !!consumerSecret && signatureMatches(consumerSecret, body, headers.get('x-twitter-webhooks-signature'))
 }
 
-function accountActivityFeedback(activity: XActivity): FeedbackItem[] {
+type Forward = { item: FeedbackItem; target: string }
+
+function forward(item: FeedbackItem, own: boolean): Forward {
+  return { item, target: item.inReplyTo || (own ? item.link : '') }
+}
+
+function accountActivityFeedback(activity: XActivity): Forward[] {
   const events: unknown = activity.tweet_create_events
   return (Array.isArray(events) ? events : [])
     .filter(isTweet)
-    .map((tweet) => ({
-      handle: `@${tweet.user.screen_name}`,
-      text: tweet.extended_tweet?.full_text ?? tweet.text,
-      likes: String(tweet.favorite_count ?? 0),
-      link: statusUrl(tweet.user.screen_name, tweet.id_str),
-      inReplyTo:
-        tweet.in_reply_to_screen_name && tweet.in_reply_to_status_id_str
-          ? statusUrl(tweet.in_reply_to_screen_name, tweet.in_reply_to_status_id_str)
-          : '',
-    }))
+    .map((tweet) =>
+      forward(
+        {
+          handle: `@${tweet.user.screen_name}`,
+          text: tweet.extended_tweet?.full_text ?? tweet.text,
+          likes: String(tweet.favorite_count ?? 0),
+          link: statusUrl(tweet.user.screen_name, tweet.id_str),
+          inReplyTo:
+            tweet.in_reply_to_screen_name && tweet.in_reply_to_status_id_str
+              ? statusUrl(tweet.in_reply_to_screen_name, tweet.in_reply_to_status_id_str)
+              : '',
+        },
+        tweet.user.id_str === activity.for_user_id,
+      ),
+    )
 }
 
-function xActivityFeedback(event: XaaEvent): FeedbackItem[] {
+function xActivityFeedback(event: XaaEvent): Forward[] {
   const post = event.payload
   if (!XAA_EVENTS.has(event.event_type ?? '') || !isXaaPost(post)) return []
   const users = Array.isArray(event.includes?.users) ? event.includes.users : []
@@ -99,13 +110,16 @@ function xActivityFeedback(event: XaaEvent): FeedbackItem[] {
     post.in_reply_to_tweet_id ??
     (Array.isArray(post.referenced_tweets) ? post.referenced_tweets : []).find((ref) => ref?.type === 'replied_to')?.id
   return [
-    {
-      handle: author ? `@${author}` : post.author_id,
-      text: post.text,
-      likes: String(post.public_metrics?.like_count ?? 0),
-      link: statusUrl(author, post.id),
-      inReplyTo: parentId ? statusUrl(username(post.in_reply_to_user_id), parentId) : '',
-    },
+    forward(
+      {
+        handle: author ? `@${author}` : post.author_id,
+        text: post.text,
+        likes: String(post.public_metrics?.like_count ?? 0),
+        link: statusUrl(author, post.id),
+        inReplyTo: parentId ? statusUrl(username(post.in_reply_to_user_id), parentId) : '',
+      },
+      post.author_id === event.filter?.user_id,
+    ),
   ]
 }
 
@@ -138,13 +152,14 @@ export async function POST(request: Request) {
   if (typeof parsed !== 'object' || parsed === null) return json({ ok: true, forwarded: 0 }, 200)
 
   const xaa = typeof parsed.data === 'object' && parsed.data !== null
-  const feedback = xaa ? xActivityFeedback(parsed.data as XaaEvent) : accountActivityFeedback(parsed)
+  const forwards = xaa ? xActivityFeedback(parsed.data as XaaEvent) : accountActivityFeedback(parsed)
+  const feedback = forwards.map((entry) => entry.item)
   if (feedback.length === 0) return json({ ok: true, forwarded: 0 }, 200)
 
-  const posts = new Set(feedback.map((item) => item.inReplyTo))
+  const targets = new Set(forwards.map((entry) => entry.target))
   const response = await forwardToDevin({
     source: xaa ? 'x-activity' : 'x-account-activity',
-    post: posts.size === 1 ? [...posts][0] || (feedback.length === 1 ? feedback[0]!.link : '') : '',
+    post: targets.size === 1 ? ([...targets][0] ?? '') : '',
     feedback,
   })
   if (!response.ok) return response
