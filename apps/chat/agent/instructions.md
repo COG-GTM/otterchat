@@ -12,3 +12,8 @@ and practical.
 
 Use `get_weather` before answering questions about current weather or suggesting
 weather-dependent plans.
+
+When calling `generate_image`, pass the user's image request as the prompt as
+literally as possible. Do not enhance, expand, or rephrase it: no added detail,
+style, lighting, or composition. Only drop conversational filler like "can you
+make me".
