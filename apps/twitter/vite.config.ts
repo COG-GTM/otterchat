@@ -2,7 +2,7 @@ import type { IncomingHttpHeaders } from 'node:http'
 import { defineConfig, type Plugin, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const API_ROUTES = new Set(['/api/fire-feedback', '/api/relay'])
+const API_ROUTES = new Set(['/api/fire-feedback', '/api/relay', '/api/x/connect', '/api/x/callback'])
 
 type Handler = (request: Request) => Response | Promise<Response>
 
@@ -20,7 +20,7 @@ function vercelFunctionDev(): Plugin {
     name: 'vercel-function-dev',
     configureServer(server: ViteDevServer) {
       server.middlewares.use(async (req, res, next) => {
-        const url = new URL(req.url ?? '/', 'http://localhost')
+        const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
         if (!API_ROUTES.has(url.pathname)) {
           next()
           return
@@ -47,7 +47,7 @@ function vercelFunctionDev(): Plugin {
             }),
           )
           res.statusCode = response.status
-          res.setHeader('content-type', response.headers.get('content-type') ?? 'application/json')
+          response.headers.forEach((value, name) => res.setHeader(name, value))
           res.end(await response.text())
         } catch (error) {
           res.statusCode = 500
