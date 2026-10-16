@@ -7,9 +7,9 @@ import { generateOtterimage, hasOtterimageCredentials, toOtterimagePrompt } from
 
 export default defineTool({
   description:
-    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image. Pass the user's request as literally as possible; do not enhance or expand it.",
+    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
   inputSchema: z.object({
-    prompt: z.string().trim().min(1).describe("The user's image request, verbatim or as close to it as possible."),
+    prompt: z.string().trim().min(1).describe("Detailed description of the image to generate."),
   }),
   outputSchema: z.object({
     image: z.string().describe("URL of the generated image."),

@@ -2,7 +2,7 @@
 
 What to train is in train_config.yaml; any key there is also a CLI flag.
 Prompts are encoded on the fly by the text encoder the trainer loads next to
-the transformer; the sandbox runs on a B200 so both fit. Needs ~110 GB disk
+the transformer; the sandbox runs on an H200 so both fit. Needs ~110 GB disk
 under --model-dir, HF_TOKEN (gated model), BLOB_READ_WRITE_TOKEN (the instance
 set is the blob-store folder) and WANDB_API_KEY unless --report-to none.
 
@@ -262,7 +262,10 @@ def main() -> None:
                 "--skip_final_inference",
                 "--mixed_precision=bf16",
                 "--do_fp8_training",
+                "--gradient_checkpointing",
+                "--offload",
                 "--cache_latents",
+                "--use_8bit_adam",
                 "--optimizer=adamW",
                 "--guidance_scale=1",
                 f"--resolution={args.resolution}",
