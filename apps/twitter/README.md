@@ -37,3 +37,15 @@ Column widths mirror X's desktop layout: 275px navigation, 600px timeline, 350px
 | `src/components/Icons.tsx` | Hand-rolled SVG icon set. |
 | `src/components/Avatar.tsx`, `src/components/Media.tsx` | SVG placeholder avatars and media. |
 | `src/App.css` | Layout and component styles. |
+
+## API routes (Vercel Functions)
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api/fire-feedback` | Sends the prototype's replies to the OtterChat Twitter Monitor automation. |
+| `GET /api/relay` | Answers X's CRC challenge (`crc_token` → `response_token`). |
+| `POST /api/relay` | Verifies `x-twitter-webhooks-signature` (or `x-twitter-webhooks-signature-oauth2` when `X_OAUTH2_CLIENT_SECRET` is set), forwards every post X delivers (Account Activity `tweet_create_events`, or any X Activity API event whose payload is a post), and forwards them to the same automation as one `{ source, post, feedback[] }` request per delivery; each item's `inReplyTo` holds its parent post, and `post` is set when they all share one (or to the post itself for a single standalone post by the monitored account). |
+
+Register `https://twitter-otterchat.vercel.app/api/relay` as the X webhook URL, not the Devin automation URL: X's CRC `GET` carries no `X-Webhook-Secret`, so Devin rejects it with 401.
+
+Env: `OTTERCHAT_TWITTER_WEBHOOK_SECRET` (automation's webhook secret), `X_CONSUMER_SECRET` (X app's API key secret), optional `X_OAUTH2_CLIENT_SECRET` and `OTTERCHAT_TWITTER_WEBHOOK_URL`. `vite dev` serves both routes.

@@ -6,6 +6,10 @@ import createWithVercelToolbar from "@vercel/toolbar/plugins/next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  experimental: {
+    // otterimage cold starts on Modal take ~150s with no stream events
+    proxyTimeout: 300_000,
+  },
   turbopack: {
     // dependencies are hoisted to the monorepo root
     root: path.join(import.meta.dirname, "..", ".."),
