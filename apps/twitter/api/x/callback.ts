@@ -68,7 +68,10 @@ export async function GET(request: Request) {
   const meResponse = await fetch('https://api.x.com/2/users/me', {
     headers: { authorization: `Bearer ${token.access_token}` },
   })
-  const me = meResponse.ok ? ((await meResponse.json()) as { data?: { id?: string; username?: string } }).data : undefined
+  if (!meResponse.ok) {
+    return respond({ error: `Account lookup failed: ${meResponse.status} ${await meResponse.text()}` }, 502)
+  }
+  const me = ((await meResponse.json()) as { data?: { id?: string; username?: string } }).data
   if (me?.id !== MONITORED_USER_ID) {
     return respond({ error: `Authorized account @${me?.username ?? 'unknown'} is not the monitored account` }, 403)
   }
