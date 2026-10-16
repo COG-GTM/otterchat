@@ -6,9 +6,9 @@ import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
 
 export default defineTool({
   description:
-    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image.",
+    "Generate an image from a text prompt. Use whenever the user asks to draw, create, or illustrate an image. This cannot edit an existing image. Pass the user's request as literally as possible; do not enhance or expand it.",
   inputSchema: z.object({
-    prompt: z.string().min(1).describe("Detailed description of the image to generate."),
+    prompt: z.string().min(1).describe("The user's image request, verbatim or as close to it as possible."),
   }),
   outputSchema: z.object({
     image: z.string().describe("URL of the generated image."),
