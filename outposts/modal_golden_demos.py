@@ -92,7 +92,7 @@ def session(session_id: str) -> None:
         image=image,
         cpu=8,
         memory=196608,
-        gpu="H200",
+        gpu="B200",
         secrets=[huggingface_secret, wandb_secret],
         volumes={MODEL_DIR: model_volume},
     )
