@@ -87,6 +87,8 @@ def train(train_script: Path, trainer_args: list[str], method: str = "lora", lok
             out_dir = out_dir.with_name(f"epoch-{epoch}-run{run}")
         out_dir.mkdir(parents=True)
         images = []
+        # log_validation casts the live transformer to torch_dtype; keep native's fp32 master weights
+        masters = {p: p.detach().clone() for p in pipeline.transformer.parameters() if p.requires_grad and p.dtype == torch.float32}
         try:
             for i, prompt in enumerate(joined.split("\n")):
                 args.validation_prompt = prompt
@@ -104,6 +106,8 @@ def train(train_script: Path, trainer_args: list[str], method: str = "lora", lok
                 images.extend(prompt_images)
         finally:
             args.validation_prompt = joined
+            for p, master in masters.items():
+                p.data = master
         return images
 
     trainer.log_validation = log_validation_per_prompt
