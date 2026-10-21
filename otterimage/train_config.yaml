@@ -5,6 +5,9 @@ postfix: ""
 
 instance_images_prefix: otterimage/instance_images/
 
+method: lora  # lora | loha | lokr | native
+lokr_factor: 8
+
 resolution: 1024
 train_batch_size: 1
 rank: 16

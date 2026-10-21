@@ -11,6 +11,11 @@ set is the blob-store folder) and WANDB_API_KEY unless --report-to none.
 
     # Resume from the newest checkpoint
     python otterimage/train_flux2_lora.py --skip-download --resume-from-checkpoint latest
+
+    # Another technique from the LyCORIS paper instead of LoRA (see trainer_shim.py)
+    python otterimage/train_flux2_lora.py --skip-download --method loha --rank 8 --lora-alpha 8
+    python otterimage/train_flux2_lora.py --skip-download --method lokr --lokr-factor 8
+    python otterimage/train_flux2_lora.py --skip-download --method native --learning-rate 5e-6
 """
 
 from __future__ import annotations
@@ -25,6 +30,8 @@ import tempfile
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+from adapters import METHODS
 
 MODEL_NAME = "black-forest-labs/FLUX.2-dev"
 DIFFUSERS_SHA = "37ce5add81f5b0838b744f03dcc2238ffc740cbc"
@@ -85,6 +92,8 @@ def parse_args() -> tuple[argparse.Namespace, dict]:
     p.add_argument("--prefix")
     p.add_argument("--postfix")
     p.add_argument("--instance-images-prefix", help="blob-store folder prefix to enumerate as the instance set")
+    p.add_argument("--method", choices=METHODS, help="lora, or loha / lokr / native from the LyCORIS paper")
+    p.add_argument("--lokr-factor", type=int, help="Kronecker decomposition factor for --method lokr")
     p.add_argument("--resolution", type=int)
     p.add_argument("--train-batch-size", type=int)
     p.add_argument("--rank", type=int)
@@ -243,7 +252,10 @@ def main() -> None:
     if any("\n" in p for p in [prompt, *captions, *validation_prompts]):
         sys.exit("prompts can't contain newlines: the trainer gets validation prompts joined by newlines")
 
-    print("🎨 launching FLUX.2 [dev] dreambooth LoRA training with config:")
+    # native trains full-precision weights, so skip fp8 matmuls and trade compute for activation memory
+    precision = ["--gradient_checkpointing"] if args.method == "native" else ["--do_fp8_training"]
+
+    print(f"🎨 launching FLUX.2 [dev] dreambooth {args.method} training with config:")
     for key, value in config.items():
         print(f"    {key}: {value}")
     try:
@@ -252,6 +264,8 @@ def main() -> None:
                 "accelerate",
                 "launch",
                 str(TRAINER_SHIM),
+                f"--method={args.method}",
+                f"--lokr-factor={args.lokr_factor}",
                 str(train_script),
                 f"--pretrained_model_name_or_path={model_dir}",
                 f"--dataset_name={img_path}",
@@ -261,7 +275,7 @@ def main() -> None:
                 # the final pass loads a second transformer and runs out of memory
                 "--skip_final_inference",
                 "--mixed_precision=bf16",
-                "--do_fp8_training",
+                *precision,
                 "--cache_latents",
                 "--optimizer=adamW",
                 "--guidance_scale=1",
@@ -286,7 +300,7 @@ def main() -> None:
     finally:
         # outpost sandboxes commit volume writes on sync, so serving sees the LoRA
         subprocess.run(["sync", str(model_dir)], check=True)
-    print(f"🎨 training finished; LoRA weights in {lora_dir}")
+    print(f"🎨 training finished; {args.method} weights in {lora_dir}")
 
 
 if __name__ == "__main__":
