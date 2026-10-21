@@ -252,8 +252,10 @@ def main() -> None:
     if any("\n" in p for p in [prompt, *captions, *validation_prompts]):
         sys.exit("prompts can't contain newlines: the trainer gets validation prompts joined by newlines")
 
-    # native trains full-precision weights, so skip fp8 matmuls and trade compute for activation memory
-    precision = ["--gradient_checkpointing"] if args.method == "native" else ["--do_fp8_training"]
+    # LoHa/LoKr materialize each full weight delta and native trains full weights, so recompute activations per block
+    precision = [] if args.method == "lora" else ["--gradient_checkpointing"]
+    if args.method != "native":
+        precision.append("--do_fp8_training")
 
     print(f"🎨 launching FLUX.2 [dev] dreambooth {args.method} training with config:")
     for key, value in config.items():
