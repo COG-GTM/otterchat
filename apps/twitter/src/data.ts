@@ -100,10 +100,9 @@ export const flowSteps: FlowStep[] = [
   { label: 'People comment with feedback' },
   {
     label: 'Feedback webhook fires',
-    link: {
-      text: 'View the automation',
-      href: import.meta.env.VITE_DEVIN_AUTOMATION_URL ?? '',
-    },
+    link: import.meta.env.VITE_DEVIN_AUTOMATION_URL
+      ? { text: 'View the automation', href: import.meta.env.VITE_DEVIN_AUTOMATION_URL }
+      : undefined,
   },
 ]
 
@@ -232,7 +231,7 @@ export const replies: Reply[] = [
 ]
 
 export function stepForPath(pathname: string) {
-  const reply = replies.find((candidate) => new URL(candidate.url).pathname === pathname)
+  const reply = replies.find((candidate) => candidate.url === pathname)
   return reply ? reply.step : 0
 }
 
