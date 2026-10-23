@@ -45,7 +45,7 @@ export type Reply = {
 }
 
 function statusUrl(handle: string, statusId: string) {
-  return `https://twitter-otterchat.vercel.app/${handle.replace(/^@/, '')}/status/${statusId}`
+  return `/${handle.replace(/^@/, '')}/status/${statusId}`
 }
 
 export const currentUser: Account = {
@@ -102,7 +102,7 @@ export const flowSteps: FlowStep[] = [
     label: 'Feedback webhook fires',
     link: {
       text: 'View the automation',
-      href: 'https://app.devin.ai/org/golden-demos/automations/68d3acc0916247c8977be4c2a761f345',
+      href: import.meta.env.VITE_DEVIN_AUTOMATION_URL ?? '',
     },
   },
 ]

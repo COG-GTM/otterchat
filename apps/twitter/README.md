@@ -53,4 +53,4 @@ Register `https://twitter-otterchat.vercel.app/api/relay` as the X webhook URL, 
 
 `post.reply.create` is a private X event, so it can only be created with the account's OAuth 2.0 user token, not from the X dashboard. To recreate the subscriptions (new webhook, re-auth), add `https://twitter-otterchat.vercel.app/api/x/callback` as a Callback URI in the X app and open `/api/x/connect`.
 
-Env: `OTTERCHAT_TWITTER_WEBHOOK_SECRET` (automation's webhook secret), `X_CONSUMER_SECRET` (X app's API key secret), `X_OAUTH2_CLIENT_ID` / `X_OAUTH2_CLIENT_SECRET` (X app's OAuth 2.0 client), `BLOB_READ_WRITE_TOKEN` (private `twitter-x-oauth` store), optional `OTTERCHAT_TWITTER_WEBHOOK_URL`. `vite dev` serves all routes.
+Env: `OTTERCHAT_TWITTER_WEBHOOK_URL` / `OTTERCHAT_TWITTER_WEBHOOK_SECRET` (automation's webhook URL and secret), `VITE_DEVIN_AUTOMATION_URL` ("View the automation" link), `X_CONSUMER_SECRET` (X app's API key secret), `X_OAUTH2_CLIENT_ID` / `X_OAUTH2_CLIENT_SECRET` (X app's OAuth 2.0 client), `BLOB_READ_WRITE_TOKEN` (private `twitter-x-oauth` store). `vite dev` serves all routes.
