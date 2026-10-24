@@ -2,7 +2,8 @@ import { experimental_generateImage as generateImage, gateway, generateText } fr
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { storeGeneratedImage } from "@/lib/generated-images";
-import { IMAGE_MODEL_ATTRIBUTE, resolveImageModel } from "@/lib/models";
+import { IMAGE_MODEL_ATTRIBUTE, IMAGE_MODELS, resolveImageModel } from "@/lib/models";
+import { generateOtterimage, isOtterimageConfigured, toOtterimagePrompt } from "@/lib/otterimage";
 
 export default defineTool({
   description:
@@ -17,7 +18,20 @@ export default defineTool({
   }),
   async execute({ prompt }, ctx) {
     const selected = ctx.session.auth.current?.attributes?.[IMAGE_MODEL_ATTRIBUTE];
-    const model = resolveImageModel(typeof selected === "string" ? selected : undefined);
+    const resolved = resolveImageModel(typeof selected === "string" ? selected : undefined);
+    const model =
+      resolved.kind === "otterimage" && (!resolved.endpoint || !isOtterimageConfigured())
+        ? IMAGE_MODELS[0]!
+        : resolved;
+
+    if (model.kind === "otterimage" && model.endpoint) {
+      const submitted = toOtterimagePrompt(prompt);
+      return {
+        image: await storeGeneratedImage(await generateOtterimage(model.endpoint, submitted)),
+        model: model.id,
+        prompt: submitted,
+      };
+    }
 
     if (model.kind === "image") {
       const result = await generateImage({
