@@ -22,7 +22,7 @@
     "android": "adb reverse tcp:3000 tcp:3000 && cap run android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
-    "test": "node --test \"tests/**/*.test.ts\"",
+    "test": "node --test \"tests/**/*.test.ts\" && vitest run lib",
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
@@ -71,12 +71,14 @@
     "@capacitor/android": "8.5.0",
     "@capacitor/cli": "8.5.0",
     "@capacitor/ios": "8.5.0",
+    "@sentry/core": "10.69.0",
     "@types/node": "^25.9.3",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260523.1",
     "drizzle-kit": "0.31.9",
     "microsandbox": "^0.5.7",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
   }
 }
