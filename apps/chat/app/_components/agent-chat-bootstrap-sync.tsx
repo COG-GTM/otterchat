@@ -6,17 +6,19 @@ import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 
 export function AgentChatBootstrapSync({
   chats,
+  favoriteChats,
   nextCursor,
   setupStatus,
   viewer,
 }: {
   readonly chats: readonly ChatListItem[];
+  readonly favoriteChats: readonly ChatListItem[] | null;
   readonly nextCursor: string | null;
   readonly setupStatus: SetupStatus;
   readonly viewer: Viewer | null;
 }) {
   useEffect(() => {
-    const detail = { chats, nextCursor, setupStatus, viewer };
+    const detail = { chats, favoriteChats, nextCursor, setupStatus, viewer };
     const target = window as Window & {
       __eveChatBootstrapSync?: typeof detail;
     };
@@ -27,7 +29,7 @@ export function AgentChatBootstrapSync({
         detail,
       }),
     );
-  }, [chats, nextCursor, setupStatus, viewer]);
+  }, [chats, favoriteChats, nextCursor, setupStatus, viewer]);
 
   return null;
 }

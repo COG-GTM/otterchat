@@ -7,6 +7,7 @@ import type { ActiveChat, ChatListItem } from "@/lib/chat/types";
 const STORAGE_KEY = "eve-chat-template:chats";
 const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
+const FAVORITES_STORAGE_KEY = "eve-chat-template:favorite-chat-ids";
 
 type StoredChat = ActiveChat & {
   readonly updatedAt: string;
@@ -46,6 +47,34 @@ export function createLocalChat(pendingUserMessage?: string) {
 
 export function deleteLocalChat(chatId: string) {
   updateState((chats) => chats.filter((chat) => chat.id !== chatId));
+}
+
+export function listLocalFavoriteChats(): ChatListItem[] {
+  const favoriteIds = readFavoriteIds();
+  const chats = listLocalChats();
+
+  return favoriteIds.flatMap((id) => chats.filter((chat) => chat.id === id));
+}
+
+export function setLocalChatFavorite(chatId: string, favorite: boolean) {
+  const favoriteIds = readFavoriteIds().filter((id) => id !== chatId);
+
+  window.localStorage.setItem(
+    FAVORITES_STORAGE_KEY,
+    JSON.stringify(favorite ? [chatId, ...favoriteIds] : favoriteIds),
+  );
+
+  return listLocalFavoriteChats();
+}
+
+function readFavoriteIds(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(FAVORITES_STORAGE_KEY) ?? "[]");
+
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export function markLocalChatPendingMessage(chatId: string, message: string) {

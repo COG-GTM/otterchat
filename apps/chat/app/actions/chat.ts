@@ -7,7 +7,9 @@ import {
   createChat,
   deleteChatForUser,
   listChatsByUser,
+  listFavoriteChatsByUser,
   markChatPendingMessage,
+  setChatFavoriteForUser,
   saveChatSnapshot,
   saveChatSessionState,
   skipChatAuthorization,
@@ -124,6 +126,17 @@ export async function deleteChatAction(chatId: string) {
   await deleteChatForUser(chatId, viewer.id);
 
   return listChatsByUser(viewer.id);
+}
+
+export async function setChatFavoriteAction(input: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+}) {
+  const viewer = await requireViewer();
+
+  await setChatFavoriteForUser(input.chatId, viewer.id, input.favorite);
+
+  return listFavoriteChatsByUser(viewer.id);
 }
 
 async function requireViewer() {
