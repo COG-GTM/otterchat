@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, gte, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lt, or, sql } from "drizzle-orm";
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import type { ActiveChat, ChatListItem, ChatListPage } from "@/lib/chat/types";
@@ -449,6 +449,31 @@ export async function saveChatSnapshot({
       pendingUserMessageCreatedAt: null,
       updatedAt: new Date(),
     })
+    .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
+}
+
+export async function listFavoriteChatsByUser(userId: string): Promise<ChatListItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    })
+    .from(chat)
+    .where(and(eq(chat.userId, userId), isNotNull(chat.favoritedAt)))
+    .orderBy(desc(chat.favoritedAt), desc(chat.id));
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
+export async function setChatFavoriteForUser(chatId: string, userId: string, favorite: boolean) {
+  await db
+    .update(chat)
+    .set({ favoritedAt: favorite ? new Date() : null })
     .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
 }
 
