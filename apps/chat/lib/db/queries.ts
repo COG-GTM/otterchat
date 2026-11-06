@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, gte, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lt, or, sql } from "drizzle-orm";
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import type { ActiveChat, ChatListItem, ChatListPage } from "@/lib/chat/types";
@@ -38,15 +38,27 @@ export async function listChatsByUser(userId: string): Promise<ChatListItem[]> {
 export async function listChatsPageByUser(
   userId: string,
   cursor?: string | null,
+  options: { readonly includeFavorites?: boolean } = {},
 ): Promise<ChatListPage> {
   const cursorValue = cursor?.trim();
   const parsedCursor = cursorValue ? decodeChatCursor(cursorValue) : null;
+  const listColumns = {
+    favoritedAt: chat.favoritedAt,
+    id: chat.id,
+    title: chat.title,
+    updatedAt: chat.updatedAt,
+  };
+  // Favorites are pinned to the first page so they stay reachable regardless of recency.
+  const favoriteRows =
+    parsedCursor || !options.includeFavorites
+      ? []
+    : await db
+        .select(listColumns)
+        .from(chat)
+        .where(and(eq(chat.userId, userId), isNotNull(chat.favoritedAt)))
+        .orderBy(desc(chat.favoritedAt));
   const rows = await db
-    .select({
-      id: chat.id,
-      title: chat.title,
-      updatedAt: chat.updatedAt,
-    })
+    .select(listColumns)
     .from(chat)
     .where(
       and(
@@ -65,13 +77,17 @@ export async function listChatsPageByUser(
   const hasMore = rows.length > CHAT_HISTORY_PAGE_SIZE;
   const pageRows = hasMore ? rows.slice(0, CHAT_HISTORY_PAGE_SIZE) : rows;
   const last = pageRows[pageRows.length - 1];
+  const favoriteIds = new Set(favoriteRows.map((row) => row.id));
 
   return {
-    items: pageRows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      updatedAt: row.updatedAt.toISOString(),
-    })),
+    items: [...favoriteRows, ...pageRows.filter((row) => !favoriteIds.has(row.id))].map(
+      (row) => ({
+        favorite: row.favoritedAt !== null,
+        id: row.id,
+        title: row.title,
+        updatedAt: row.updatedAt.toISOString(),
+      }),
+    ),
     nextCursor: hasMore && last ? encodeChatCursor(last.updatedAt, last.id) : null,
   };
 }
@@ -449,6 +465,21 @@ export async function saveChatSnapshot({
       pendingUserMessageCreatedAt: null,
       updatedAt: new Date(),
     })
+    .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
+}
+
+export async function setChatFavoriteForUser({
+  chatId,
+  favorite,
+  userId,
+}: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+  readonly userId: string;
+}) {
+  await db
+    .update(chat)
+    .set({ favoritedAt: favorite ? new Date() : null })
     .where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
 }
 
