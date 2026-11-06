@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { shouldShowFavoriteToggle } from "@/lib/chat/favorites";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,11 @@ export function ChatSidebar({
   const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [favorites, setFavorites] = useState<readonly ChatListItem[]>([]);
   const viewerId = viewer?.id ?? null;
+  const showFavoriteToggle = shouldShowFavoriteToggle({
+    flagEnabled: favoritesEnabled,
+    storageMode: setupStatus.storageMode,
+    viewerId,
+  });
   const favoriteIds = new Set(favorites.map((chat) => chat.id));
   const favoriteChats = favorites.map(
     (favorite) => chats.find((chat) => chat.id === favorite.id) ?? favorite,
@@ -98,11 +104,6 @@ export function ChatSidebar({
   }, [setupStatus.storageMode, viewerId]);
 
   async function toggleFavorite(chat: ChatListItem) {
-    if (!viewerId) {
-      // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
-      return;
-    }
-
     const favorite = !favoriteIds.has(chat.id);
     const previous = favorites;
 
@@ -130,7 +131,7 @@ export function ChatSidebar({
         <Link
           className={cn(
             "flex h-8 min-w-0 items-center px-2 text-xs",
-            favoritesEnabled ? "pr-14" : "pr-8",
+            showFavoriteToggle ? "pr-14" : "pr-8",
           )}
           href={`/chat/${chat.id}`}
           onClick={() => onNavigate?.(chat.id)}
@@ -138,7 +139,7 @@ export function ChatSidebar({
           <span className="block truncate">{chat.title}</span>
           <span className="sr-only">Updated {formatHistoryTime(chat.updatedAt)}</span>
         </Link>
-        {favoritesEnabled ? (
+        {showFavoriteToggle ? (
           <Button
             aria-label={favorited ? "Unfavorite chat" : "Favorite chat"}
             aria-pressed={favorited}
@@ -278,7 +279,7 @@ export function ChatSidebar({
         )}
       </div>
 
-      {favoritesEnabled && favoriteChats.length ? (
+      {showFavoriteToggle && favoriteChats.length ? (
         <div className="max-h-[40%] shrink-0 overflow-y-auto border-b border-border px-2 py-2">
           <p className="px-2 pt-1 pb-1.5 text-[11px] font-medium text-muted-foreground/80">
             Favorites
