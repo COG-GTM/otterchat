@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { shouldShowFavorites } from "@/lib/chat/favorites";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
 
@@ -86,7 +87,7 @@ export function ChatSidebar({
     void getFavoriteChatsAction()
       .then((result) => {
         if (!cancelled) {
-          setFavoritesEnabled(result.enabled);
+          setFavoritesEnabled(shouldShowFavorites(result.enabled, viewerId));
           setFavorites(result.chats);
         }
       })
@@ -98,11 +99,6 @@ export function ChatSidebar({
   }, [setupStatus.storageMode, viewerId]);
 
   async function toggleFavorite(chat: ChatListItem) {
-    if (!viewerId) {
-      // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
-      return;
-    }
-
     const favorite = !favoriteIds.has(chat.id);
     const previous = favorites;
 
