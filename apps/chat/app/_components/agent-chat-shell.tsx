@@ -164,9 +164,10 @@ export function AgentChatShell({
   const handleDeleteChat = useCallback(
     async (chatId: string) => {
       try {
+        const isAnonChat = !viewerState && anonChatId === chatId;
 
         await deleteClientChat(
-          setupStatusState.storageMode,
+          isAnonChat ? "browser" : setupStatusState.storageMode,
           chatId,
         );
         removeChat(chatId);

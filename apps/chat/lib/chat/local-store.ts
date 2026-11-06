@@ -166,11 +166,14 @@ function updateState(update: (chats: readonly StoredChat[]) => readonly StoredCh
   const sortedChats = [...update(readState().chats)].sort((left, right) =>
     right.updatedAt.localeCompare(left.updatedAt),
   );
-  // Favorites are evicted last; stored order stays by recency.
+  // The newest chat is always kept, then favorites, then other chats by recency.
+  const retentionOrder = new Set([
+    ...sortedChats.slice(0, 1),
+    ...sortedChats.filter((chat) => chat.favorite),
+    ...sortedChats,
+  ]);
   const retainedIds = new Set(
-    [...sortedChats.filter((chat) => chat.favorite), ...sortedChats.filter((chat) => !chat.favorite)]
-      .slice(0, MAX_STORED_CHATS)
-      .map((chat) => chat.id),
+    [...retentionOrder].slice(0, MAX_STORED_CHATS).map((chat) => chat.id),
   );
   const nextChats = sortedChats.filter((chat) => retainedIds.has(chat.id));
 
