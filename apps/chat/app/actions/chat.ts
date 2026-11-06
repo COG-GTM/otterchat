@@ -15,6 +15,7 @@ import {
   skipChatAuthorization,
 } from "@/lib/db/queries";
 import { favoriteChats } from "@/lib/flags";
+import { shouldShowFavoriteToggle } from "@/lib/chat/favorites";
 import { assertChatMessageLength } from "@/lib/chat/limits";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
@@ -137,10 +138,15 @@ export async function getFavoriteChatsAction() {
   }
 
   const viewer = await getServerViewer(setupStatus);
+  const enabled = shouldShowFavoriteToggle({
+    flagEnabled: true,
+    storageMode: setupStatus.storageMode,
+    viewerId: viewer?.id,
+  });
 
   return {
-    chats: viewer ? await listFavoriteChatsByUser(viewer.id) : [],
-    enabled: true,
+    chats: enabled && viewer ? await listFavoriteChatsByUser(viewer.id) : [],
+    enabled,
   };
 }
 
