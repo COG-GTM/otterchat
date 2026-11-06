@@ -138,8 +138,12 @@ export async function getFavoriteChatsAction() {
 
   const viewer = await getServerViewer(setupStatus);
 
+  if (!viewer) {
+    return { chats: [], enabled: false };
+  }
+
   return {
-    chats: viewer ? await listFavoriteChatsByUser(viewer.id) : [],
+    chats: await listFavoriteChatsByUser(viewer.id),
     enabled: true,
   };
 }
