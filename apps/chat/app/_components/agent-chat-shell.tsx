@@ -43,6 +43,7 @@ import {
   deleteClientChat,
   getClientChat,
   listClientChats,
+  setClientChatFavorite,
 } from "@/lib/chat/persistence-client";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
@@ -123,6 +124,7 @@ export function AgentChatShell({
 
       return [
         {
+          favorite: chat.favorite ?? current?.favorite,
           id: chat.id,
           title: chat.title || current?.title || "New chat",
           updatedAt: chat.updatedAt,
@@ -177,6 +179,28 @@ export function AgentChatShell({
       }
     },
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
+  );
+
+  const handleToggleFavorite = useCallback(
+    async (chatId: string, favorite: boolean) => {
+      const setFavorite = (value: boolean) =>
+        setHistory((items) =>
+          items.map((item) => (item.id === chatId ? { ...item, favorite: value } : item)),
+        );
+      const isAnonChat = !viewerState && anonChatId === chatId;
+
+      setFavorite(favorite);
+
+      try {
+        await setClientChatFavorite(
+          isAnonChat ? "browser" : setupStatusState.storageMode,
+          { chatId, favorite },
+        );
+      } catch {
+        setFavorite(!favorite);
+      }
+    },
+    [anonChatId, setupStatusState.storageMode, viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {
@@ -372,6 +396,7 @@ export function AgentChatShell({
       isLoadingMore={loadingMore}
       newSessionDisabledReason={newSessionDisabledReason}
       onDeleteChat={handleDeleteChat}
+      onToggleFavorite={handleToggleFavorite}
       onLoadMoreChats={loadMoreChats}
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
@@ -464,6 +489,7 @@ export function AgentChatShell({
               isLoadingMore={loadingMore}
               newSessionDisabledReason={newSessionDisabledReason}
               onDeleteChat={handleDeleteChat}
+              onToggleFavorite={handleToggleFavorite}
               onLoadMoreChats={loadMoreChats}
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}

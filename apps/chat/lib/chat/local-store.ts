@@ -9,6 +9,7 @@ const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
 
 type StoredChat = ActiveChat & {
+  readonly favorite?: boolean;
   readonly updatedAt: string;
 };
 
@@ -46,6 +47,10 @@ export function createLocalChat(pendingUserMessage?: string) {
 
 export function deleteLocalChat(chatId: string) {
   updateState((chats) => chats.filter((chat) => chat.id !== chatId));
+}
+
+export function setLocalChatFavorite(chatId: string, favorite: boolean) {
+  updateChat(chatId, (chat) => ({ ...chat, favorite }));
 }
 
 export function markLocalChatPendingMessage(chatId: string, message: string) {
@@ -221,6 +226,7 @@ function toActiveChat(chat: StoredChat): ActiveChat {
 
 function toListItem(chat: StoredChat): ChatListItem {
   return {
+    favorite: chat.favorite === true,
     id: chat.id,
     title: chat.title,
     updatedAt: chat.updatedAt,
