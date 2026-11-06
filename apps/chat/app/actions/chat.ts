@@ -16,6 +16,7 @@ import {
 import { assertChatMessageLength } from "@/lib/chat/limits";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
+import { favoriteChats } from "@/lib/flags";
 
 export async function createChatAction(input?: { readonly pendingUserMessage?: string }) {
   const viewer = await requireViewer();
@@ -124,6 +125,10 @@ export async function setChatFavoriteAction(input: {
   readonly favorite: boolean;
 }) {
   const viewer = await requireViewer();
+
+  if (!(await favoriteChats())) {
+    throw new Error("Favorite chats are not enabled.");
+  }
 
   await setChatFavoriteForUser({
     chatId: input.chatId,

@@ -38,6 +38,7 @@ export async function listChatsByUser(userId: string): Promise<ChatListItem[]> {
 export async function listChatsPageByUser(
   userId: string,
   cursor?: string | null,
+  options: { readonly includeFavorites?: boolean } = {},
 ): Promise<ChatListPage> {
   const cursorValue = cursor?.trim();
   const parsedCursor = cursorValue ? decodeChatCursor(cursorValue) : null;
@@ -48,8 +49,9 @@ export async function listChatsPageByUser(
     updatedAt: chat.updatedAt,
   };
   // Favorites are pinned to the first page so they stay reachable regardless of recency.
-  const favoriteRows = parsedCursor
-    ? []
+  const favoriteRows =
+    parsedCursor || !options.includeFavorites
+      ? []
     : await db
         .select(listColumns)
         .from(chat)

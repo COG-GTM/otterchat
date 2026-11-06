@@ -71,6 +71,7 @@ export function AgentChatShell({
   const [draftBeforeSignIn, setDraftBeforeSignIn] = useState("");
   const [signInCallbackPath, setSignInCallbackPath] = useState("/");
   const [viewerState, setViewerState] = useState(viewer);
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [setupStatusState, setSetupStatusState] = useState(setupStatus);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [anonChatId, setAnonChatId] = useState<string | null>(null);
@@ -163,10 +164,9 @@ export function AgentChatShell({
   const handleDeleteChat = useCallback(
     async (chatId: string) => {
       try {
-        const isAnonChat = !viewerState && anonChatId === chatId;
 
         await deleteClientChat(
-          isAnonChat ? "browser" : setupStatusState.storageMode,
+          setupStatusState.storageMode,
           chatId,
         );
         removeChat(chatId);
@@ -183,24 +183,25 @@ export function AgentChatShell({
 
   const handleToggleFavorite = useCallback(
     async (chatId: string, favorite: boolean) => {
+      if (!viewerState) {
+        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
+        return;
+      }
+
       const setFavorite = (value: boolean) =>
         setHistory((items) =>
           items.map((item) => (item.id === chatId ? { ...item, favorite: value } : item)),
         );
-      const isAnonChat = !viewerState && anonChatId === chatId;
 
       setFavorite(favorite);
 
       try {
-        await setClientChatFavorite(
-          isAnonChat ? "browser" : setupStatusState.storageMode,
-          { chatId, favorite },
-        );
+        await setClientChatFavorite(setupStatusState.storageMode, { chatId, favorite });
       } catch {
         setFavorite(!favorite);
       }
     },
-    [anonChatId, setupStatusState.storageMode, viewerState],
+    [setupStatusState.storageMode, viewerState],
   );
 
   const loadMoreChats = useCallback(async () => {
@@ -242,15 +243,18 @@ export function AgentChatShell({
   const setBootstrapData = useCallback(
     ({
       chats,
+      favoritesEnabled: incomingFavoritesEnabled = false,
       nextCursor: incomingNextCursor,
       setupStatus: incomingSetupStatus,
       viewer: incomingViewer,
     }: {
       readonly chats: readonly ChatListItem[];
+      readonly favoritesEnabled?: boolean;
       readonly nextCursor: string | null;
       readonly setupStatus: SetupStatus;
       readonly viewer: Viewer | null;
     }) => {
+      setFavoritesEnabled(incomingFavoritesEnabled);
       setSetupStatusState(incomingSetupStatus);
       setViewerState(incomingViewer);
       const usesBrowserStorage = incomingSetupStatus.storageMode === "browser";
@@ -396,6 +400,7 @@ export function AgentChatShell({
       isLoadingMore={loadingMore}
       newSessionDisabledReason={newSessionDisabledReason}
       onDeleteChat={handleDeleteChat}
+      favoritesEnabled={favoritesEnabled}
       onToggleFavorite={handleToggleFavorite}
       onLoadMoreChats={loadMoreChats}
       onNavigate={handleSidebarNavigate}
@@ -489,6 +494,7 @@ export function AgentChatShell({
               isLoadingMore={loadingMore}
               newSessionDisabledReason={newSessionDisabledReason}
               onDeleteChat={handleDeleteChat}
+              favoritesEnabled={favoritesEnabled}
               onToggleFavorite={handleToggleFavorite}
               onLoadMoreChats={loadMoreChats}
               onNavigate={handleSidebarNavigate}

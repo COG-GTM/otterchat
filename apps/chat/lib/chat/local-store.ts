@@ -163,9 +163,16 @@ function updateChat(chatId: string, update: (chat: StoredChat) => StoredChat) {
 }
 
 function updateState(update: (chats: readonly StoredChat[]) => readonly StoredChat[]) {
-  const nextChats = [...update(readState().chats)]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, MAX_STORED_CHATS);
+  const sortedChats = [...update(readState().chats)].sort((left, right) =>
+    right.updatedAt.localeCompare(left.updatedAt),
+  );
+  // Favorites are evicted last; stored order stays by recency.
+  const retainedIds = new Set(
+    [...sortedChats.filter((chat) => chat.favorite), ...sortedChats.filter((chat) => !chat.favorite)]
+      .slice(0, MAX_STORED_CHATS)
+      .map((chat) => chat.id),
+  );
+  const nextChats = sortedChats.filter((chat) => retainedIds.has(chat.id));
 
   try {
     localStorage.setItem(
