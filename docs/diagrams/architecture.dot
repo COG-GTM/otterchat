@@ -1,0 +1,84 @@
+// otterchat monorepo architecture. Edit this file, then run ./render.sh.
+digraph otterchat {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.3, ranksep=0.5, newrank=true,
+         label="otterchat monorepo: apps, shared UI, image model and outposts", pad=0.3];
+  node  [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=16, fillcolor=white, color="#4a5568", margin="0.18,0.08"];
+  edge  [fontname="DejaVu Sans", fontsize=13, color="#4a5568"];
+
+  user  [label="Browser / Capacitor\niOS + Android webview", shape=box, fillcolor="#fefcbf"];
+  voter [label="Voter (public link)", fillcolor="#fefcbf"];
+  x     [label="X (Twitter)\nwebhooks + OAuth 2.0", fillcolor="#fed7d7"];
+
+  subgraph cluster_chat {
+    label="apps/chat (otterchat) · Next.js 16 + eve · Vercel Root Directory"; style="rounded,filled"; fillcolor="#ebf8ff"; color="#3182ce"; fontsize=17;
+    chat_ui    [label="Chat shell + pages\napp/(chat), app/_components"];
+    chat_act   [label="Server actions + API\napp/actions, app/api/*"];
+    eve_routes [label="/eve/v1/* routes\nwithEve(next.config)"];
+    agent      [label="eve agent\nagent/agent.ts, channels/eve.ts\ntools: get_weather, generate_image"];
+  }
+
+  subgraph cluster_vote {
+    label="apps/vote (ottervote) · Next.js 16 · :3100"; style="rounded,filled"; fillcolor="#f0fff4"; color="#38a169"; fontsize=17;
+    vote_ui  [label="Vote deck + /stats\nproxy.ts voter cookie"];
+    vote_api [label="/api/next-pair, vote, generate\n/api/pairs, export (INGEST_TOKEN)"];
+  }
+
+  subgraph cluster_twitter {
+    label="apps/twitter (otterchat-twitter) · React 19 + Vite · Vercel Functions"; style="rounded,filled"; fillcolor="#fff5f5"; color="#e53e3e"; fontsize=17;
+    tw_ui  [label="X post-detail prototype\nsrc/"];
+    tw_api [label="/api/fire-feedback, /api/relay\n/api/x/connect, /api/x/callback"];
+  }
+
+  ui_pkg [label="packages/ui (@otterchat/ui)\ntheme.css + shadcn primitives", fillcolor="#faf5ff", color="#805ad5"];
+
+  subgraph cluster_modal {
+    label="otterimage + outposts (Python, uv) · GPU sandbox + Modal"; style="rounded,filled"; fillcolor="#fffaf0"; color="#dd6b20"; fontsize=17;
+    train [label="otterimage/train_flux2_lora.py\nFLUX.2-dev DreamBooth LoRA (SFT)"];
+    dpo   [label="otterimage/train_flux2_dpo.py\nDiffusion-DPO on votes"];
+    serve [label="otterimage/serve_flux2_lora.py\nModal POST endpoint (proxy auth)"];
+    outpost [label="outposts/modal_golden_demos.py\nDevin Outposts worker\n(deploy-modal.yml on push to main)"];
+  }
+
+  neon_chat [label="Neon Postgres + Neon Auth\nchat, chat_event, neon_auth", shape=cylinder, fillcolor="#e2e8f0"];
+  neon_vote [label="Neon Postgres (vote)\nvote_pair, vote", shape=cylinder, fillcolor="#e2e8f0"];
+  blob      [label="Vercel Blob\ngenerated images, pair images,\ninstance images, X refresh token", shape=cylinder, fillcolor="#e2e8f0"];
+  gateway   [label="Vercel AI Gateway\ntext + image models"];
+  saas      [label="LaunchDarkly · Sentry\nVercel Analytics / Toolbar"];
+  devin     [label="Devin automation\n(Twitter Monitor webhook)", fillcolor="#fed7d7"];
+
+  user -> chat_ui;
+  chat_ui -> chat_act [label="persist events"];
+  chat_ui -> eve_routes [label="send + stream"];
+  eve_routes -> agent;
+  agent -> gateway;
+  agent -> blob [label="generated images"];
+  chat_act -> neon_chat;
+  chat_ui -> saas [style=dashed];
+  chat_act -> saas [style=dashed, label="flags"];
+
+  voter -> vote_ui;
+  vote_ui -> vote_api;
+  vote_api -> neon_vote;
+  vote_api -> serve [label="render pair"];
+  vote_api -> blob [label="pair images"];
+
+  user -> tw_ui [style=dashed, label="demo"];
+  tw_ui -> tw_api [label="fire-feedback"];
+  x -> tw_api [label="CRC + signed events"];
+  tw_api -> devin [label="{source, post, feedback[]}"];
+  tw_api -> blob [label="refresh token"];
+
+  ui_pkg -> chat_ui [style=dotted, arrowhead=none, constraint=false, label="shared UI"];
+  ui_pkg -> vote_ui [style=dotted, arrowhead=none, constraint=false];
+
+  {rank=same; user; x; voter;}
+  {rank=same; chat_ui; tw_ui; vote_ui;}
+  {rank=same; chat_act; eve_routes; tw_api; vote_api;}
+  {rank=same; agent; devin; ui_pkg;}
+  {rank=same; gateway; saas; neon_chat; blob; neon_vote;}
+  {rank=same; train; dpo; serve; outpost;}
+  blob -> train [label="instance images"];
+  train -> serve [label="LoRA weights"];
+  vote_api -> dpo [label="/api/export"];
+  dpo -> serve [label="post-trained LoRA"];
+}
