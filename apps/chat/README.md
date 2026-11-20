@@ -4,11 +4,12 @@ A Next.js chat template for [eve](https://eve.dev) that runs locally with browse
 
 ## Quick Start
 
-Run locally without provisioning a database or other Marketplace products:
+Run locally without provisioning a database or other Marketplace products (model calls still go through AI Gateway):
 
 1. `pnpm install`
-2. `pnpm dev`
-3. Open the app; you are signed in as the local development identity.
+2. Give the agent AI Gateway credentials: add `AI_GATEWAY_API_KEY=<key>` (create one at https://vercel.com/dashboard/ai/api-keys) to `.env.local` in this directory, or run `pnpm exec eve link` to link a Vercel project and pull `VERCEL_OIDC_TOKEN`. Without this the app loads, but every reply fails with "AI Gateway received no credentials".
+3. `pnpm dev`
+4. Open the app; you are signed in as the local development identity.
 
 Chats and eve session cursors are stored in that browser. They are not shared across browsers or users.
 
@@ -31,7 +32,7 @@ Install dependencies with pnpm:
 pnpm install
 ```
 
-Run locally without additional services:
+Run locally without a database (set AI Gateway credentials first, see Quick Start):
 
 ```bash
 pnpm dev
