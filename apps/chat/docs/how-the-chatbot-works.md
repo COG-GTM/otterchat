@@ -23,8 +23,9 @@ Important files:
 
 | File | Purpose |
 | --- | --- |
-| `agent/agent.ts` | Defines the eve agent and model. |
-| `agent/channels/eve.ts` | Configures the eve web channel and auth adapters. |
+| `agent/agent.ts` | Defines the eve agent; picks the text model per message from the `otterchatTextModel` auth attribute. |
+| `agent/tools/` | `get_weather` and `generate_image` tools. |
+| `agent/channels/eve.ts` | Configures the eve web channel, auth adapters, model headers, and the upload policy. |
 | `next.config.ts` | Wraps the app with `withEve(nextConfig)`, which mounts the `/eve/v1/*` routes. |
 | `app/(chat)/layout.tsx` | Renders the static chat shell immediately, then streams viewer/setup/sidebar data through Suspense. |
 | `app/(chat)/page.tsx` | Root chat screen. Creates a new chat row and navigates into `/chat/[id]`. |
@@ -44,7 +45,14 @@ Important files:
 | `lib/db/queries.ts` | Chat list, chat load, event save, snapshot save, and delete queries. |
 | `lib/setup.ts` | Selects local development or production mode and validates readiness. |
 | `lib/auth.ts` | Neon Auth (managed Better Auth) server instance. |
-| `lib/eve-auth.ts` | Converts Neon Auth sessions into eve channel principals. |
+| `lib/eve-auth.ts` | Converts Neon Auth sessions and anonymous session cookies into eve channel principals. |
+| `app/actions/anon.ts` | Starts the anonymous first chat and claims it after sign-in. |
+| `lib/models.ts` | Text and image model lists, request headers, and auth attribute names. |
+| `lib/chat/use-model-selection.ts` | Keeps the picked text and image models in localStorage. |
+| `lib/chat/attachments.ts` | Turns composer attachments into eve file parts. |
+| `lib/generated-images.ts` | Stores generated images in Vercel Blob, or as data URLs in local development. |
+| `lib/launchdarkly-flag.ts`, `lib/flags.ts` | Vercel Flags SDK + LaunchDarkly adapter; `lib/flags.ts` holds flag declarations. |
+| `instrumentation.ts`, `instrumentation-client.ts`, `sentry.*.config.ts` | Sentry setup for server, edge, and browser. |
 
 ## Runtime Model
 
@@ -581,14 +589,25 @@ Production mode uses:
 }
 ```
 
-`agent/channels/eve.ts` allows:
+`agent/channels/eve.ts` allows, in order:
 
 - `neonAuthEveAuth`
+- `anonymousEveAuth`
 - `vercelOidc()`
 - `localDev()`
 
-That lets the same channel work locally, in authenticated browser sessions, and
-with Vercel OIDC contexts.
+That lets the same channel work locally, in authenticated browser sessions, for
+an anonymous first chat, and with Vercel OIDC contexts.
+
+### Anonymous First Chat
+
+In production mode a signed-out visitor gets one free chat. `startAnonymousChatAction`
+(`app/actions/anon.ts`) sets the `eve_anon_session` cookie (30 days) and the client
+remembers the chat id in localStorage (`lib/chat/anon-client.ts`); `anonymousEveAuth`
+turns that cookie into an eve principal. Once that chat exists the composer is
+disabled with "You've used your free session. Sign in to start a new one."
+After sign-in, `claimAnonChatAction` moves the chat to the user and clears the
+cookie.
 
 ## Setup Readiness
 
@@ -627,6 +646,39 @@ The UI uses setup status in three places:
 3. Sidebar auth/sign-in controls
 
 Disabled composers should always provide a reason through tooltip text.
+
+## Models, Images, And Attachments
+
+The composer's model picker (`lib/chat/use-model-selection.ts`) keeps the chosen
+text and image model ids in localStorage. `agent-chat.tsx` sends them on every
+message as the `x-otterchat-text-model` and `x-otterchat-image-model` headers,
+and the channel's `onMessage` stores the resolved ids as the `otterchatTextModel`
+and `otterchatImageModel` auth attributes. Unknown ids fall back to the first
+entry in `TEXT_MODELS` / `IMAGE_MODELS` (`lib/models.ts`). All models go through
+Vercel AI Gateway.
+
+The `generate_image` tool uses the image-model attribute. Output is uploaded to
+Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set and returned as a data URL
+otherwise. `lib/otterimage.ts` can call the otterimage Modal endpoint
+(`Modal-Key` / `Modal-Secret`), but no tool uses it on `main`; see
+[the architecture doc](../../../docs/architecture.md#appsvote-and-otterimage)
+for how otterimage is trained and served.
+
+Attachments are sent as eve file parts (`lib/chat/attachments.ts`). The channel
+upload policy accepts PNG, JPEG, WebP, GIF, and PDF up to 8 MB.
+
+## Feature Flags And Error Reporting
+
+Flags use the Vercel Flags SDK with the LaunchDarkly adapter
+(`LAUNCHDARKLY_SDK_KEY`, `LAUNCHDARKLY_PROJECT_KEY`, `LAUNCHDARKLY_ENVIRONMENT`)
+and are discoverable by the Vercel Toolbar through `/.well-known/vercel/flags`
+(`FLAGS_SECRET`). Declare flags in `lib/flags.ts`.
+
+Sentry reports from the browser, server, and edge runtimes. It is on in Vercel
+`production` and `preview`, and elsewhere only when `NEXT_PUBLIC_SENTRY_ENABLED`
+(browser) or `SENTRY_ENABLED` (server and edge) is `1` or `true`
+(`lib/sentry-enabled.ts`). The DSN comes from `NEXT_PUBLIC_SENTRY_DSN`, a Vercel
+environment variable rather than a value in the repo.
 
 ## Message Limits
 
