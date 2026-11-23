@@ -75,9 +75,9 @@ jobs:
         run: |
           env_name="Preview – otterchat"
           for _ in $(seq 1 90); do
-            id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f sha="$SHA" -f environment="$env_name" -q '[.[] | select(.creator.login == "vercel[bot]")][0].id // empty')
+            id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f sha="$SHA" -f environment="$env_name" -q '[.[] | select(.creator.login == "vercel[bot]")][0].id // empty' || true)
             if [ -n "$id" ]; then
-              read -r state url < <(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -q '.[0] | "\(.state) \(.environment_url // .target_url)"')
+              read -r state url < <(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -q '.[0] | "\(.state) \(.environment_url // .target_url)"' || true) || true
               case "$state" in
                 success)
                   if [[ ! "$url" =~ ^https://otterchat-[a-z0-9-]+\.cognitiongtm\.app/?$ ]]; then
