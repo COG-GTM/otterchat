@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { bypassStatePath } from "./e2e/global-setup";
+import { bypassStatePath, vercelBypassTarget } from "./e2e/global-setup";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 
@@ -11,7 +11,7 @@ export default defineConfig({
     baseURL,
     ...devices["Desktop Chrome"],
     channel: process.env.PLAYWRIGHT_CHANNEL,
-    storageState: process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? bypassStatePath : undefined,
+    storageState: vercelBypassTarget() ? bypassStatePath : undefined,
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
