@@ -5,14 +5,18 @@ on:
     paths:
       - 'apps/chat/**'
       - 'packages/ui/**'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/chat-tests.yml'
   push:
     branches: [main]
     paths:
       - 'apps/chat/**'
       - 'packages/ui/**'
+      - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/chat-tests.yml'
   workflow_dispatch:
 
