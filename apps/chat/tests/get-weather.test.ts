@@ -35,6 +35,12 @@ describe("get_weather tool", () => {
     assertDefaultReading(await execute("   "), "   ");
   });
 
+  for (const city of ["constructor", " __proto__ "]) {
+    it(`returns a default reading for ${JSON.stringify(city)} instead of an inherited Object.prototype member`, async () => {
+      assert.deepEqual(await execute(city), { city, condition: "Sunny", temperatureF: 72 });
+    });
+  }
+
   it("falls back to the previous Sunny 72°F reading for unknown cities", async () => {
     assert.deepEqual(await execute("Atlantis"), {
       city: "Atlantis",
