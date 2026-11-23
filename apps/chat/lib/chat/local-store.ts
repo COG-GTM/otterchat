@@ -9,6 +9,7 @@ const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
 
 type StoredChat = ActiveChat & {
+  readonly favorite?: boolean;
   readonly updatedAt: string;
 };
 
@@ -46,6 +47,10 @@ export function createLocalChat(pendingUserMessage?: string) {
 
 export function deleteLocalChat(chatId: string) {
   updateState((chats) => chats.filter((chat) => chat.id !== chatId));
+}
+
+export function setLocalChatFavorite(chatId: string, favorite: boolean) {
+  updateChat(chatId, (chat) => ({ ...chat, favorite }));
 }
 
 export function markLocalChatPendingMessage(chatId: string, message: string) {
@@ -158,9 +163,19 @@ function updateChat(chatId: string, update: (chat: StoredChat) => StoredChat) {
 }
 
 function updateState(update: (chats: readonly StoredChat[]) => readonly StoredChat[]) {
-  const nextChats = [...update(readState().chats)]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, MAX_STORED_CHATS);
+  const sortedChats = [...update(readState().chats)].sort((left, right) =>
+    right.updatedAt.localeCompare(left.updatedAt),
+  );
+  // The newest chat is always kept, then favorites, then other chats by recency.
+  const retentionOrder = new Set([
+    ...sortedChats.slice(0, 1),
+    ...sortedChats.filter((chat) => chat.favorite),
+    ...sortedChats,
+  ]);
+  const retainedIds = new Set(
+    [...retentionOrder].slice(0, MAX_STORED_CHATS).map((chat) => chat.id),
+  );
+  const nextChats = sortedChats.filter((chat) => retainedIds.has(chat.id));
 
   try {
     localStorage.setItem(
@@ -221,6 +236,7 @@ function toActiveChat(chat: StoredChat): ActiveChat {
 
 function toListItem(chat: StoredChat): ChatListItem {
   return {
+    favorite: chat.favorite === true,
     id: chat.id,
     title: chat.title,
     updatedAt: chat.updatedAt,

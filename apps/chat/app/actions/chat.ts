@@ -10,11 +10,13 @@ import {
   markChatPendingMessage,
   saveChatSnapshot,
   saveChatSessionState,
+  setChatFavoriteForUser,
   skipChatAuthorization,
 } from "@/lib/db/queries";
 import { assertChatMessageLength } from "@/lib/chat/limits";
 import { getServerViewer } from "@/lib/session";
 import { getSetupStatus } from "@/lib/setup";
+import { favoriteChats } from "@/lib/flags";
 
 export async function createChatAction(input?: { readonly pendingUserMessage?: string }) {
   const viewer = await requireViewer();
@@ -112,6 +114,25 @@ export async function saveChatSessionStateAction(input: {
   await saveChatSessionState({
     chatId: input.chatId,
     session: input.session,
+    userId: viewer.id,
+  });
+
+  return { ok: true };
+}
+
+export async function setChatFavoriteAction(input: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+}) {
+  const viewer = await requireViewer();
+
+  if (!(await favoriteChats())) {
+    throw new Error("Favorite chats are not enabled.");
+  }
+
+  await setChatFavoriteForUser({
+    chatId: input.chatId,
+    favorite: input.favorite,
     userId: viewer.id,
   });
 
