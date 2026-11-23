@@ -43,6 +43,7 @@ image = (
     .uv_pip_install(requirements=[str(Path(__file__).parent / "requirements.txt")])
     .uv_pip_install("fastapi[standard]==0.116.1")
     .env({"HF_XET_HIGH_PERFORMANCE": "1", "DEVIN_OUTPOST_SESSION_ID": SESSION_ID})
+    .add_local_python_source("adapters")
 )
 
 @app.cls(
@@ -57,12 +58,13 @@ class Model:
     @modal.enter()
     def load_model(self):
         import torch
+        from adapters import load_adapter
         from diffusers import Flux2Pipeline
 
         volume.reload()
 
         pipe = Flux2Pipeline.from_pretrained(MODEL_DIR, torch_dtype=torch.bfloat16).to("cuda")
-        pipe.load_lora_weights(LORA_DIR)
+        load_adapter(pipe, LORA_DIR)
         self.pipe = pipe
 
     @modal.method()
