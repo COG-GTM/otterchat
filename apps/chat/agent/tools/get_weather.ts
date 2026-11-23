@@ -1,8 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-
-type Reading = { condition: string; temperatureF: number };
+import { lookupReading, type Reading } from "@/lib/weather";
 
 const readings: Record<string, Reading> = {};
 
@@ -12,7 +11,7 @@ export default defineTool({
   inputSchema: z.object({ city: z.string().min(1) }),
   async execute({ city }) {
     try {
-      const reading = readings[city.toLowerCase()];
+      const reading = lookupReading(readings, city);
       return { city, condition: reading.condition, temperatureF: reading.temperatureF };
     } catch (error) {
       Sentry.captureException(error, { tags: { tool: "get_weather" }, extra: { city } });
