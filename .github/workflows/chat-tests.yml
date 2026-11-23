@@ -20,10 +20,14 @@ on:
       - '.github/workflows/chat-tests.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  deployments: read
+
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
 
@@ -40,10 +44,52 @@ jobs:
       - name: Unit tests
         run: pnpm --filter otterchat test
 
+  # Runs against the PR's Vercel preview deployment, never on main.
+  a11y:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Install Playwright Chromium
         run: pnpm --filter otterchat exec playwright install --with-deps chromium
 
+      - name: Wait for Vercel preview
+        id: preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          env_name="Preview – otterchat"
+          for _ in $(seq 1 90); do
+            id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f sha="$SHA" -f environment="$env_name" -q '.[0].id // empty')
+            if [ -n "$id" ]; then
+              read -r state url < <(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -q '.[0] | "\(.state) \(.environment_url // .target_url)"')
+              case "$state" in
+                success) echo "url=$url" >> "$GITHUB_OUTPUT"; echo "Preview: $url"; exit 0 ;;
+                failure|error) echo "::error::Vercel preview deployment $state"; exit 1 ;;
+              esac
+            fi
+            sleep 10
+          done
+          echo "::error::Timed out waiting for the Vercel preview of $SHA"
+          exit 1
+
       - name: Accessibility tests
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: pnpm --filter otterchat test:a11y
 
       - name: Upload Playwright report
