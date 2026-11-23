@@ -26,7 +26,8 @@
     "typecheck": "next typegen && tsgo --noEmit -p tsconfig.json",
     "build:eve": "eve build",
     "dev:eve": "eve dev",
-    "start:eve": "eve start"
+    "start:eve": "eve start",
+    "test:a11y": "playwright test"
   },
   "dependencies": {
     "@capacitor/core": "8.5.0",
@@ -69,9 +70,11 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
     "@capacitor/android": "8.5.0",
     "@capacitor/cli": "8.5.0",
     "@capacitor/ios": "8.5.0",
+    "@playwright/test": "1.57.0",
     "@types/node": "^25.9.3",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
