@@ -90,7 +90,12 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: pnpm --filter otterchat test:a11y
+        run: |
+          if [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "::error::Missing VERCEL_AUTOMATION_BYPASS_SECRET repo secret (Vercel > Deployment Protection > Protection Bypass for Automation); previews would return the SSO page."
+            exit 1
+          fi
+          pnpm --filter otterchat test:a11y
 
       - name: Upload Playwright report
         if: failure()
