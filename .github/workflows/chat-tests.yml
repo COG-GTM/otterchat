@@ -44,13 +44,15 @@ jobs:
       - name: Unit tests
         run: pnpm --filter otterchat test
 
-  # Runs against the PR's Vercel preview deployment, never on main.
+  # Runs against the PR's Vercel preview deployment, never on main. Fork PRs get no secrets, so skip them.
   a11y:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: pnpm/action-setup@v4
 
@@ -73,11 +75,15 @@ jobs:
         run: |
           env_name="Preview – otterchat"
           for _ in $(seq 1 90); do
-            id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f sha="$SHA" -f environment="$env_name" -q '.[0].id // empty')
+            id=$(gh api -X GET "repos/$GITHUB_REPOSITORY/deployments" -f sha="$SHA" -f environment="$env_name" -q '[.[] | select(.creator.login == "vercel[bot]")][0].id // empty')
             if [ -n "$id" ]; then
               read -r state url < <(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -q '.[0] | "\(.state) \(.environment_url // .target_url)"')
               case "$state" in
-                success) echo "url=$url" >> "$GITHUB_OUTPUT"; echo "Preview: $url"; exit 0 ;;
+                success)
+                  if [[ ! "$url" =~ ^https://otterchat-[a-z0-9-]+\.cognitiongtm\.app/?$ ]]; then
+                    echo "::error::Unexpected preview URL $url"; exit 1
+                  fi
+                  echo "url=$url" >> "$GITHUB_OUTPUT"; echo "Preview: $url"; exit 0 ;;
                 failure|error) echo "::error::Vercel preview deployment $state"; exit 1 ;;
               esac
             fi
