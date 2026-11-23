@@ -120,7 +120,7 @@ pnpm dev
 - Streamdown markdown rendering for assistant text and reasoning
 - shadcn/Tailwind components for messages, tools, HITL prompts, and composer
 
-This template intentionally does not include file uploads, Vercel Blob, guest mode, NextAuth/Auth.js, or AI Elements.
+File uploads (images and PDFs up to 8 MB), Vercel Blob storage for generated images, and a single anonymous first chat are included. NextAuth/Auth.js and AI Elements are not.
 
 ## Agent Code
 
