@@ -11,6 +11,8 @@ pnpm workspace monorepo for otterchat.
 
 Requires Node 24+ (eve's dev server refuses to start on older Node; vite's
 rolldown bindings need `^20.19 || >=22.12`) and pnpm 10.
+If `pnpm` is not on your PATH, `corepack enable` installs the version pinned in
+`package.json` (`packageManager`).
 
 ```bash
 pnpm install          # installs every workspace package
@@ -23,6 +25,22 @@ pnpm build:all        # build every package
 pnpm typecheck        # typecheck every package
 pnpm lint             # lint every package
 ```
+
+`pnpm dev` starts the chat app in local development mode (browser storage, no
+database), but the agent cannot reply until it has AI Gateway credentials.
+Without them the page loads and every message fails with "AI Gateway received no
+credentials". Either put a key from
+<https://vercel.com/dashboard/ai/api-keys> in `apps/chat/.env.local`:
+
+```bash
+echo 'AI_GATEWAY_API_KEY=<your key>' >> apps/chat/.env.local
+```
+
+or run `pnpm exec eve link` from `apps/chat` to link a Vercel project and pull
+`VERCEL_OIDC_TOKEN`. Restart `pnpm dev` afterwards.
+
+`pnpm lint` only runs in packages that define a `lint` script (currently
+`otterchat-twitter`); the other packages rely on `pnpm typecheck`.
 
 Anything specific to one app can be run through a filter, or from inside its
 directory:
