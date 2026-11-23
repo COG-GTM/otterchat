@@ -1,19 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
+import { bypassStatePath } from "./e2e/global-setup";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
-const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,
     ...devices["Desktop Chrome"],
     channel: process.env.PLAYWRIGHT_CHANNEL,
-    // Lets the tests through Vercel Deployment Protection on preview deployments.
-    extraHTTPHeaders: bypassSecret
-      ? { "x-vercel-protection-bypass": bypassSecret, "x-vercel-set-bypass-cookie": "true" }
-      : undefined,
+    storageState: process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? bypassStatePath : undefined,
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
