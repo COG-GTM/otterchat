@@ -46,7 +46,7 @@ one ending per line), renders two seeds per prompt and posts them to `/api/pairs
 ```bash
 pnpm --filter ottervote pairs:generate --count 50 --vote-url https://<ottervote-host>
 pnpm --filter ottervote pairs:generate --count 10 --dry-run   # print the prompts only
-pnpm --filter ottervote pairs:generate --count 20 --model otterimage-previous   # render with OTTERIMAGE_PREVIOUS_URL
+pnpm --filter ottervote pairs:generate --count 20 --model otterimage-previous   # render with the previous LoRA
 ```
 
 `otterimage/train_flux2_dpo.py` post-trains the SFT LoRA on `/api/export` (majority winner

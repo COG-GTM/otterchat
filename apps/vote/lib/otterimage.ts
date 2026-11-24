@@ -3,10 +3,10 @@ import { del, put } from "@vercel/blob";
 
 export type OtterimageModel = { readonly id: string; readonly label: string };
 
-const MODELS = [
-  { id: "otterimage-1.0", label: "otterimage 1.0", urlEnv: "OTTERIMAGE_URL" },
-  { id: "otterimage-previous", label: "otterimage (previous)", urlEnv: "OTTERIMAGE_PREVIOUS_URL" },
-] as const;
+const MODELS: readonly (OtterimageModel & { readonly endpoint: string })[] = [
+  { id: "otterimage-1.0", label: "otterimage 1.0", endpoint: "" },
+  { id: "otterimage-previous", label: "otterimage (previous)", endpoint: "" },
+];
 
 export type RenderedImage = {
   readonly url: string;
@@ -22,12 +22,11 @@ export function availableModels(): OtterimageModel[] {
     return [];
   }
 
-  return MODELS.filter((model) => process.env[model.urlEnv]).map(({ id, label }) => ({ id, label }));
+  return MODELS.filter((model) => model.endpoint).map(({ id, label }) => ({ id, label }));
 }
 
 function modelUrl(modelId: string) {
-  const model = MODELS.find((candidate) => candidate.id === modelId);
-  return model ? process.env[model.urlEnv] : undefined;
+  return MODELS.find((candidate) => candidate.id === modelId)?.endpoint || undefined;
 }
 
 async function renderImage(url: string, prompt: string, seed: number, signal: AbortSignal): Promise<RenderedImage> {

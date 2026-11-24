@@ -118,6 +118,10 @@ initialize, so the app still runs with no LaunchDarkly credentials configured.
   client component needs the value, evaluate it on the server and pass it down as a prop.
 - Do not create a new LaunchDarkly client. Import the helper from `lib/launchdarkly.ts`.
 - Remove the flag and the dead branch once the feature is fully rolled out.
+- Hardcode otterimage endpoint URLs in code (the `endpoint` field on the model entry, e.g.
+  `apps/vote/lib/otterimage.ts`). Never read them from env vars (no `OTTERIMAGE_URL`), and
+  don't add them to `.env.example` or Vercel. Only `OTTERIMAGE_MODAL_KEY` and
+  `OTTERIMAGE_MODAL_SECRET` come from env.
 
 ## Relationship to the Flags SDK
 
