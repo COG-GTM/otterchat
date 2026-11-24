@@ -4,7 +4,7 @@ import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import { isChatTurnSettledEvent } from "@/lib/chat/events";
 import type { ActiveChat, ChatListItem, ChatListPage } from "@/lib/chat/types";
 import { createFallbackTitle, DEFAULT_CHAT_TITLE } from "@/lib/chat/title";
-import { chat, chatEvent } from "@/lib/db/schema";
+import { chat, chatEvent, chatFavorite } from "@/lib/db/schema";
 import { db } from "@/lib/db/client";
 
 const CHAT_HISTORY_PAGE_SIZE = 20;
@@ -454,4 +454,52 @@ export async function saveChatSnapshot({
 
 export async function deleteChatForUser(chatId: string, userId: string) {
   await db.delete(chat).where(and(eq(chat.id, chatId), eq(chat.userId, userId)));
+}
+
+export async function listFavoriteChatsByUser(userId: string): Promise<ChatListItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+    })
+    .from(chatFavorite)
+    .innerJoin(chat, eq(chatFavorite.chatId, chat.id))
+    .where(and(eq(chatFavorite.userId, userId), eq(chat.userId, userId)))
+    .orderBy(desc(chatFavorite.createdAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
+export async function setChatFavoriteForUser({
+  chatId,
+  favorite,
+  userId,
+}: {
+  readonly chatId: string;
+  readonly favorite: boolean;
+  readonly userId: string;
+}) {
+  if (!favorite) {
+    await db
+      .delete(chatFavorite)
+      .where(and(eq(chatFavorite.chatId, chatId), eq(chatFavorite.userId, userId)));
+    return;
+  }
+
+  const [ownedChat] = await db
+    .select({ id: chat.id })
+    .from(chat)
+    .where(and(eq(chat.id, chatId), eq(chat.userId, userId)))
+    .limit(1);
+
+  if (!ownedChat) {
+    throw new Error("Chat not found.");
+  }
+
+  await db.insert(chatFavorite).values({ chatId, userId }).onConflictDoNothing();
 }

@@ -5,6 +5,7 @@ import { createFallbackTitle, DEFAULT_CHAT_TITLE } from "@/lib/chat/title";
 import type { ActiveChat, ChatListItem } from "@/lib/chat/types";
 
 const STORAGE_KEY = "eve-chat-template:chats";
+const FAVORITES_STORAGE_KEY = "eve-chat-template:favorites";
 const STORAGE_VERSION = 1;
 const MAX_STORED_CHATS = 50;
 
@@ -139,6 +140,27 @@ export function skipLocalChatAuthorization({
     eventCount: events.length,
     eventIndex: chat.events.length - events.length,
   };
+}
+
+export function listLocalFavoriteChatIds(): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) ?? "[]") as unknown;
+
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setLocalChatFavorite(chatId: string, favorite: boolean) {
+  const ids = listLocalFavoriteChatIds().filter((id) => id !== chatId);
+
+  localStorage.setItem(
+    FAVORITES_STORAGE_KEY,
+    JSON.stringify(favorite ? [chatId, ...ids] : ids),
+  );
 }
 
 function updateChat(chatId: string, update: (chat: StoredChat) => StoredChat) {
