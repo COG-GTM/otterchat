@@ -43,6 +43,8 @@ import {
   deleteClientChat,
   getClientChat,
   listClientChats,
+  listClientFavoriteChats,
+  setClientChatFavorite,
 } from "@/lib/chat/persistence-client";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 import { cn } from "@/lib/utils";
@@ -63,6 +65,7 @@ export function AgentChatShell({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [history, setHistory] = useState<ChatListItem[]>([...initialChats]);
+  const [favoriteChats, setFavoriteChats] = useState<ChatListItem[] | null>(null);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -130,16 +133,29 @@ export function AgentChatShell({
         ...items.filter((item) => item.id !== chat.id),
       ];
     });
+    setFavoriteChats((items) =>
+      items
+        ? items.map((item) =>
+            item.id === chat.id
+              ? { ...item, title: chat.title || item.title, updatedAt: chat.updatedAt }
+              : item,
+          )
+        : items,
+    );
   }, []);
 
   const updateChatTitle = useCallback((chatId: string, title: string) => {
     setHistory((items) =>
       items.map((item) => (item.id === chatId ? { ...item, title } : item)),
     );
+    setFavoriteChats((items) =>
+      items ? items.map((item) => (item.id === chatId ? { ...item, title } : item)) : items,
+    );
   }, []);
 
   const removeChat = useCallback((chatId: string) => {
     setHistory((items) => items.filter((item) => item.id !== chatId));
+    setFavoriteChats((items) => (items ? items.filter((item) => item.id !== chatId) : items));
   }, []);
 
   const startNewChat = useCallback(() => {
@@ -177,6 +193,31 @@ export function AgentChatShell({
       }
     },
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
+  );
+
+  const handleToggleFavorite = useCallback(
+    async (chat: ChatListItem, favorite: boolean) => {
+      const previous = favoriteChats;
+
+      setFavoriteChats((items) =>
+        items
+          ? favorite
+            ? [chat, ...items.filter((item) => item.id !== chat.id)]
+            : items.filter((item) => item.id !== chat.id)
+          : items,
+      );
+
+      try {
+        const next = await setClientChatFavorite(setupStatusState.storageMode, {
+          chatId: chat.id,
+          favorite,
+        });
+        setFavoriteChats([...next]);
+      } catch {
+        setFavoriteChats(previous);
+      }
+    },
+    [favoriteChats, setupStatusState.storageMode],
   );
 
   const loadMoreChats = useCallback(async () => {
@@ -218,11 +259,13 @@ export function AgentChatShell({
   const setBootstrapData = useCallback(
     ({
       chats,
+      favoriteChats: incomingFavoriteChats,
       nextCursor: incomingNextCursor,
       setupStatus: incomingSetupStatus,
       viewer: incomingViewer,
     }: {
       readonly chats: readonly ChatListItem[];
+      readonly favoriteChats: readonly ChatListItem[] | null;
       readonly nextCursor: string | null;
       readonly setupStatus: SetupStatus;
       readonly viewer: Viewer | null;
@@ -246,6 +289,15 @@ export function AgentChatShell({
           ? listClientChats("browser").filter((item) => item.id === storedAnonChatId)
           : [];
       });
+      setFavoriteChats(
+        !incomingFavoriteChats
+          ? null
+          : !incomingViewer
+            ? []
+            : usesBrowserStorage
+              ? listClientFavoriteChats(incomingSetupStatus.storageMode)
+              : [...incomingFavoriteChats],
+      );
       setNextCursor(usesBrowserStorage ? null : incomingNextCursor);
       setHistoryLoading(false);
       cursorRef.current = usesBrowserStorage ? null : incomingNextCursor;
@@ -367,11 +419,13 @@ export function AgentChatShell({
     <ChatSidebar
       activeChatId={activeChatId}
       chats={history}
+      favoriteChats={favoriteChats}
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
       newSessionDisabledReason={newSessionDisabledReason}
       onDeleteChat={handleDeleteChat}
+      onToggleFavorite={handleToggleFavorite}
       onLoadMoreChats={loadMoreChats}
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
@@ -458,12 +512,14 @@ export function AgentChatShell({
             <ChatSidebar
               activeChatId={activeChatId}
               chats={history}
+              favoriteChats={favoriteChats}
               className="w-[84vw] max-w-80"
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
               newSessionDisabledReason={newSessionDisabledReason}
               onDeleteChat={handleDeleteChat}
+              onToggleFavorite={handleToggleFavorite}
               onLoadMoreChats={loadMoreChats}
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}
