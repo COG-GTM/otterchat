@@ -33,6 +33,7 @@ import {
   SIDEBAR_COOKIE_NAME,
 } from "@/lib/chat/sidebar-state";
 import { claimAnonChatAction } from "@/app/actions/anon";
+import { setChatFavoriteAction } from "@/app/actions/chat";
 import {
   ANON_LIMIT_REACHED_REASON,
   clearStoredAnonChatId,
@@ -72,6 +73,7 @@ export function AgentChatShell({
   const [viewerState, setViewerState] = useState(viewer);
   const [setupStatusState, setSetupStatusState] = useState(setupStatus);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [favoritesEnabled, setFavoritesEnabled] = useState(false);
   const [anonChatId, setAnonChatId] = useState<string | null>(null);
   const cursorRef = useRef(initialNextCursor);
   const activeChatIdRef = useRef(activeChatId);
@@ -123,6 +125,7 @@ export function AgentChatShell({
 
       return [
         {
+          favorite: chat.favorite ?? current?.favorite,
           id: chat.id,
           title: chat.title || current?.title || "New chat",
           updatedAt: chat.updatedAt,
@@ -179,6 +182,30 @@ export function AgentChatShell({
     [anonChatId, removeChat, setupStatusState.storageMode, startNewChat, viewerState],
   );
 
+  const handleToggleFavorite = useCallback(
+    async (chatId: string, favorite: boolean) => {
+      if (!viewerState || setupStatusState.storageMode !== "database") {
+        // DEMO BUG (intentional): favorite icon renders for signed-out users but clicking it is a no-op (favorites require a user)
+        return;
+      }
+
+      setHistory((items) =>
+        items.map((item) => (item.id === chatId ? { ...item, favorite } : item)),
+      );
+
+      try {
+        await setChatFavoriteAction({ chatId, favorite });
+      } catch {
+        setHistory((items) =>
+          items.map((item) =>
+            item.id === chatId ? { ...item, favorite: !favorite } : item,
+          ),
+        );
+      }
+    },
+    [setupStatusState.storageMode, viewerState],
+  );
+
   const loadMoreChats = useCallback(async () => {
     const cursor = cursorRef.current;
 
@@ -218,15 +245,18 @@ export function AgentChatShell({
   const setBootstrapData = useCallback(
     ({
       chats,
+      favoritesEnabled: incomingFavoritesEnabled,
       nextCursor: incomingNextCursor,
       setupStatus: incomingSetupStatus,
       viewer: incomingViewer,
     }: {
       readonly chats: readonly ChatListItem[];
+      readonly favoritesEnabled: boolean;
       readonly nextCursor: string | null;
       readonly setupStatus: SetupStatus;
       readonly viewer: Viewer | null;
     }) => {
+      setFavoritesEnabled(incomingFavoritesEnabled);
       setSetupStatusState(incomingSetupStatus);
       setViewerState(incomingViewer);
       const usesBrowserStorage = incomingSetupStatus.storageMode === "browser";
@@ -367,6 +397,7 @@ export function AgentChatShell({
     <ChatSidebar
       activeChatId={activeChatId}
       chats={history}
+      favoritesEnabled={favoritesEnabled}
       hasMoreChats={Boolean(nextCursor)}
       isLoadingChats={historyLoading}
       isLoadingMore={loadingMore}
@@ -376,6 +407,7 @@ export function AgentChatShell({
       onNavigate={handleSidebarNavigate}
       onNewChat={startNewChat}
       onSignIn={() => requestSignIn()}
+      onToggleFavorite={handleToggleFavorite}
       onToggleSidebar={() => setDesktopSidebarOpenPersisted(false)}
       setupStatus={setupStatusState}
       viewer={viewerState}
@@ -459,6 +491,7 @@ export function AgentChatShell({
               activeChatId={activeChatId}
               chats={history}
               className="w-[84vw] max-w-80"
+              favoritesEnabled={favoritesEnabled}
               hasMoreChats={Boolean(nextCursor)}
               isLoadingChats={historyLoading}
               isLoadingMore={loadingMore}
@@ -468,6 +501,7 @@ export function AgentChatShell({
               onNavigate={handleSidebarNavigate}
               onNewChat={startNewChat}
               onSignIn={() => requestSignIn()}
+              onToggleFavorite={handleToggleFavorite}
               setupStatus={setupStatusState}
               viewer={viewerState}
             />

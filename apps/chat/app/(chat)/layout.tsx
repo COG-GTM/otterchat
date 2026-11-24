@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { AgentChatBootstrapSync } from "@/app/_components/agent-chat-bootstrap-sync";
 import { AgentChatShell } from "@/app/_components/agent-chat-shell";
 import { listChatsPageByUser } from "@/lib/db/queries";
+import { boolVariation } from "@/lib/launchdarkly";
 import { getServerViewer } from "@/lib/session";
 import { getInitialSetupStatus, getSetupStatus } from "@/lib/setup";
 
@@ -33,10 +34,16 @@ async function ResolvedChatBootstrap() {
     viewer && appReady && setupStatus.storageMode === "database"
       ? await listChatsPageByUser(viewer.id)
       : { items: [], nextCursor: null };
+  const favoritesEnabled = await boolVariation(
+    "favorite-chats",
+    false,
+    viewer ? { kind: "user", key: viewer.id } : undefined,
+  );
 
   return (
     <AgentChatBootstrapSync
       chats={initialChatsPage.items}
+      favoritesEnabled={favoritesEnabled}
       nextCursor={initialChatsPage.nextCursor}
       setupStatus={setupStatus}
       viewer={viewer}
