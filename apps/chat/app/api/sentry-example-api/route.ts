@@ -1,17 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
 import { connection } from "next/server";
 
-class SentryExampleAPIError extends Error {
-  constructor(message: string | undefined) {
-    super(message);
-    this.name = "SentryExampleAPIError";
-  }
-}
+import { sentryExampleApiResponse } from "@/lib/sentry-example";
 
 export async function GET() {
   await connection();
-  Sentry.logger.info("Sentry example API called");
-  throw new SentryExampleAPIError(
-    "This error is raised on the backend called by the example page.",
+  return sentryExampleApiResponse(process.env.VERCEL_ENV, (message) =>
+    Sentry.logger.info(message),
   );
 }
